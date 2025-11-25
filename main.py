@@ -110,7 +110,10 @@ async def process_presentation(
     logger.info("\n" + "="*60)
     logger.info("Processing complete!")
     logger.info(f"1. Notes only: {output_path_notes}")
-    logger.info(f"2. With visuals: {output_path_visuals}")
+    if output_path_visuals:
+        logger.info(f"2. With visuals: {output_path_visuals}")
+    else:
+        logger.info("2. With visuals: [SKIPPED - missing images]")
     logger.info("="*60)
 
     return output_path_notes, output_path_visuals

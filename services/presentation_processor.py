@@ -120,7 +120,7 @@ class PresentationProcessor:
         supervisor_runner = await self._initialize_supervisor()
 
         # Process slides
-        await self._process_slides(
+        missing_visuals_count = await self._process_slides(
             prs_notes, prs_visuals, pdf_doc, limit, progress,
             supervisor_runner, presentation_theme,
             global_context
@@ -133,8 +133,15 @@ class PresentationProcessor:
         prs_notes.save(output_path_notes)
         logger.info(f"Saved presentation with notes to: {output_path_notes}")
 
-        prs_visuals.save(output_path_visuals)
-        logger.info(f"Saved presentation with visuals to: {output_path_visuals}")
+        # Only save visuals presentation if all images were generated
+        if missing_visuals_count == 0:
+            prs_visuals.save(output_path_visuals)
+            logger.info(f"Saved presentation with visuals to: {output_path_visuals}")
+        else:
+            logger.warning(
+                "Skipping visuals presentation save: %d slide(s) missing images" % missing_visuals_count
+            )
+            output_path_visuals = None
 
         return output_path_notes, output_path_visuals
 
@@ -221,8 +228,12 @@ class PresentationProcessor:
         supervisor_runner: InMemoryRunner,
         presentation_theme: str,
         global_context: str,
-    ) -> None:
-        """Process all slides in both presentations."""
+    ) -> int:
+        """Process all slides in both presentations.
+        
+        Returns:
+            Number of slides with missing visuals
+        """
         user_id = "supervisor_user"
         session_id = "supervisor_session"
 
@@ -297,6 +308,7 @@ class PresentationProcessor:
         logger.info("PHASE 2: Generating visuals for all slides")
         logger.info("="*60)
         
+        missing_visuals_count = 0
         for slide_info in slide_data:
             slide_idx = slide_info["slide_idx"]
             slide_visuals = slide_info["slide_visuals"]
@@ -319,11 +331,19 @@ class PresentationProcessor:
                     self.visual_generator.replace_slide_with_visual(
                         prs_visuals, slide_visuals, img_path, speaker_notes
                     )
+                else:
+                    logger.warning(
+                        "No image generated for Slide %d; visuals presentation will be skipped" % slide_idx
+                    )
+                    missing_visuals_count += 1
             else:
                 logger.warning(
                     f"Skipping visual generation for Slide {slide_idx} "
                     f"due to notes generation failure"
                 )
+                missing_visuals_count += 1
+        
+        return missing_visuals_count
 
     def _get_existing_notes(self, slide) -> str:
         """Extract existing notes from a slide."""
