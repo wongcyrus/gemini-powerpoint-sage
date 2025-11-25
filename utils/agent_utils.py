@@ -54,7 +54,7 @@ async def run_stateless_agent(
     Returns:
         Agent's text response
     """
-    runner = InMemoryRunner(agent=agent, app_name=agent.name)
+    runner = InMemoryRunner(agent=agent, app_name="agents")
     user_id = "system_user"
     
     # Build content parts
@@ -70,7 +70,7 @@ async def run_stateless_agent(
     
     # Create new session for statelessness
     session = await runner.session_service.create_session(
-        app_name=agent.name,
+        app_name="agents",
         user_id=user_id,
     )
     
@@ -132,27 +132,36 @@ async def run_visual_agent(
     Returns:
         Generated image as bytes, or None if no image was generated
     """
-    runner = InMemoryRunner(agent=agent, app_name=agent.name)
+    if prompt is None:
+        logger.warning("run_visual_agent received None prompt; coercing to empty string.")
+        prompt = ""
+    logger.debug(f"Starting visual agent: {agent.name}")
+    logger.debug(f"Prompt length: {len(prompt)} chars")
+    logger.debug(f"Number of input images: {len(images) if images else 0}")
+    
+    runner = InMemoryRunner(agent=agent, app_name="agents")
     user_id = "system_user"
     
     # Build content parts
     parts = [types.Part.from_text(text=prompt)]
     if images:
-        for img in images:
+        for idx, img in enumerate(images):
             try:
                 parts.append(create_image_part(img))
+                logger.debug(f"Attached image {idx+1}: {img.size}")
             except Exception as e:
-                logger.error(f"Failed to attach image part: {e}")
+                logger.error(f"Failed to attach image part {idx+1}: {e}")
 
     content = types.Content(role='user', parts=parts)
     
     # Create new session
     session = await runner.session_service.create_session(
-        app_name=agent.name,
+        app_name="agents",
         user_id=user_id,
     )
     
     resolved_session_id = _get_session_id(session)
+    logger.debug(f"Session ID: {resolved_session_id}")
 
     # Log execution
     print(f"\n┌── [Agent: {agent.name} (Visual)]")
@@ -162,28 +171,43 @@ async def run_visual_agent(
     print(f"│ Task: {truncated_prompt}")
 
     generated_image_bytes = None
+    text_response = ""
 
     try:
+        logger.debug("Running agent...")
         for event in runner.run(
             user_id=user_id,
             session_id=resolved_session_id,
             new_message=content,
         ):
             if getattr(event, "content", None) and event.content.parts:
-                for part in event.content.parts:
+                logger.debug(f"Event received with {len(event.content.parts)} parts")
+                for part_idx, part in enumerate(event.content.parts):
                     # Check for inline_data or file_data
                     inline_data = getattr(part, "inline_data", None)
                     if inline_data:
                         generated_image_bytes = inline_data.data
+                        logger.debug(f"Part {part_idx}: Received image data ({len(inline_data.data)} bytes)")
                         print("│ [Received Image Data]")
+                    
+                    # Also check for text response
+                    text = getattr(part, "text", None)
+                    if text:
+                        text_response += text
+                        logger.debug(f"Part {part_idx}: Text response ({len(text)} chars)")
+                        
     except Exception as e:
-        logger.error(f"Error running visual agent {agent.name}: {e}")
+        logger.error(f"Error running visual agent {agent.name}: {e}", exc_info=True)
         return None
 
     # Log result
     if generated_image_bytes:
+        logger.info(f"Image generated successfully: {len(generated_image_bytes)} bytes")
         print(f"└-> Response: [Image Generated ({len(generated_image_bytes)} bytes)]")
     else:
+        logger.warning(f"No image generated. Text response: {text_response[:200]}")
         print(f"└-> Response: [No Image Generated]")
+        if text_response:
+            logger.debug(f"Full text response: {text_response}")
         
     return generated_image_bytes

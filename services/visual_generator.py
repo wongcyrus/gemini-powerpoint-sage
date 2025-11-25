@@ -1,4 +1,9 @@
-"""Visual generation service for Gemini Powerpoint Sage."""
+"""Visual generation service for Gemini Powerpoint Sage.
+
+Primary attempt: Gemini model (designer_agent).
+Fallback (if no image bytes OR forced): Imagen API via genai.Client for direct image generation.
+Set env var FORCE_FALLBACK_IMAGE_GEN=1 to bypass primary and test fallback directly.
+"""
 
 import io
 import logging
@@ -10,6 +15,8 @@ from pptx import Presentation
 from pptx.util import Inches, Pt
 
 from google.adk.agents import LlmAgent
+from google import genai
+from google.genai import types
 
 from utils.agent_utils import run_visual_agent
 
@@ -24,6 +31,7 @@ class VisualGenerator:
         designer_agent: LlmAgent,
         output_dir: str,
         skip_generation: bool = False,
+        fallback_imagen_model: str = "imagen-4.0-generate-001",
     ):
         """
         Initialize the visual generator.
@@ -32,8 +40,10 @@ class VisualGenerator:
             designer_agent: Agent for generating slide designs
             output_dir: Directory to save generated visuals
             skip_generation: Whether to skip visual generation
+            fallback_imagen_model: Imagen model name for fallback generation
         """
         self.designer_agent = designer_agent
+        self.fallback_imagen_model = fallback_imagen_model
         self.output_dir = output_dir
         self.skip_generation = skip_generation
         self.previous_image: Optional[Image.Image] = None
@@ -87,34 +97,53 @@ class VisualGenerator:
                 # Fall through to regenerate
 
         # Generate new visual
-        logger.info(f"--- Generating Visual for Slide {slide_idx} ---")
+        force_fallback = os.getenv("FORCE_FALLBACK_IMAGE_GEN") == "1"
+        logger.info("--- Generating Visual for Slide %d (force_fallback=%s) ---" % (slide_idx, force_fallback))
 
-        logo_instruction = self._get_logo_instruction(slide_idx)
-        designer_prompt = self._build_designer_prompt(
-            speaker_notes,
-            logo_instruction
-        )
+        img_bytes = None
+        if not force_fallback:
+            logo_instruction = self._get_logo_instruction(slide_idx)
+            designer_prompt = self._build_designer_prompt(
+                speaker_notes,
+                logo_instruction
+            )
+            if designer_prompt is None:
+                logger.warning("_build_designer_prompt returned None; using minimal fallback prompt.")
+                designer_prompt = (
+                    "Speaker Notes: " + speaker_notes[:400] + "\nTASK: Generate a high-fidelity slide image."
+                )
 
-        designer_images = [slide_image]
-        if self.previous_image:
-            designer_images.append(self.previous_image)
+            designer_images = [slide_image]
+            if self.previous_image:
+                designer_images.append(self.previous_image)
 
-        img_bytes = await run_visual_agent(
-            self.designer_agent,
-            designer_prompt,
-            images=designer_images
-        )
+            img_bytes = await run_visual_agent(
+                self.designer_agent,
+                designer_prompt,
+                images=designer_images
+            )
+        else:
+            logger.info("Force fallback enabled; skipping primary designer model.")
+
+        # Fallback using Imagen API directly if primary returned no image or forced
+        if force_fallback or not img_bytes:
+            logger.info("FALLBACK: Calling Imagen model '%s' for Slide %d" % (self.fallback_imagen_model, slide_idx))
+            fallback_prompt = self._build_fallback_prompt(speaker_notes)
+            try:
+                img_bytes = await self._generate_imagen_directly(fallback_prompt)
+            except Exception as e:
+                logger.error("Fallback Imagen generation failed for Slide %d: %s" % (slide_idx, e))
 
         if img_bytes:
             try:
                 with open(img_path, "wb") as f:
                     f.write(img_bytes)
-                logger.info(f"Saved reimagined slide to: {img_path}")
+                logger.info("Saved reimagined slide to: %s" % img_path)
                 self._update_previous_image(img_bytes)
             except Exception as e:
-                logger.error(f"Failed to save generated image: {e}")
+                logger.error("Failed to save generated image: %s" % e)
         else:
-            logger.warning(f"No image generated for Slide {slide_idx}")
+            logger.warning("No image generated for Slide %d" % slide_idx)
             self.previous_image = None
 
         return img_bytes
@@ -264,13 +293,12 @@ class VisualGenerator:
         speaker_notes: str,
         logo_instruction: str
     ) -> str:
-        """Build the prompt for the designer agent."""
+        """Build the prompt for the primary (Gemini) designer agent."""
         style_ref = (
             "Style Reference (Previous Slide) provided."
             if self.previous_image
             else "N/A"
         )
-
         return (
             f"IMAGE 1: Original Slide Image provided.\n"
             f"IMAGE 2: {style_ref}\n"
@@ -278,6 +306,48 @@ class VisualGenerator:
             f"TASK: Generate the high-fidelity slide image now.\n"
             f"CONTEXT: {logo_instruction}\n"
         )
+
+    def _build_fallback_prompt(self, speaker_notes: str) -> str:
+        """Prompt for Imagen fallback rendering."""
+        return (
+            "Create a professional 16:9 presentation slide. "
+            + "Speaker Notes: " + speaker_notes.strip() + "\n"
+            + "Instructions: Derive a clear short title and 3-4 concise bullets. Render a clean slide with balanced whitespace, legible typography, subtle modern background (gradient or flat), high contrast accessible text. NO logos, NO photorealistic invented imagery."
+        )
+
+    async def _generate_imagen_directly(self, prompt: str) -> Optional[bytes]:
+        """Generate image using Imagen API directly (not via ADK agent).
+        
+        Args:
+            prompt: Text prompt for image generation
+            
+        Returns:
+            Image bytes or None if generation failed
+        """
+        try:
+            client = genai.Client()
+            response = client.models.generate_images(
+                model=self.fallback_imagen_model,
+                prompt=prompt,
+                config=types.GenerateImagesConfig(
+                    number_of_images=1,
+                    include_rai_reason=True,
+                    output_mime_type='image/png',
+                    aspect_ratio='16:9',  # Match PowerPoint slide dimensions
+                )
+            )
+            
+            if response.generated_images:
+                image_bytes = response.generated_images[0].image.image_bytes
+                logger.info("Imagen generated image: %d bytes" % len(image_bytes))
+                return image_bytes
+            else:
+                logger.warning("Imagen returned no images")
+                return None
+                
+        except Exception as e:
+            logger.error("Imagen API call failed: %s" % e)
+            return None
 
     def _update_previous_image(self, img_bytes: bytes) -> None:
         """Update the previous image for style consistency."""

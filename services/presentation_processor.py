@@ -70,10 +70,12 @@ class PresentationProcessor:
         )
 
         # Initialize visual generator
+        fallback_model = os.getenv("FALLBACK_IMAGEN_MODEL", "imagen-4.0-generate-001")
         self.visual_generator = VisualGenerator(
             designer_agent=designer_agent,
             output_dir=config.visuals_dir,
             skip_generation=config.skip_visuals,
+            fallback_imagen_model=fallback_model,
         )
 
         # Progress tracking
@@ -195,14 +197,14 @@ class PresentationProcessor:
         """Initialize and create supervisor session."""
         supervisor_runner = InMemoryRunner(
             agent=self.supervisor_agent,
-            app_name="supervisor"
+            app_name="agents"
         )
 
         user_id = "supervisor_user"
         session_id = "supervisor_session"
 
         await supervisor_runner.session_service.create_session(
-            app_name="supervisor",
+            app_name="agents",
             user_id=user_id,
             session_id=session_id
         )

@@ -15,17 +15,42 @@ import asyncio
 import logging
 import os
 import sys
+from datetime import datetime
 
 from config import Config
 from services.presentation_processor import PresentationProcessor
 
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s:%(name)s:%(message)s',
-    stream=sys.stdout
+# Setup logging with both file and console output
+logs_dir = os.path.join(os.getcwd(), "logs")
+os.makedirs(logs_dir, exist_ok=True)
+
+log_filename = f"gemini_powerpoint_sage_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+log_filepath = os.path.join(logs_dir, log_filename)
+
+# Create formatter
+formatter = logging.Formatter(
+    '%(asctime)s - %(levelname)s - %(name)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
 )
+
+# File handler with DEBUG level
+file_handler = logging.FileHandler(log_filepath, encoding='utf-8')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+# Console handler with INFO level
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter('%(levelname)s:%(name)s:%(message)s'))
+
+# Configure root logger
+logging.basicConfig(
+    level=logging.DEBUG,
+    handlers=[file_handler, console_handler]
+)
+
 logger = logging.getLogger(__name__)
+logger.info(f"Debug log file: {log_filepath}")
 
 
 async def process_presentation(
