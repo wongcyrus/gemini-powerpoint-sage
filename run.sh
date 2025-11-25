@@ -13,14 +13,19 @@ if [ "$#" -lt 4 ]; then
     exit 1
 fi
 
-# Set Google Cloud Environment Variables
-# You may need to adjust these or set them in your shell before running
-export GOOGLE_CLOUD_PROJECT="langbridge-presenter"
-export GOOGLE_CLOUD_LOCATION="global"
-export GOOGLE_GENAI_USE_VERTEXAI="True"
+# Activate virtual environment if it exists
+if [ -d ".venv" ]; then
+    echo "Activating virtual environment..."
+    source .venv/bin/activate
+else
+    echo "Warning: Virtual environment not found. Run ./setup.sh first."
+    echo "Continuing with system Python..."
+fi
 
-# Default region
-export GOOGLE_CLOUD_LOCATION="global"
+# Set Google Cloud Environment Variables (defaults only if not already set)
+export GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-"langbridge-presenter"}
+export GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-"global"}
+export GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI:-"True"}
 
 echo "Starting Gemini Powerpoint Sage..."
 echo "Project: $GOOGLE_CLOUD_PROJECT"

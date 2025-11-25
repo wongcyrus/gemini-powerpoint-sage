@@ -10,6 +10,15 @@ Example:
 # Ensure we are running from the script's directory
 Set-Location -Path $PSScriptRoot
 
+# Activate virtual environment if it exists
+if (Test-Path ".venv\Scripts\Activate.ps1") {
+    Write-Host "Activating virtual environment..." -ForegroundColor Cyan
+    & .\.venv\Scripts\Activate.ps1
+} else {
+    Write-Host "Warning: Virtual environment not found. Run .\setup.ps1 first." -ForegroundColor Yellow
+    Write-Host "Continuing with system Python..." -ForegroundColor Yellow
+}
+
 # Parse arguments expecting flag/value pairs: --pptx path --pdf path
 if ($args.Count -lt 4) {
     Write-Host "Usage: ./run.ps1 --pptx <path_to_pptx> --pdf <path_to_pdf>" -ForegroundColor Yellow
@@ -34,17 +43,15 @@ if (-not $pptx -or -not $pdf) {
     exit 1
 }
 
-# Set Google Cloud environment variables
-# Change GOOGLE_CLOUD_PROJECT to your alternate project ID to avoid rate limits
-$env:GOOGLE_CLOUD_PROJECT = 'langbridge-presenter'  # Change this to your other project
-$env:GOOGLE_CLOUD_LOCATION = 'global'
-$env:GOOGLE_GENAI_USE_VERTEXAI = 'True'
+# Set Google Cloud environment variables (defaults only if not already set)
+if (-not $env:GOOGLE_CLOUD_PROJECT) { $env:GOOGLE_CLOUD_PROJECT = 'langbridge-presenter' }
+if (-not $env:GOOGLE_CLOUD_LOCATION) { $env:GOOGLE_CLOUD_LOCATION = 'global' }
+if (-not $env:GOOGLE_GENAI_USE_VERTEXAI) { $env:GOOGLE_GENAI_USE_VERTEXAI = 'True' }
 
 Write-Host "Starting Gemini Powerpoint Sage..." -ForegroundColor Cyan
 Write-Host "Project: $($env:GOOGLE_CLOUD_PROJECT)" -ForegroundColor Cyan
 
-# Build the argument list to forward exactly as received
-$forwardArgs = @('--pptx', $pptx, '--pdf', $pdf)
+# Forward all original arguments exactly as received
 
 # Prefer python if available, fallback to python3
 $pythonCmd = if (Get-Command python -ErrorAction SilentlyContinue) { 'python' } elseif (Get-Command python3 -ErrorAction SilentlyContinue) { 'python3' } else { $null }
@@ -53,8 +60,8 @@ if (-not $pythonCmd) {
     exit 127
 }
 
-# Execute main.py
-& $pythonCmd 'main.py' @forwardArgs
+# Execute main.py with all arguments
+& $pythonCmd 'main.py' @args
 $exitCode = $LASTEXITCODE
 
 if ($exitCode -eq 0) {

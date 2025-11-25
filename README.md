@@ -58,9 +58,31 @@ graph TD
 ```
 
 ## Setup
-1.  Navigate to the tool's directory:
+
+### Quick Setup (Recommended)
+
+#### Linux/macOS
+```bash
+./setup.sh
+```
+
+#### Windows
+```powershell
+.\setup.ps1
+```
+
+The setup script will:
+- Create a Python virtual environment at `.venv`
+- Install all required dependencies from `requirements.txt`
+- Configure the environment for use
+
+### Manual Setup
+1.  Create a virtual environment:
     ```bash
-    cd backend/speaker_note_generator
+    python3 -m venv .venv
+    source .venv/bin/activate  # Linux/macOS
+    # or
+    .\.venv\Scripts\Activate.ps1  # Windows
     ```
 2.  Install the required Python dependencies:
     ```bash
@@ -71,7 +93,7 @@ graph TD
 ## Usage
 
 ### Linux/macOS
-Run the `run.sh` script:
+Run the `run.sh` script (it will automatically activate the virtual environment):
 
 ```bash
 ./run.sh --pptx /path/to/your/presentation.pptx --pdf /path/to/your/presentation.pdf
@@ -86,7 +108,7 @@ export GOOGLE_CLOUD_LOCATION='global'
 ```
 
 ### Windows
-Run the `run.ps1` PowerShell script:
+Run the `run.ps1` PowerShell script (it will automatically activate the virtual environment):
 
 ```powershell
 .\run.ps1 --pptx "C:\path\to\your\presentation.pptx" --pdf "C:\path\to\your\presentation.pdf"
