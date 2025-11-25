@@ -25,12 +25,12 @@ See the extended design rationale, sequence flows, and agent interface contracts
 graph TD
     A[User Input: PPTX, PDF] --> B(Extract All PDF Slide Images);
 
-    subgraph Pass 1: Global Context Generation
+    subgraph Pass1[Pass 1: Global Context Generation]
         B --> C{Overviewer Agent};
         C --> D[Global Context Guide];
     end
 
-    subgraph Pass 2: Per-Slide Processing (Loop for each Slide)
+    subgraph Pass2[Pass 2: Per-Slide Processing]
         D --> E{Supervisor Agent};
         E -- "Existing Notes" --> F{Auditor Agent};
         F -- "USEFUL" --> G[Use Existing Notes];
@@ -41,11 +41,11 @@ graph TD
         I -- "Speaker Notes" --> J[Update PPTX Notes];
         
         J -- "Notes & Current Slide" --> K{Designer Agent};
-        K -- "Previous Generated Image (for Style Consistency)" --> K;
+        K -- "Previous Generated Image" --> K;
         K -- "Reimagined Slide Image" --> L[Save PNG & Add to New PPTX];
         
-        L -- "Updated Previous Image" --> K; // Loop for next slide
-        I -- "Updated Previous Notes" --> E; // Loop for next slide
+        L -- "Updated Previous Image" --> K;
+        I -- "Updated Previous Notes" --> E;
     end
 
     L --> M(Output: Enhanced PPTX);

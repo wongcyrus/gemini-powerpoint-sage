@@ -3,7 +3,7 @@
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │                           CLI Layer                                 │
-│                          main.py (152 lines)                        │
+│                          main.py (124 lines)                        │
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │ • Parse arguments                                            │  │
 │  │ • Set environment variables                                  │  │
@@ -14,7 +14,7 @@
                                    ▼
 ┌────────────────────────────────────────────────────────────────────┐
 │                      Configuration Layer                            │
-│                         config.py (130 lines)                       │
+│                         config.py (109 lines)                       │
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │ • Validate input files                                       │  │
 │  │ • Manage environment variables                               │  │
@@ -28,7 +28,7 @@
 │                         Service Layer                               │
 │                                                                      │
 │  ┌─────────────────────────────────────────────────────────────┐  │
-│  │         PresentationProcessor (420 lines)                    │  │
+│  │         PresentationProcessor (416 lines)                    │  │
 │  │  ┌────────────────────────────────────────────────────────┐ │  │
 │  │  │ • Load presentation & PDF                              │ │  │
 │  │  │ • Generate/load global context                         │ │  │
@@ -39,7 +39,7 @@
 │  └─────────────────────────────────────────────────────────────┘  │
 │                                                                      │
 │  ┌─────────────────────────────────────────────────────────────┐  │
-│  │           VisualGenerator (230 lines)                        │  │
+│  │           VisualGenerator (241 lines)                        │  │
 │  │  ┌────────────────────────────────────────────────────────┐ │  │
 │  │  │ • Generate enhanced slide visuals                      │ │  │
 │  │  │ • Manage style consistency                             │ │  │
@@ -53,15 +53,15 @@
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
 │       Tool Factory Layer      │   │      Utility Layer            │
 │  tools/agent_tools.py         │   │                               │
-│         (130 lines)            │   │  utils/image_utils.py         │
-│  ┌─────────────────────────┐ │   │         (80 lines)             │
+│         (109 lines)            │   │  utils/image_utils.py         │
+│  ┌─────────────────────────┐ │   │         (70 lines)             │
 │  │ • create_analyst_tool()  │ │   │  ┌─────────────────────────┐ │
 │  │ • create_writer_tool()   │ │   │  │ • Image registry        │ │
 │  │ • create_auditor_tool()  │ │   │  │ • PIL ↔ Part conversion │ │
 │  │ • Track writer output    │ │   │  └─────────────────────────┘ │
 │  └─────────────────────────┘ │   │                               │
 └──────────────────────────────┘   │  utils/progress_utils.py      │
-                                    │         (105 lines)            │
+                                    │         (98 lines)             │
                                     │  ┌─────────────────────────┐ │
                                     │  │ • Load/save progress    │ │
                                     │  │ • Create slide keys     │ │
@@ -69,7 +69,7 @@
                                     │  └─────────────────────────┘ │
                                     │                               │
                                     │  utils/agent_utils.py         │
-                                    │         (180 lines)            │
+                                    │         (171 lines)            │
                                     │  ┌─────────────────────────┐ │
                                     │  │ • run_stateless_agent() │ │
                                     │  │ • run_visual_agent()    │ │
@@ -196,32 +196,12 @@ generator.add_visual_to_presentation(...)
 generator.reset_style_context()
 ```
 
-## Benefits Visualization
+## Architecture Benefits
 
 ```
-Before Refactoring:
-┌────────────────────────────────────┐
-│         main.py (592 lines)        │
-│                                    │
-│  Everything mixed together:        │
-│  • CLI parsing                     │
-│  • Configuration                   │
-│  • Image handling                  │
-│  • Progress tracking               │
-│  • Agent execution                 │
-│  • Visual generation               │
-│  • Presentation processing         │
-│                                    │
-│  ❌ Hard to test                   │
-│  ❌ Hard to maintain               │
-│  ❌ Hard to reuse                  │
-│  ❌ Hard to extend                 │
-└────────────────────────────────────┘
-
-After Refactoring:
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
 │  main.py     │  │  config.py   │  │  services/   │
-│  (152 lines) │  │  (130 lines) │  │  (650 lines) │
+│  (124 lines) │  │  (109 lines) │  │  (657 lines) │
 │  ✅ CLI only │  │  ✅ Config   │  │  ✅ Business │
 └──────────────┘  └──────────────┘  └──────────────┘
        │                 │                  │
@@ -231,7 +211,7 @@ After Refactoring:
             │                         │
 ┌───────────▼─────┐       ┌───────────▼─────┐
 │  tools/         │       │  utils/          │
-│  (130 lines)    │       │  (365 lines)     │
+│  (109 lines)    │       │  (339 lines)     │
 │  ✅ Tool factory│       │  ✅ Reusable     │
 └─────────────────┘       └──────────────────┘
 
@@ -241,14 +221,14 @@ After Refactoring:
 ✅ Easy to extend
 ```
 
-## Success Metrics
+## Architecture Quality Metrics
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Main file size | 592 lines | 152 lines | 74% reduction |
-| Average module size | N/A | ~150 lines | Focused modules |
-| Testable components | 1 | 9 | 900% increase |
-| Coupling | High | Low | Loose coupling |
-| Cohesion | Low | High | Clear responsibilities |
-| Code duplication | Medium | Low | DRY principle |
-| Extensibility | Difficult | Easy | Plugin-ready |
+| Metric | Status | Notes |
+|--------|--------|-------|
+| Main file size | 124 lines | Focused CLI interface |
+| Average module size | ~150 lines | Well-sized, maintainable modules |
+| Testable components | 9 modules | Each with single responsibility |
+| Coupling | Low | Loose coupling via dependency injection |
+| Cohesion | High | Clear, focused responsibilities |
+| Code duplication | Low | DRY principle applied throughout |
+| Extensibility | High | Plugin-ready architecture |
