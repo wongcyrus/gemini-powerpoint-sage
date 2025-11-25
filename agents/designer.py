@@ -5,7 +5,7 @@ from . import prompt
 
 designer_agent = LlmAgent(
     name="slide_designer",
-    model="gemini-3-pro-image-preview", # Specialized for image generation
-    description="Generates high-fidelity slide images based on drafts and notes.",
+    model="gemini-3-pro-image-preview",
+    description="Generates high-fidelity slide images.",
     instruction=prompt.DESIGNER_PROMPT
 )

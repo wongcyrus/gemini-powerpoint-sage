@@ -473,10 +473,22 @@ class PresentationProcessor:
         )
 
     def _update_slide_notes(self, slide, notes: str) -> None:
-        """Update the notes on a slide."""
+        """Update the notes on a slide as plain text without bullets."""
         try:
             if not slide.has_notes_slide:
                 slide.notes_slide
-            slide.notes_slide.notes_text_frame.text = notes
+            
+            text_frame = slide.notes_slide.notes_text_frame
+            text_frame.clear()
+            
+            # Add notes as single paragraph without bullet formatting
+            p = text_frame.paragraphs[0]
+            p.text = notes
+            p.level = 0
+            
+            # Explicitly remove bullet formatting
+            from pptx.enum.text import PP_ALIGN
+            p.alignment = PP_ALIGN.LEFT
+            
         except Exception as e:
             logger.error(f"Failed to update slide notes: {e}")

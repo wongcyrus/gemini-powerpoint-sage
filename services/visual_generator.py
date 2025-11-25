@@ -157,10 +157,21 @@ class VisualGenerator:
                 height=slide_height
             )
 
-            # Add speaker notes to the notes section
+            # Add speaker notes to the notes section as plain text
             if not slide.has_notes_slide:
                 slide.notes_slide
-            slide.notes_slide.notes_text_frame.text = speaker_notes
+            
+            text_frame = slide.notes_slide.notes_text_frame
+            text_frame.clear()
+            
+            # Add notes as single paragraph without bullet formatting
+            p = text_frame.paragraphs[0]
+            p.text = speaker_notes
+            p.level = 0
+            
+            # Explicitly remove bullet formatting
+            from pptx.enum.text import PP_ALIGN
+            p.alignment = PP_ALIGN.LEFT
 
             logger.info(
                 f"Replaced slide content with reimagined visual."
