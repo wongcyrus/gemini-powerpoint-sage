@@ -6,10 +6,11 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR" || exit 1
 
-# Check arguments
-if [ "$#" -lt 4 ]; then
-    echo "Usage: ./run.sh --pptx <path_to_pptx> --pdf <path_to_pdf>"
-    echo "Example: ./run.sh --pptx ../data/deck.pptx --pdf ../data/deck.pdf"
+# Basic presence check for --pptx (PDF now optional)
+if ! printf '%s\n' "$@" | grep -q -- '--pptx'; then
+    echo "Usage: ./run.sh --pptx <path_to_pptx> [--pdf <path_to_pdf>] [other flags]" >&2
+    echo "If --pdf omitted, main.py auto-detects a PDF with the same basename in the PPTX folder." >&2
+    echo "Example: ./run.sh --pptx ../data/deck.pptx" >&2
     exit 1
 fi
 
