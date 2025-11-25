@@ -20,6 +20,7 @@ class Config:
         retry_errors: bool = False,
         region: str = "global",
         skip_visuals: bool = False,
+        language: str = "en",
     ):
         """
         Initialize configuration.
@@ -32,6 +33,7 @@ class Config:
             retry_errors: Whether to retry slides with errors
             region: Google Cloud region
             skip_visuals: Whether to skip visual generation
+            language: Language locale code (e.g., en, zh-CN, yue-HK)
         """
         self.pptx_path = pptx_path
         self.pdf_path = pdf_path
@@ -40,6 +42,7 @@ class Config:
         self.retry_errors = retry_errors
         self.region = region
         self.skip_visuals = skip_visuals
+        self.language = language
 
         # Apply environment variable overrides
         self._apply_env_overrides()
@@ -61,17 +64,28 @@ class Config:
     @property
     def output_path(self) -> str:
         """Get the output path for the presentation with notes only."""
-        return self.pptx_path.replace(".pptx", "_with_notes.pptx")
+        pptx_dir = os.path.dirname(self.pptx_path)
+        pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
+        generate_dir = os.path.join(pptx_dir, "generate")
+        os.makedirs(generate_dir, exist_ok=True)
+        return os.path.join(generate_dir, f"{pptx_base}_{self.language}_with_notes.pptx")
 
     @property
     def output_path_with_visuals(self) -> str:
         """Get the output path for the presentation with visuals."""
-        return self.pptx_path.replace(".pptx", "_with_visuals.pptx")
+        pptx_dir = os.path.dirname(self.pptx_path)
+        pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
+        generate_dir = os.path.join(pptx_dir, "generate")
+        os.makedirs(generate_dir, exist_ok=True)
+        return os.path.join(generate_dir, f"{pptx_base}_{self.language}_with_visuals.pptx")
 
     @property
     def visuals_dir(self) -> str:
         """Get the directory for storing visual outputs."""
-        return os.path.join(os.path.dirname(self.pptx_path), "visuals")
+        pptx_dir = os.path.dirname(self.pptx_path)
+        pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
+        generate_dir = os.path.join(pptx_dir, "generate")
+        return os.path.join(generate_dir, f"{pptx_base}_{self.language}_visuals")
 
     def validate(self) -> bool:
         """
@@ -130,5 +144,5 @@ class Config:
         return (
             f"Config(pptx={self.pptx_path}, pdf={self.pdf_path}, "
             f"course_id={self.course_id}, region={self.region}, "
-            f"skip_visuals={self.skip_visuals})"
+            f"skip_visuals={self.skip_visuals}, language={self.language})"
         )

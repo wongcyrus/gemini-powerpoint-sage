@@ -3,10 +3,13 @@ PowerShell helper script to run the Gemini Powerpoint Sage
 Equivalent to run.sh for Windows environments.
 Usage:
     ./run.ps1 --pptx <path_to_pptx> [--pdf <path_to_pdf>] [other flags]
+    ./run.ps1 --folder <path_to_folder> [other flags]
 If --pdf is omitted, a PDF with the same basename in the PPTX folder is auto-detected.
 Example:
     ./run.ps1 --pptx ../data/deck.pptx
     ./run.ps1 --pptx ../data/deck.pptx --pdf ../data/deck.pdf
+    ./run.ps1 --folder ../data --language zh-CN
+    ./run.ps1 --pptx ../data/deck.pptx --language yue-HK
 #>
 
 # Ensure we are running from the script's directory
@@ -23,6 +26,7 @@ if (Test-Path ".venv\Scripts\Activate.ps1") {
 
 if ($args.Count -lt 2) {
     Write-Host "Usage: ./run.ps1 --pptx <path_to_pptx> [--pdf <path_to_pdf>]" -ForegroundColor Yellow
+    Write-Host "   or: ./run.ps1 --folder <path_to_folder> [--language <locale>]" -ForegroundColor Yellow
     exit 1
 }
 
@@ -47,13 +51,29 @@ for ($i = 0; $i -lt $args.Count; ) {
 }
 
 $pptx = $argMap['--pptx']
-if (-not $pptx) {
-    Write-Host "--pptx is required." -ForegroundColor Red
+$folder = $argMap['--folder']
+
+# Validate that either --pptx or --folder is provided
+if (-not $pptx -and -not $folder) {
+    Write-Host "Error: Either --pptx or --folder must be provided." -ForegroundColor Red
+    exit 1
+}
+
+if ($pptx -and $folder) {
+    Write-Host "Error: Cannot use both --pptx and --folder at the same time." -ForegroundColor Red
+    exit 1
+}
+
+if (-not $pptx -and -not $folder) {
+    Write-Host "--pptx or --folder is required." -ForegroundColor Red
     exit 1
 }
 $pdf = $argMap['--pdf']
 
-if (-not $pdf) {
+# For folder mode, PDF is not needed at this stage
+if ($folder) {
+    Write-Host "Processing all PPTX files in folder: $folder" -ForegroundColor Cyan
+} elseif (-not $pdf) {
     Write-Host "No --pdf supplied; main.py will auto-detect a matching PDF." -ForegroundColor Yellow
 }
 

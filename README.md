@@ -1,8 +1,8 @@
 # Gemini Powerpoint Sage
 
-This tool automatically generates or enhances speaker notes for PowerPoint presentations using a **Supervisor-led Multi-Agent System** powered by Google ADK.
+This tool automatically generates or enhances speaker notes for PowerPoint presentations using a **Supervisor-led Multi-Agent System** powered by Google ADK. **Supports multi-language translation workflows** with English as baseline.
 
-It takes a PowerPoint (`.pptx`) and its corresponding PDF export (`.pdf`) as input. The PDF provides visual context for AI analysis, while the PPTX is updated with the generated speaker notes.
+It takes a PowerPoint (`.pptx`) and its corresponding PDF export (`.pdf`) as input. The PDF provides visual context for AI analysis, while the PPTX is updated with generated speaker notes in one or multiple languages.
 
 ## Architecture
 The system employs a sophisticated multi-agent approach, orchestrated in a two-pass system:
@@ -14,6 +14,8 @@ The system employs a sophisticated multi-agent approach, orchestrated in a two-p
 4.  **Analyst Agent (`gemini-3-pro-preview`):** Analyzes the visual and textual content of a single slide image (from the PDF) to extract key topics, detailed information, visual descriptions, and the slide's intent.
 5.  **Writer Agent (`gemini-2.5-flash`):** Crafts coherent, first-person speaker notes. It uses the insights from the Analyst, the `Global Context Guide` (from the Overviewer), and the `Previous Slide Summary` (from the Supervisor) to ensure smooth transitions and consistent tone.
 6.  **Designer Agent (`gemini-3-pro-image-preview`):** Generates a new, high-fidelity, professional-looking slide image. It takes inspiration from the original slide (for branding like logos and colors) and critically, maintains style consistency by referencing the *previously generated slide image*. It converts speaker notes into concise on-slide text (Title + Bullet Points) and enhances any existing diagrams/charts.
+7.  **Translator Agent (`gemini-2.5-flash`):** Translates speaker notes from English to target languages while maintaining technical accuracy, educational tone, and cultural appropriateness.
+8.  **Image Translator Agent (`gemini-3-pro-image-preview`):** Analyzes English slide visuals and provides translations of text elements along with culturally adapted visual descriptions for regeneration in target languages.
 
 ### Additional Documentation
 
@@ -57,6 +59,36 @@ graph TD
     style M fill:#add8e6,stroke:#000080,stroke-width:2px;
 ```
 
+## Key Features
+
+- **🌍 Multi-Language Support**: Process presentations in multiple languages (en, zh-CN, yue-HK, es, fr, ja, ko, etc.) with English as baseline for translations
+- **📁 Batch Processing**: Process entire folders of PPTX files with `--folder` parameter
+- **🎨 AI Visual Generation**: Create professional slide designs with consistent styling
+- **💾 Organized Output**: Language-specific file naming (`filename_en_with_notes.pptx`, `filename_zh-CN_with_notes.pptx`)
+- **⚡ Translation Mode**: Faster processing for non-English languages by translating from English baseline
+- **📊 Progress Tracking**: Resume interrupted processing with automatic progress tracking per language
+
+## Quick Start
+
+```powershell
+# Windows - Single file, English only
+.\run.ps1 --pptx "lecture.pptx"
+
+# Windows - Multiple languages (English + translations)
+.\run.ps1 --pptx "lecture.pptx" --language "en,zh-CN,yue-HK"
+
+# Windows - Batch process folder with multiple languages
+.\run.ps1 --folder "presentations" --language "en,zh-CN"
+```
+
+```bash
+# Linux/macOS - Single file, English only
+./run.sh --pptx lecture.pptx
+
+# Linux/macOS - Multiple languages
+./run.sh --pptx lecture.pptx --language "en,zh-CN,yue-HK"
+```
+
 ## Setup
 
 ### Quick Setup (Recommended)
@@ -96,38 +128,173 @@ The setup script will:
 Run the `run.sh` script (it will automatically activate the virtual environment):
 
 ```bash
-./run.sh --pptx /path/to/your/presentation.pptx --pdf /path/to/your/presentation.pdf
-```
+# Basic usage - PDF auto-detected
+./run.sh --pptx /path/to/presentation.pptx
 
-**Using an alternate GCP project (to avoid rate limits):**
+# With explicit PDF
+./run.sh --pptx /path/to/presentation.pptx --pdf /path/to/presentation.pdf
 
-```bash
-export GOOGLE_CLOUD_PROJECT='your-other-project-id'
-export GOOGLE_CLOUD_LOCATION='global'
-./run.sh --pptx /path/to/file.pptx --pdf /path/to/file.pdf
+# Multiple languages
+./run.sh --pptx /path/to/file.pptx --language "en,zh-CN,yue-HK"
+
+# Folder mode
+./run.sh --folder /path/to/presentations --language "en,zh-CN"
 ```
 
 ### Windows
 Run the `run.ps1` PowerShell script (it will automatically activate the virtual environment):
 
 ```powershell
-.\run.ps1 --pptx "C:\path\to\your\presentation.pptx" --pdf "C:\path\to\your\presentation.pdf"
+# Basic usage - PDF auto-detected
+.\run.ps1 --pptx "C:\path\to\presentation.pptx"
+
+# With explicit PDF
+.\run.ps1 --pptx "C:\path\to\presentation.pptx" --pdf "C:\path\to\presentation.pdf"
+
+# Multiple languages
+.\run.ps1 --pptx "path\to\file.pptx" --language "en,zh-CN,yue-HK"
+
+# Folder mode
+.\run.ps1 --folder "path\to\presentations" --language "en,zh-CN"
+
+# Skip visual generation (faster)
+.\run.ps1 --pptx "path\to\file.pptx" --skip-visuals
+
+# Retry failed slides
+.\run.ps1 --pptx "path\to\file.pptx" --retry-errors
 ```
 
-**Using an alternate GCP project (to avoid rate limits):**
+### Environment Variables (Optional)
 
 ```powershell
-$env:GOOGLE_CLOUD_PROJECT = 'your-other-project-id'
-$env:GOOGLE_CLOUD_LOCATION = 'global'
-.\run.ps1 --pptx "path\to\file.pptx" --pdf "path\to\file.pdf"
+# Windows - Use alternate GCP project
+$env:GOOGLE_CLOUD_PROJECT = 'your-project-id'
+$env:GOOGLE_CLOUD_LOCATION = 'us-central1'
+.\run.ps1 --pptx "path\to\file.pptx"
 ```
 
-**Arguments:**
-*   `--pptx`: Path to the input PowerPoint (`.pptx`) file.
-*   `--pdf`: Path to the corresponding PDF export of the presentation.
-*   `--course-id` (Optional): A Firestore Course ID. If provided, the tool will attempt to fetch course details (like name or description) to provide more relevant thematic context to the agents.
-*   `--progress-file` (Optional): Override the default progress tracking file location (default: `speaker_note_progress.json` in the same directory as the PPTX).
-*   `--retry-errors` (Optional): Force regeneration of slides that were previously successful. By default, only slides with errors or missing notes are reprocessed.
+```bash
+# Linux/macOS - Use alternate GCP project
+export GOOGLE_CLOUD_PROJECT='your-project-id'
+export GOOGLE_CLOUD_LOCATION='us-central1'
+./run.sh --pptx /path/to/file.pptx
+```
+
+## Command-Line Arguments
+
+**Required (one of):**
+*   `--pptx <path>` - Path to input PowerPoint file
+*   `--folder <path>` - Path to folder with multiple PPTX files
+
+**Optional:**
+*   `--pdf <path>` - Path to PDF export (auto-detected if not specified)
+*   `--language <locale(s)>` - Language codes, comma-separated (default: `en`)
+    - Examples: `en`, `zh-CN`, `"en,zh-CN,yue-HK"`
+    - English always processed first as translation baseline
+    - Supported: en, zh-CN, zh-TW, yue-HK, es, fr, ja, ko, de, it, pt, ru, ar, hi, th, vi
+*   `--course-id <id>` - Firestore Course ID for thematic context
+*   `--progress-file <path>` - Custom progress file location
+*   `--retry-errors` - Retry previously failed slides
+*   `--skip-visuals` - Skip AI visual generation (notes only, faster)
+*   `--region <region>` - GCP region (default: global)
+
+## Multi-Language Translation Workflow
+
+### How It Works
+
+1. **English Baseline** - Always processed first from slide analysis
+2. **Speaker Note Translation** - Other languages translate from English notes using dedicated Translator agent (bypasses supervisor/analyst for speed)
+3. **Visual Translation** - Image Translator Agent analyzes English visuals, Designer Agent regenerates with translated text in target language
+4. **Organized Output** - All files include language suffix: `filename_{locale}_*`
+
+### Example
+
+```powershell
+.\run.ps1 --pptx "lecture.pptx" --language "en,zh-CN,yue-HK"
+```
+
+**Output:**
+```
+lecture_en_with_notes.pptx       # English (generated)
+lecture_en_progress.json
+lecture_en_visuals/              # Generated visuals
+lecture_zh-CN_with_notes.pptx    # Simplified Chinese (translated)
+lecture_zh-CN_progress.json
+lecture_zh-CN_visuals/           # Translated visuals (text in Chinese)
+lecture_yue-HK_with_notes.pptx   # Cantonese (translated)
+lecture_yue-HK_progress.json
+lecture_yue-HK_visuals/          # Translated visuals (text in Cantonese)
+```
+
+### Benefits
+- ⚡ **Faster**: Translation faster than full generation
+- 💰 **Cost-effective**: Fewer API calls for additional languages (2 calls vs 4-5 calls per slide)
+- 🌍 **Localized**: Text in visuals translated to target language
+- 📐 **Design Consistency**: Layout and style maintained across languages
+- 🎯 **Consistent**: All versions based on same English baseline
+- ✅ **Quality**: English serves as reviewed baseline
+
+## Output Files
+
+The tool generates **two** PowerPoint files per language:
+1. **`{filename}_{locale}_with_notes.pptx`**: Original slides with updated/generated speaker notes
+2. **`{filename}_{locale}_with_visuals.pptx`**: Slides with both speaker notes and AI-generated visuals (unless `--skip-visuals` is used)
+
+Additional files:
+- **`{filename}_{locale}_progress.json`**: Progress tracking for incremental processing
+- **`{filename}_{locale}_visuals/`**: Directory containing AI-generated slide images (PNG files)
+
+**Example structure:**
+```
+presentations/
+├── lecture.pptx (original)
+├── lecture.pdf (original)
+├── lecture_en_with_notes.pptx
+├── lecture_en_with_visuals.pptx
+├── lecture_en_progress.json
+├── lecture_en_visuals/
+│   ├── slide_1_reimagined.png
+│   └── slide_2_reimagined.png
+├── lecture_zh-CN_with_notes.pptx
+├── lecture_zh-CN_with_visuals.pptx
+├── lecture_zh-CN_progress.json
+└── lecture_zh-CN_visuals/
+    ├── slide_1_reimagined.png
+    └── slide_2_reimagined.png
+```
+
+## Progress Tracking & Resume
+
+The tool automatically tracks processing progress for each language:
+
+- **Incremental processing**: Interrupted work can be resumed without reprocessing completed slides
+- **Error retry**: Failed slides automatically retried on subsequent runs
+- **Force retry**: Use `--retry-errors` to regenerate all slides including successful ones
+- **Language isolation**: Each language has independent progress tracking
+
+Progress files track:
+- Slide index and original notes hash
+- Generated speaker notes
+- Processing status (success/error)
+- Global context for consistency
+
+## Batch Processing
+
+Process multiple PPTX files at once:
+
+```powershell
+.\run.ps1 --folder "presentations" --language "en,zh-CN"
+```
+
+**Features:**
+- Auto-discovers all `.pptx` files in folder
+- Auto-detects matching PDF files (same basename)
+- Skips files without PDFs
+- Independent progress tracking per file and language
+- Continues on individual file failures
+- Processes all languages for each file before moving to next
+
+**More details**: See [docs/FOLDER_STRUCTURE.md](docs/FOLDER_STRUCTURE.md)
 
 ## Technical Implementation Details
 
@@ -142,45 +309,64 @@ To solve this, we implement a **Last Tool Output Fallback** pattern:
 This ensures robustness against model unpredictability, especially with faster models like `gemini-2.5-flash`.
 
 ### Image Generation Skip Logic
-*   **Stable Caching:** Generated images are named `slide_{index}_reimagined.png`.
-*   **Skip Check:** Before calling the expensive Image Generation API, the system checks if this file already exists.
-*   **Forced Retry:** The `--retry-errors` flag (or deleting the file) bypasses this check to force regeneration.
-*   **Hash Removal:** We explicitly do *not* use the speaker note hash in the filename to allow for easier manual caching and to prevent minor text variations from triggering unnecessary image costs.
+*   **Stable Caching:** Generated images named `slide_{index}_reimagined.png`
+*   **Skip Check:** Checks if image exists before calling Image Generation API
+*   **Forced Retry:** `--retry-errors` flag bypasses cache to force regeneration
+*   **Language-Specific:** Each language has its own visuals directory
 
-## Output
-The tool will generate **two** PowerPoint files:
-1. **`_with_notes.pptx`**: Contains the original slides with updated/generated speaker notes only.
-2. **`_with_visuals.pptx`**: Contains the original slides with both speaker notes and AI-generated reimagined slide visuals (unless `--skip-visuals` is used).
+### Translation Mode
+*   **English First:** Always generates English from scratch as baseline
+*   **Translation:** Non-English languages translate from English notes
+*   **Consistency:** Ensures all language versions convey same content
+*   **Performance:** Translation 2-3x faster than full generation
 
-Console output will show the progress, including agent decisions, analysis summaries, and generated notes.
+## Additional Documentation
 
-### Progress Tracking
-The tool automatically tracks progress in a JSON file (default: `speaker_note_progress.json` in the same directory as the input PPTX). This enables:
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Detailed system design and agent workflows
+- **[FOLDER_STRUCTURE.md](docs/FOLDER_STRUCTURE.md)** - Complete guide to multi-language file organization
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and feature updates
 
-*   **Incremental processing**: If the tool is interrupted or fails on certain slides, you can re-run the same command and it will skip slides that were already successfully processed.
-*   **Error retry**: Slides that failed or returned empty notes (status: `error`) are automatically retried on subsequent runs.
-*   **Manual retry**: Use `--retry-errors` to force regeneration of all slides, including those previously successful.
-
-The progress file stores each slide's:
-- Slide index
-- Original notes hash (to detect if notes change)
-- Generated speaker note
-- Status (`success` or `error`)
-
-**Example progress file structure:**
-```json
-{
-  "slides": {
-    "slide_1_a1b2c3d4": {
-      "slide_index": 1,
-      "existing_notes_hash": "a1b2c3d4",
-      "original_notes": "Introduction to security concepts",
-      "note": "Welcome everyone. Today we'll explore...",
-      "status": "success"
-    }
-  }
-}
+## Context Handling
+*   **Rolling Context:** The Supervisor Agent maintains a "rolling context" by being aware of the previous slide's generated note. This helps in creating smooth transitions between slides.
+*   **Presentation Theme:** The overall theme of the presentation is either a generic default or derived from the `--course-id` (if provided), helping agents align their output with the subject matter.
+*   **Global Context:** The Overviewer Agent analyzes all slides first to create a comprehensive context guide that ensures consistency across all generated notes.
+├── lecture1_en_visuals/
+│   ├── slide_1_reimagined.png
+│   └── slide_2_reimagined.png
+├── lecture1_zh-CN_progress.json        # Simplified Chinese (translated)
+├── lecture1_zh-CN_with_notes.pptx
+├── lecture1_zh-CN_with_visuals.pptx
+├── lecture1_zh-CN_visuals/
+│   ├── slide_1_reimagined.png          # Copied/translated from English
+│   └── slide_2_reimagined.png
+├── lecture1_yue-HK_progress.json       # Cantonese (translated)
+├── lecture1_yue-HK_with_notes.pptx
+└── lecture1_yue-HK_visuals/
+    └── slide_1_reimagined.png
 ```
+
+### Batch Processing (Folder Mode)
+Process multiple PPTX files in a folder with a single command:
+
+```powershell
+# Single language
+.\run.ps1 --folder "path\to\presentations" --language en
+
+# Multiple languages (English baseline + translations)
+.\run.ps1 --folder "path\to\presentations" --language "en,zh-CN,yue-HK"
+```
+
+**Features:**
+*   Automatically finds all `.pptx` files in the specified folder
+*   Attempts to locate matching PDF files (same basename)
+*   Skips files without corresponding PDFs
+*   Each file gets its own progress tracking and visuals directory
+*   Continues processing remaining files if one fails
+*   Reports summary of processed files at completion
+
+**Requirements:**
+*   Each PPTX must have a corresponding PDF with the same base filename in the same folder
+*   Files starting with `~$` (temporary files) are automatically skipped
 
 ## Context Handling
 *   **Rolling Context:** The Supervisor Agent maintains a "rolling context" by being aware of the previous slide's generated note. This helps in creating smooth transitions between slides.
