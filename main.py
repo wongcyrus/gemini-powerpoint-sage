@@ -185,17 +185,17 @@ async def process_folder(
         lang_list.remove("en")
         lang_list.insert(0, "en")
 
-    # Find all PPTX files
+    # Find all PPTX or PPTM files
     pptx_files = []
     for file in os.listdir(folder_path):
-        if file.lower().endswith('.pptx') and not file.startswith('~$'):
+        if file.lower().endswith((".pptx", ".pptm")) and not file.startswith('~$'):
             pptx_files.append(os.path.join(folder_path, file))
 
     if not pptx_files:
-        print(f"No PPTX files found in folder: {folder_path}")
+        print(f"No PPTX/PPTM files found in folder: {folder_path}")
         return
 
-    logger.info(f"Found {len(pptx_files)} PPTX file(s) to process")
+    logger.info(f"Found {len(pptx_files)} PPTX/PPTM file(s) to process")
     logger.info(f"Languages to process: {', '.join(lang_list)}")
 
     # Process each PPTX file
@@ -262,7 +262,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate Speaker Notes with Supervisor Agent"
     )
-    parser.add_argument("--pptx", required=False, help="Path to input PPTX")
+    parser.add_argument("--pptx", required=False, help="Path to input PPTX or PPTM")
     parser.add_argument("--folder", required=False, help="Path to folder containing PPTX files to process")
     parser.add_argument("--pdf", required=False, help="Path to input PDF (optional if PDF with same name is in PPTX folder)")
     parser.add_argument(
@@ -348,14 +348,14 @@ def main():
         if resolved and os.path.exists(resolved):
             normalized_pptx_arg = resolved
         else:
-            print("Error: PPTX file not found after normalization attempts.")
+            print("Error: PPTX/PPTM file not found after normalization attempts.")
             print(f"Provided: {original_pptx_arg}")
-            print("Hint: Remove trailing spaces or unusual characters before .pptx")
+            print("Hint: Remove trailing spaces or unusual characters before .pptx or .pptm")
             # List nearby candidates for user assistance
             try:
-                print("Nearby .pptx files in directory:")
+                print("Nearby PPTX/PPTM files in directory:")
                 for f in os.listdir(pptx_dir_try):
-                    if f.lower().endswith('.pptx'):
+                    if f.lower().endswith(('.pptx', '.pptm')):
                         print(f"  - {f}")
             except Exception:
                 pass
@@ -371,7 +371,7 @@ def main():
         pdf_path = os.path.abspath(pdf_path)
         # Enforce same directory
         if os.path.dirname(pdf_path) != pptx_dir:
-            print("Provided PDF must be in the same folder as the PPTX.")
+            print("Provided PDF must be in the same folder as the PPTX/PPTM.")
             pdf_path = None
     if not pdf_path:
         # Attempt auto-detect with same basename

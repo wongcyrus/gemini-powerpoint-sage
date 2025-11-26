@@ -68,7 +68,13 @@ class Config:
         pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
         generate_dir = os.path.join(pptx_dir, "generate")
         os.makedirs(generate_dir, exist_ok=True)
-        return os.path.join(generate_dir, f"{pptx_base}_{self.language}_with_notes.pptx")
+        # If source is a macro-enabled presentation, prefer .pptm output
+        src_ext = os.path.splitext(self.pptx_path)[1].lower()
+        out_ext = ".pptm" if src_ext == ".pptm" else ".pptx"
+        return os.path.join(
+            generate_dir,
+            f"{pptx_base}_{self.language}_with_notes{out_ext}"
+        )
 
     @property
     def output_path_with_visuals(self) -> str:
@@ -77,7 +83,12 @@ class Config:
         pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
         generate_dir = os.path.join(pptx_dir, "generate")
         os.makedirs(generate_dir, exist_ok=True)
-        return os.path.join(generate_dir, f"{pptx_base}_{self.language}_with_visuals.pptx")
+        src_ext = os.path.splitext(self.pptx_path)[1].lower()
+        out_ext = ".pptm" if src_ext == ".pptm" else ".pptx"
+        return os.path.join(
+            generate_dir,
+            f"{pptx_base}_{self.language}_with_visuals{out_ext}"
+        )
 
     @property
     def visuals_dir(self) -> str:

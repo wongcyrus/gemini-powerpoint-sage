@@ -25,6 +25,10 @@ from utils.progress_utils import (
 )
 from tools.agent_tools import AgentToolFactory
 from services.visual_generator import VisualGenerator
+import zipfile
+import shutil
+import tempfile
+import xml.etree.ElementTree as ET
 
 logger = logging.getLogger(__name__)
 
@@ -171,22 +175,142 @@ class PresentationProcessor:
         output_path_notes = self.config.output_path
         output_path_visuals = self.config.output_path_with_visuals
 
-        prs_notes.save(output_path_notes)
-        logger.info(f"Saved presentation with notes to: {output_path_notes}")
+        # Save notes presentation to a temporary .pptx, then convert to .pptm
+        # if input was .pptm (to preserve macros).
+        def _ensure_pptx_path(path: str) -> str:
+            base, ext = os.path.splitext(path)
+            if ext.lower() == ".pptx":
+                return path
+            return base + ".pptx"
+
+        def _finalize_with_vba(original_src: str, generated_pptx: str, final_path: str) -> None:
+            # If original source contains vbaProject.bin, inject it and write final_path.
+            try:
+                with zipfile.ZipFile(original_src, 'r') as zorig:
+                    try:
+                        vba_data = zorig.read('ppt/vbaProject.bin')
+                    except KeyError:
+                        vba_data = None
+
+                if not vba_data:
+                    # No macros present; just move/rename generated file to final path
+                    shutil.move(generated_pptx, final_path)
+                    return
+
+                # Extract generated pptx to temp dir
+                tmpdir = tempfile.mkdtemp(prefix='pptm_merge_')
+                with zipfile.ZipFile(generated_pptx, 'r') as zgen:
+                    zgen.extractall(tmpdir)
+
+                # Ensure ppt/ exists and write vbaProject.bin
+                ppt_dir = os.path.join(tmpdir, 'ppt')
+                os.makedirs(ppt_dir, exist_ok=True)
+                with open(os.path.join(ppt_dir, 'vbaProject.bin'), 'wb') as f:
+                    f.write(vba_data)
+
+                # Update [Content_Types].xml
+                ctype_path = os.path.join(tmpdir, '[Content_Types].xml')
+                if os.path.exists(ctype_path):
+                    tree = ET.parse(ctype_path)
+                    root = tree.getroot()
+                    # Namespace handling
+                    override_tag = '{http://schemas.openxmlformats.org/package/2006/content-types}Override'
+                    exists = False
+                    for ov in root.findall(override_tag):
+                        if ov.attrib.get('PartName') == '/ppt/vbaProject.bin':
+                            exists = True
+                            break
+                    if not exists:
+                        ET.register_namespace('', 'http://schemas.openxmlformats.org/package/2006/content-types')
+                        new = ET.Element(override_tag, PartName='/ppt/vbaProject.bin', ContentType='application/vnd.ms-office.vbaProject')
+                        root.append(new)
+                        tree.write(ctype_path, encoding='utf-8', xml_declaration=True)
+
+                # Update ppt/_rels/presentation.xml.rels
+                rels_dir = os.path.join(tmpdir, 'ppt', '_rels')
+                os.makedirs(rels_dir, exist_ok=True)
+                pres_rels = os.path.join(rels_dir, 'presentation.xml.rels')
+                rel_tag = '{http://schemas.openxmlformats.org/package/2006/relationships}Relationship'
+
+                if os.path.exists(pres_rels):
+                    tree = ET.parse(pres_rels)
+                    root = tree.getroot()
+                else:
+                    # Create minimal rels structure
+                    root = ET.Element('{http://schemas.openxmlformats.org/package/2006/relationships}Relationships')
+                    tree = ET.ElementTree(root)
+
+                # Check if vba relationship already exists
+                exists = False
+                for r in root.findall(rel_tag):
+                    if r.attrib.get('Type') == 'http://schemas.microsoft.com/office/2006/relationships/vbaProject':
+                        exists = True
+                        break
+
+                if not exists:
+                    # generate a relationship Id
+                    rid = 'rIdVBA1'
+                    newr = ET.Element(rel_tag, Id=rid, Type='http://schemas.microsoft.com/office/2006/relationships/vbaProject', Target='vbaProject.bin')
+                    root.append(newr)
+                    tree.write(pres_rels, encoding='utf-8', xml_declaration=True)
+
+                # Repack into final_path
+                with zipfile.ZipFile(final_path, 'w', zipfile.ZIP_DEFLATED) as zout:
+                    for foldername, subfolders, filenames in os.walk(tmpdir):
+                        for filename in filenames:
+                            file_path = os.path.join(foldername, filename)
+                            arcname = os.path.relpath(file_path, tmpdir)
+                            zout.write(file_path, arcname)
+
+                # Cleanup
+                shutil.rmtree(tmpdir)
+                try:
+                    os.remove(generated_pptx)
+                except Exception:
+                    pass
+
+            except Exception as e:
+                logger.error('Failed to preserve VBA project: %s', e, exc_info=True)
+                try:
+                    shutil.move(generated_pptx, final_path)
+                except Exception:
+                    pass
+
+        # Notes output
+        temp_notes_pptx = _ensure_pptx_path(output_path_notes)
+        prs_notes.save(temp_notes_pptx)
+        logger.info('Saved presentation (intermediate) to: %s', temp_notes_pptx)
+
+        # If final desired extension is .pptm and source had macros, inject them
+        src_ext = os.path.splitext(self.config.pptx_path)[1].lower()
+        if src_ext == '.pptm' and output_path_notes.lower().endswith('.pptm'):
+            _finalize_with_vba(self.config.pptx_path, temp_notes_pptx, output_path_notes)
+            logger.info('Saved presentation with notes (pptm) to: %s', output_path_notes)
+        else:
+            if temp_notes_pptx != output_path_notes:
+                shutil.move(temp_notes_pptx, output_path_notes)
+            logger.info('Saved presentation with notes to: %s', output_path_notes)
 
         # Only save visuals presentation if all images were generated
         if missing_visuals_count == 0:
-
             # Force 16:9 aspect ratio for visuals presentation
             from pptx.util import Inches
             prs_visuals.slide_width = Inches(10)
             prs_visuals.slide_height = Inches(5.625)
-            
-            prs_visuals.save(output_path_visuals)
-            logger.info(f"Saved presentation with visuals to: {output_path_visuals}")
+
+            temp_visuals_pptx = _ensure_pptx_path(output_path_visuals)
+            prs_visuals.save(temp_visuals_pptx)
+
+            if src_ext == '.pptm' and output_path_visuals and output_path_visuals.lower().endswith('.pptm'):
+                _finalize_with_vba(self.config.pptx_path, temp_visuals_pptx, output_path_visuals)
+                logger.info('Saved presentation with visuals (pptm) to: %s', output_path_visuals)
+            else:
+                if temp_visuals_pptx != output_path_visuals:
+                    shutil.move(temp_visuals_pptx, output_path_visuals)
+                logger.info('Saved presentation with visuals to: %s', output_path_visuals)
         else:
             logger.warning(
-                "Skipping visuals presentation save: %d slide(s) missing images" % missing_visuals_count
+                'Skipping visuals presentation save: %d slide(s) missing images', missing_visuals_count
             )
             output_path_visuals = None
 
