@@ -530,30 +530,35 @@ class PresentationProcessor:
         logger.info("PHASE 2: Generating visuals for all slides")
         logger.info("="*60)
         
-        # For non-English languages, check if we can translate English visuals
+        # If processing English, generate visuals
+        # If processing non-English, check if English visuals exist to translate
         english_visuals_dir = None
         translate_visuals = False
-        if self.config.language != "en" and self.image_translator_agent:
-            pptx_dir = os.path.dirname(self.config.pptx_path)
-            pptx_base = os.path.splitext(
-                os.path.basename(self.config.pptx_path)
-            )[0]
-            english_visuals_dir = os.path.join(
-                pptx_dir, f"{pptx_base}_en_visuals"
-            )
-            if os.path.exists(english_visuals_dir):
-                logger.info(
-                    f"Found English visuals directory: {english_visuals_dir}"
+        
+        if self.config.language == "en":
+            # English: generate visuals directly
+            logger.info("Generating visuals in English")
+        else:
+            # Non-English: check for existing English visuals to translate
+            if self.image_translator_agent:
+                pptx_dir = os.path.dirname(self.config.pptx_path)
+                pptx_base = os.path.splitext(
+                    os.path.basename(self.config.pptx_path)
+                )[0]
+                english_visuals_dir = os.path.join(
+                    pptx_dir, f"{pptx_base}_en_visuals"
                 )
-                logger.info(
-                    "Will translate visuals from English using "
-                    "Image Translator Agent"
-                )
-                translate_visuals = True
-            else:
-                logger.info(
-                    "No English visuals found, will generate new visuals"
-                )
+                if os.path.exists(english_visuals_dir):
+                    logger.info(
+                        "Found English visuals, will translate to %s",
+                        self.config.language
+                    )
+                    translate_visuals = True
+                else:
+                    logger.info(
+                        "English visuals not found. Please run with "
+                        "--language en first to generate English visuals."
+                    )
         
         missing_visuals_count = 0
         for slide_info in slide_data:
@@ -579,8 +584,8 @@ class PresentationProcessor:
                     # Check if translated visual already exists
                     if os.path.exists(target_img_path):
                         logger.info(
-                            f"Visual already translated for Slide {slide_idx}. "
-                            "Skipping translation."
+                            "Visual already translated for Slide %d",
+                            slide_idx
                         )
                         # Replace slide with existing translated visual
                         self.visual_generator.replace_slide_with_visual(
@@ -589,19 +594,15 @@ class PresentationProcessor:
                         )
                         translated = True
                     elif os.path.exists(en_img_path):
-                        # Load English visual and regenerate with translated notes
-                        from PIL import Image as PILImage
-                        english_visual = PILImage.open(en_img_path)
+                        # Load English visual and translate it
+                        english_visual = Image.open(en_img_path)
                         
                         logger.info(
-                            f"Translating visual for slide {slide_idx} using "
-                            f"English visual as reference"
+                            "Translating visual for Slide %d to %s",
+                            slide_idx, self.config.language
                         )
                         
-                        # Use designer to regenerate with translated notes
-                        # and English visual as reference
-                        from utils.agent_utils import run_visual_agent
-                        
+                        # Use image translator agent
                         locale_map = {
                             "zh-CN": "Simplified Chinese (简体中文)",
                             "zh-TW": "Traditional Chinese (繁體中文)",
@@ -616,20 +617,23 @@ class PresentationProcessor:
                             self.config.language
                         )
                         
+                        from utils.agent_utils import run_visual_agent
+                        
                         design_prompt = (
-                            f"Generate a slide visual in {lang_name} "
-                            f"based on the reference image and these speaker "
-                            f"notes:\n\n{speaker_notes}\n\n"
+                            f"Translate this English slide visual to "
+                            f"{lang_name}. \n\n"
                             f"IMPORTANT:\n"
-                            f"- Translate all text to {lang_name}\n"
-                            f"- Maintain the same layout and design style as "
-                            f"the reference\n"
-                            f"- Keep colors and branding consistent\n"
-                            f"- Make it professional and educational"
+                            f"- Translate ALL text to {lang_name}\n"
+                            f"- Keep the exact same layout and structure\n"
+                            f"- Ensure text is readable and fits within "
+                            f"the original text areas\n"
+                            f"- Do NOT change colors, fonts, or design\n"
+                            f"- Do NOT add or remove elements\n\n"
+                            f"Speaker Notes: {speaker_notes}"
                         )
                         
                         img_bytes = await run_visual_agent(
-                            self.designer_agent,
+                            self.image_translator_agent,
                             design_prompt,
                             images=[english_visual]
                         )
@@ -644,7 +648,7 @@ class PresentationProcessor:
                                 f.write(img_bytes)
                             
                             logger.info(
-                                f"Translated visual for Slide {slide_idx}"
+                                "Translated visual for Slide %d", slide_idx
                             )
                             
                             # Replace slide with translated visual
@@ -655,10 +659,10 @@ class PresentationProcessor:
                             translated = True
                 
                 if not translated:
-                    # Generate visual and replace slide in visuals
+                    # Generate visual in target language
                     img_bytes = await self.visual_generator.generate_visual(
                         slide_idx, slide_image, speaker_notes,
-                        self.retry_errors
+                        self.retry_errors, self.config.language
                     )
 
                     if img_bytes:

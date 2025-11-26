@@ -58,6 +58,7 @@ class VisualGenerator:
         slide_image: Image.Image,
         speaker_notes: str,
         retry_errors: bool = False,
+        language: str = "en",
     ) -> Optional[bytes]:
         """
         Generate an enhanced visual for a slide.
@@ -67,6 +68,7 @@ class VisualGenerator:
             slide_image: Original slide image
             speaker_notes: Generated speaker notes
             retry_errors: Whether to regenerate existing images
+            language: Target language locale code (e.g., en, zh-CN, yue-HK)
 
         Returns:
             Image bytes if generated, None otherwise
@@ -105,7 +107,8 @@ class VisualGenerator:
             logo_instruction = self._get_logo_instruction(slide_idx)
             designer_prompt = self._build_designer_prompt(
                 speaker_notes,
-                logo_instruction
+                logo_instruction,
+                language
             )
             if designer_prompt is None:
                 logger.warning("_build_designer_prompt returned None; using minimal fallback prompt.")
@@ -125,10 +128,14 @@ class VisualGenerator:
         else:
             logger.info("Force fallback enabled; skipping primary designer model.")
 
-        # Fallback using Imagen API directly if primary returned no image or forced
+        # Fallback using Imagen API directly if primary returned no image
         if force_fallback or not img_bytes:
-            logger.info("FALLBACK: Calling Imagen model '%s' for Slide %d" % (self.fallback_imagen_model, slide_idx))
-            fallback_prompt = self._build_fallback_prompt(speaker_notes)
+            logger.info(
+                "FALLBACK: Calling Imagen model for Slide %d", slide_idx
+            )
+            fallback_prompt = self._build_fallback_prompt(
+                speaker_notes, language
+            )
             try:
                 img_bytes = await self._generate_imagen_directly(fallback_prompt)
             except Exception as e:
@@ -291,7 +298,8 @@ class VisualGenerator:
     def _build_designer_prompt(
         self,
         speaker_notes: str,
-        logo_instruction: str
+        logo_instruction: str,
+        language: str = "en"
     ) -> str:
         """Build the prompt for the primary (Gemini) designer agent."""
         style_ref = (
@@ -299,20 +307,69 @@ class VisualGenerator:
             if self.previous_image
             else "N/A"
         )
+        
+        # Language-specific instructions
+        lang_map = {
+            "zh-CN": "Simplified Chinese (简体中文)",
+            "zh-TW": "Traditional Chinese (繁體中文)",
+            "yue-HK": "Cantonese (廣東話)",
+            "es": "Spanish (Español)",
+            "fr": "French (Français)",
+            "ja": "Japanese (日本語)",
+            "ko": "Korean (한국어)",
+        }
+        lang_name = lang_map.get(language, language)
+        
+        lang_instruction = ""
+        if language != "en":
+            lang_instruction = (
+                f"\n\nLANGUAGE: ALL text in the generated image MUST be "
+                f"in {lang_name}. Do NOT include any English text. "
+                f"Translate all titles, labels, and content to "
+                f"{lang_name}."
+            )
+        
         return (
-            f"IMAGE 1: Original Slide Image provided.\n"
-            f"IMAGE 2: {style_ref}\n"
+            f"IMAGE 1: Original Slide Image provided.\n\n"
+            f"IMAGE 2: {style_ref}\n\n"
             f"Speaker Notes: \"{speaker_notes}\"\n\n"
-            f"TASK: Generate the high-fidelity slide image now.\n"
-            f"CONTEXT: {logo_instruction}\n"
+            f"TASK: Generate the high-fidelity slide image now.\n\n"
+            f"CONTEXT: {logo_instruction}{lang_instruction}\n"
         )
 
-    def _build_fallback_prompt(self, speaker_notes: str) -> str:
+    def _build_fallback_prompt(
+        self,
+        speaker_notes: str,
+        language: str = "en"
+    ) -> str:
         """Prompt for Imagen fallback rendering."""
+        # Language-specific instructions
+        lang_map = {
+            "zh-CN": "Simplified Chinese (简体中文)",
+            "zh-TW": "Traditional Chinese (繁體中文)",
+            "yue-HK": "Cantonese (廣東話)",
+            "es": "Spanish (Español)",
+            "fr": "French (Français)",
+            "ja": "Japanese (日本語)",
+            "ko": "Korean (한국어)",
+        }
+        lang_name = lang_map.get(language, language)
+        
+        lang_instruction = ""
+        if language != "en":
+            lang_instruction = (
+                f" ALL text MUST be in {lang_name}. "
+                f"NO English text allowed."
+            )
+        
         return (
             "Create a professional 16:9 presentation slide. "
             + "Speaker Notes: " + speaker_notes.strip() + "\n"
-            + "Instructions: Derive a clear short title and 3-4 concise bullets. Render a clean slide with balanced whitespace, legible typography, subtle modern background (gradient or flat), high contrast accessible text. NO logos, NO photorealistic invented imagery."
+            + "Instructions: Derive a clear title and bullet points. "
+            + "Render a clean slide with whitespace, legible "
+            + "typography, subtle modern background, high contrast "
+            + "text." + lang_instruction
+            + " NO logos, NO invented imagery."
         )
 
     async def _generate_imagen_directly(self, prompt: str) -> Optional[bytes]:
