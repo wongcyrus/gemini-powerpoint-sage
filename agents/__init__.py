@@ -8,6 +8,7 @@ from .overviewer import overviewer_agent
 from .designer import designer_agent
 from .translator import translator_agent
 from .image_translator import image_translator_agent
+from .video_generator import video_generator_agent
 
 __all__ = [
     "supervisor_agent",
@@ -18,4 +19,5 @@ __all__ = [
     "designer_agent",
     "translator_agent",
     "image_translator_agent",
+    "video_generator_agent",
 ]

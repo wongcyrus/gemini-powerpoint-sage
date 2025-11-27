@@ -64,6 +64,7 @@ graph TD
 - **🌍 Multi-Language Support**: Process presentations in multiple languages (en, zh-CN, yue-HK, es, fr, ja, ko, etc.) with English as baseline for translations
 - **📁 Batch Processing**: Process entire folders of PPTX files with `--folder` parameter
 - **🎨 AI Visual Generation**: Create professional slide designs with consistent styling
+- **🎬 Video Prompt Generation**: Generate video prompts for each slide ready for Veo 3.1 video generation
 - **💾 Organized Output**: Language-specific file naming (`filename_en_with_notes.pptx`, `filename_zh-CN_with_notes.pptx`)
 - **⚡ Translation Mode**: Faster processing for non-English languages by translating from English baseline
 - **📊 Progress Tracking**: Resume interrupted processing with automatic progress tracking per language
@@ -154,6 +155,12 @@ Run the `run.ps1` PowerShell script (it will automatically activate the virtual 
 # Multiple languages
 .\run.ps1 --pptx "path\to\file.pptx" --language "en,zh-CN,yue-HK"
 
+# Generate video prompts for all slides
+.\run.ps1 --pptx "path\to\file.pptx" --generate-videos
+
+# Generate visuals and videos
+.\run.ps1 --pptx "path\to\file.pptx" --generate-videos
+
 # Folder mode
 .\run.ps1 --folder "path\to\presentations" --language "en,zh-CN"
 
@@ -196,6 +203,7 @@ export GOOGLE_CLOUD_LOCATION='us-central1'
 *   `--progress-file <path>` - Custom progress file location
 *   `--retry-errors` - Retry previously failed slides
 *   `--skip-visuals` - Skip AI visual generation (notes only, faster)
+*   `--generate-videos` - Generate video prompts for all slides (requires Veo 3.1 for actual video generation)
 *   `--region <region>` - GCP region (default: global)
 
 ## Multi-Language Translation Workflow

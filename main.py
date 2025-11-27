@@ -58,6 +58,7 @@ async def process_presentation(
     pdf_path: str,
     course_id: str = None,
     skip_visuals: bool = False,
+    generate_videos: bool = False,
     language: str = "en",
 ) -> str:
     """
@@ -68,6 +69,8 @@ async def process_presentation(
         pdf_path: Path to the PDF export
         course_id: Optional course ID for context
         skip_visuals: Whether to skip visual generation
+        generate_videos: Whether to generate videos for slides
+        language: Language locale code
 
     Returns:
         Path to the enhanced presentation file
@@ -84,6 +87,7 @@ async def process_presentation(
     from agents.auditor import auditor_agent
     from agents.translator import translator_agent
     from agents.image_translator import image_translator_agent
+    from agents.video_generator import video_generator_agent
 
     # Create configuration
     config = Config(
@@ -91,6 +95,7 @@ async def process_presentation(
         pdf_path=pdf_path,
         course_id=course_id,
         skip_visuals=skip_visuals,
+        generate_videos=generate_videos,
         language=language,
     )
 
@@ -108,6 +113,7 @@ async def process_presentation(
         designer_agent=designer_agent,
         translator_agent=translator_agent,
         image_translator_agent=image_translator_agent,
+        video_generator_agent=video_generator_agent,
     )
 
     # Process presentation
@@ -160,6 +166,7 @@ async def process_folder(
     retry_errors: bool = False,
     region: str = "global",
     skip_visuals: bool = False,
+    generate_videos: bool = False,
     languages: str = "en",
 ) -> None:
     """
@@ -171,6 +178,7 @@ async def process_folder(
         retry_errors: Whether to retry slides with errors
         region: Google Cloud region
         skip_visuals: Whether to skip visual generation
+        generate_videos: Whether to generate videos for slides
         languages: Comma-separated language locale codes
     """
     if not os.path.isdir(folder_path):
@@ -236,6 +244,7 @@ async def process_folder(
                     pdf_path,
                     course_id,
                     skip_visuals,
+                    generate_videos,
                     lang
                 )
                 logger.info(
@@ -287,6 +296,11 @@ def main():
         help="Skip visual generation and only update speaker notes"
     )
     parser.add_argument(
+        "--generate-videos",
+        action="store_true",
+        help="Generate promotional videos for each slide using Veo 3.1"
+    )
+    parser.add_argument(
         "--language",
         help="Language locale(s) for speaker notes. "
              "Comma-separated for multiple languages. "
@@ -315,6 +329,7 @@ def main():
             args.retry_errors,
             args.region,
             args.skip_visuals,
+            args.generate_videos,
             args.language  # Pass as comma-separated string
         ))
         return
@@ -436,7 +451,8 @@ def main():
         
         asyncio.run(
             process_presentation(
-                pptx_abs, pdf_path, args.course_id, args.skip_visuals, lang
+                pptx_abs, pdf_path, args.course_id, args.skip_visuals,
+                args.generate_videos, lang
             )
         )
 

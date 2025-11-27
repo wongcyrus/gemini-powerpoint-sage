@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased] - 2025-11-27
+
+### Added
+- **Video Prompt Generation**: New `--generate-videos` flag to generate video prompts for each slide
+  - Extracts concise video prompts from speaker notes
+  - Creates professional video prompt descriptions
+  - Organizes prompts in `{filename}_{locale}_videos/` directory
+  - Ready for integration with Veo 3.1 API or custom video generation
+  - Works seamlessly with speaker notes and visuals generation
+  - Multi-language support for video prompts
+
 ## [Unreleased] - 2025-11-25
 
 ### Added
@@ -47,7 +58,6 @@
   
 - Updated `services/presentation_processor.py`:
   - Pass language parameter to writer tool configuration
-  
 - Updated `run.ps1` and `run.sh`:
   - Added support for `--folder` parameter
   - Updated usage messages with folder and language examples

@@ -47,6 +47,7 @@ class PresentationProcessor:
         designer_agent: LlmAgent,
         translator_agent: Optional[LlmAgent] = None,
         image_translator_agent: Optional[LlmAgent] = None,
+        video_generator_agent: Optional[LlmAgent] = None,
     ):
         """
         Initialize the presentation processor.
@@ -61,6 +62,7 @@ class PresentationProcessor:
             designer_agent: Agent for generating visuals
             translator_agent: Agent for translating speaker notes
             image_translator_agent: Agent for translating slide visuals
+            video_generator_agent: Agent for generating promotional videos
         """
         self.config = config
         self.supervisor_agent = supervisor_agent
@@ -71,6 +73,7 @@ class PresentationProcessor:
         self.designer_agent = designer_agent
         self.translator_agent = translator_agent
         self.image_translator_agent = image_translator_agent
+        self.video_generator_agent = video_generator_agent
 
         # Initialize tool factory
         self.tool_factory = AgentToolFactory(
@@ -165,11 +168,24 @@ class PresentationProcessor:
         supervisor_runner = await self._initialize_supervisor()
 
         # Process slides
-        missing_visuals_count = await self._process_slides(
+        missing_visuals_count, slide_data = await self._process_slides(
             prs_notes, prs_visuals, pdf_doc, limit, progress,
             supervisor_runner, presentation_theme,
             global_context
         )
+
+        # PHASE 3: Generate videos (if enabled)
+        if self.config.generate_videos and self.video_generator_agent:
+            logger.info("\n" + "="*60)
+            logger.info("PHASE 3: Generating videos for all slides")
+            logger.info("="*60)
+            try:
+                await self._generate_videos_for_slides(
+                    slide_data, presentation_theme, global_context
+                )
+            except Exception:
+                logger.error("Error during video generation phase", exc_info=True)
+                logger.warning("Continuing without videos")
 
         # Save both presentations
         output_path_notes = self.config.output_path
@@ -253,6 +269,11 @@ class PresentationProcessor:
                     newr = ET.Element(rel_tag, Id=rid, Type='http://schemas.microsoft.com/office/2006/relationships/vbaProject', Target='vbaProject.bin')
                     root.append(newr)
                     tree.write(pres_rels, encoding='utf-8', xml_declaration=True)
+
+                # Ensure parent directory exists before creating zipfile
+                final_dir = os.path.dirname(final_path)
+                if final_dir:
+                    os.makedirs(final_dir, exist_ok=True)
 
                 # Repack into final_path
                 with zipfile.ZipFile(final_path, 'w', zipfile.ZIP_DEFLATED) as zout:
@@ -687,7 +708,7 @@ class PresentationProcessor:
                 )
                 missing_visuals_count += 1
         
-        return missing_visuals_count
+        return missing_visuals_count, slide_data
 
     def _get_existing_notes(self, slide) -> str:
         """Extract existing notes from a slide."""
@@ -1088,3 +1109,217 @@ class PresentationProcessor:
             )
             return None
 
+    async def _generate_videos_for_slides(
+        self,
+        slide_data: list,
+        _presentation_theme: str,
+        _global_context: str,
+    ) -> None:
+        """
+        Generate videos for all slides using the video generator agent.
+        
+        Calls the MCP-backed video agent with slide images and speaker notes
+        to generate MP4 videos. Falls back to text prompts if agent unavailable.
+        
+        Args:
+            slide_data: List of slide data dictionaries with slide info
+            _presentation_theme: Theme/context for the presentation
+            _global_context: Global context about the presentation
+        """
+        # Ensure videos directory exists
+        videos_dir = self.config.videos_dir
+        os.makedirs(videos_dir, exist_ok=True)
+        logger.info("Videos directory: %s", videos_dir)
+        
+        # Load slide images from the PDF for video generation
+        pdf_doc = pymupdf.open(self.config.pdf_path)
+        
+        # Process each slide for video generation
+        for slide_info in slide_data:
+            slide_idx = slide_info["slide_idx"]
+            speaker_notes = slide_info["speaker_notes"]
+            status = slide_info["status"]
+            
+            if status != "success":
+                logger.warning(
+                    "Skipping video for Slide %d (status: %s)",
+                    slide_idx, status
+                )
+                continue
+            
+            try:
+                logger.info("Generating video for Slide %d", slide_idx)
+                
+                # Extract video prompt
+                video_prompt = self._extract_video_prompt(
+                    slide_idx, speaker_notes
+                )
+                
+                if not video_prompt or not video_prompt.strip():
+                    logger.warning(
+                        "Failed to generate video prompt for Slide %d",
+                        slide_idx
+                    )
+                    continue
+                
+                # Try to call MCP-backed video agent with slide image
+                video_data = None
+                try:
+                    # Load slide image from PDF
+                    if slide_idx - 1 < len(pdf_doc):
+                        pix = pdf_doc[slide_idx - 1].get_pixmap(dpi=75)
+                        slide_img = Image.frombytes(
+                            "RGB",
+                            [pix.width, pix.height],
+                            pix.samples
+                        )
+                        
+                        # Call video agent with image and prompt
+                        from utils.agent_utils import run_stateless_agent
+                        
+                        agent_prompt = (
+                            f"Generate a professional video for a presentation "
+                            f"slide based on this concept:\n\n{video_prompt}\n\n"
+                            f"Speaker Notes:\n{speaker_notes}\n\n"
+                            f"Use the slide image provided to guide the visual "
+                            f"style. Generate an 8-10 second video."
+                        )
+                        
+                        response = await run_stateless_agent(
+                            self.video_generator_agent,
+                            agent_prompt,
+                            images=[slide_img]
+                        )
+                        
+                        logger.info(
+                            "Video agent response for Slide %d: %s",
+                            slide_idx, response[:200]
+                        )
+                        
+                        # Parse response for artifact or video data
+                        # The MCP agent should return artifact_id if successful
+                        video_artifact_id = self._extract_artifact_id(response)
+                        
+                        if video_artifact_id:
+                            logger.info(
+                                "Generated video artifact for Slide %d: %s",
+                                slide_idx, video_artifact_id
+                            )
+                            video_data = video_artifact_id
+                        else:
+                            logger.warning(
+                                "No video artifact in response for Slide %d",
+                                slide_idx
+                            )
+                
+                except Exception as e:
+                    logger.warning(
+                        "MCP video generation failed for Slide %d: %s. "
+                        "Saving prompt only.",
+                        slide_idx, str(e)
+                    )
+                
+                # Save video prompt for reference
+                video_prompt_file = os.path.join(
+                    videos_dir,
+                    f"slide_{slide_idx}_video_prompt.txt"
+                )
+                with open(video_prompt_file, "w", encoding="utf-8") as f:
+                    f.write("Slide %d Video Prompt\n" % slide_idx)
+                    f.write("="*29 + "\n\n")
+                    f.write("Prompt:\n%s\n\n" % video_prompt)
+                    f.write("Speaker Notes:\n%s\n" % speaker_notes)
+                    if video_data:
+                        f.write(f"\nGenerated Video: {video_data}\n")
+                
+                logger.info("Saved video prompt to %s", video_prompt_file)
+                
+            except Exception:
+                logger.error(
+                    "Error generating video for Slide %d",
+                    slide_idx, exc_info=True
+                )
+                continue
+            finally:
+                pass
+        
+        # Close PDF document
+        try:
+            pdf_doc.close()
+        except Exception:
+            pass
+        
+        logger.info("Video generation phase completed")
+
+    def _extract_video_prompt(
+        self, slide_idx: int, speaker_notes: str
+    ) -> str:
+        """
+        Extract a concise video prompt from speaker notes.
+        
+        Analyzes speaker notes and creates a focused video prompt
+        that captures the key visual concepts.
+        
+        Args:
+            slide_idx: Slide index for context
+            speaker_notes: Full speaker notes for the slide
+            
+        Returns:
+            Concise video prompt (1-2 sentences)
+        """
+        if not speaker_notes or not speaker_notes.strip():
+            return "Create an engaging visual representation of key concepts."
+        
+        # Extract first sentence or first 100 characters for conciseness
+        lines = speaker_notes.strip().split('\n')
+        first_line = lines[0] if lines else speaker_notes
+        
+        # Truncate to reasonable length
+        if len(first_line) > 150:
+            first_line = first_line[:150].rsplit(' ', 1)[0] + "."
+        
+        # Create a focused prompt
+        video_prompt = (
+            f"Create a professional 8-10 second video that visually "
+            f"illustrates this concept: {first_line} "
+            f"Use modern design, clear visuals, and professional animation. "
+            f"Focus on clarity and visual appeal."
+        )
+        
+        return video_prompt
+
+    def _extract_artifact_id(self, agent_response: str) -> str:
+        """
+        Extract artifact_id or video reference from agent response.
+        
+        Parses agent response to find references to generated video artifacts.
+        Looks for patterns like 'artifact_id', 'video_', or common file patterns.
+        
+        Args:
+            agent_response: Full text response from the video agent
+            
+        Returns:
+            Artifact ID/filename if found, empty string otherwise
+        """
+        if not agent_response:
+            return ""
+        
+        # Look for artifact_id references
+        import re
+        
+        # Pattern 1: explicit artifact_id mention
+        match = re.search(r'artifact[_-]?id["\']?\s*[:=]\s*["\']?([^"\'\s]+)', agent_response, re.IGNORECASE)
+        if match:
+            return match.group(1)
+        
+        # Pattern 2: video file references (video_*.mp4)
+        match = re.search(r'(video[_\w]*\.mp4)', agent_response, re.IGNORECASE)
+        if match:
+            return match.group(1)
+        
+        # Pattern 3: generated video references
+        match = re.search(r'(video[_\w]*)', agent_response, re.IGNORECASE)
+        if match:
+            return match.group(1)
+        
+        return ""

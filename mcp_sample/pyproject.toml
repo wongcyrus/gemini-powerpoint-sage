@@ -1,0 +1,39 @@
+"""Project configuration and dependencies for MCP Sample.
+
+This project provides a production-ready MCP server sample showing:
+- FastMCP server implementation
+- Google Vertex AI integration
+- Tool callbacks for artifact handling
+- ADK agent configuration
+"""
+
+[project]
+name = "mcp-sample"
+version = "0.1.0"
+description = "Production-ready MCP Server sample with Veo 3.1 integration"
+requires-python = ">=3.11"
+
+dependencies = [
+    # MCP Framework
+    "fastmcp>=2.0.0",
+    
+    # Google Cloud & Vertex AI
+    "google-genai>=0.3.0",
+    "google-adk>=1.0.0",
+    
+    # Configuration
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    
+    # Development
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[tool.uv]
+python-version = "3.11"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]

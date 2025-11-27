@@ -1,0 +1,15 @@
+[project]
+name = "veo-mcp-server"
+version = "0.1.0"
+description = "Veo 3.1 MCP Server for video generation in presentations"
+requires-python = ">=3.12"
+
+dependencies = [
+    "fastmcp>=2.0.0",
+    "google-genai>=0.3.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+]
+
+[tool.uv]
+python-version = "3.12"

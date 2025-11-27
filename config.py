@@ -20,6 +20,7 @@ class Config:
         retry_errors: bool = False,
         region: str = "global",
         skip_visuals: bool = False,
+        generate_videos: bool = False,
         language: str = "en",
     ):
         """
@@ -33,6 +34,7 @@ class Config:
             retry_errors: Whether to retry slides with errors
             region: Google Cloud region
             skip_visuals: Whether to skip visual generation
+            generate_videos: Whether to generate videos for slides
             language: Language locale code (e.g., en, zh-CN, yue-HK)
         """
         self.pptx_path = pptx_path
@@ -42,6 +44,7 @@ class Config:
         self.retry_errors = retry_errors
         self.region = region
         self.skip_visuals = skip_visuals
+        self.generate_videos = generate_videos
         self.language = language
 
         # Apply environment variable overrides
@@ -96,7 +99,21 @@ class Config:
         pptx_dir = os.path.dirname(self.pptx_path)
         pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
         generate_dir = os.path.join(pptx_dir, "generate")
-        return os.path.join(generate_dir, f"{pptx_base}_{self.language}_visuals")
+        return os.path.join(
+            generate_dir, f"{pptx_base}_{self.language}_visuals"
+        )
+
+    @property
+    def videos_dir(self) -> str:
+        """Get the directory for storing video outputs."""
+        pptx_dir = os.path.dirname(self.pptx_path)
+        pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
+        generate_dir = os.path.join(pptx_dir, "generate")
+        videos_dir = os.path.join(
+            generate_dir, f"{pptx_base}_{self.language}_videos"
+        )
+        os.makedirs(videos_dir, exist_ok=True)
+        return videos_dir
 
     def validate(self) -> bool:
         """
