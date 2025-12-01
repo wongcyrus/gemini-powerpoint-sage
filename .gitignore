@@ -24,3 +24,4 @@ dist/
 
 # Environment variables
 *.env
+notes/

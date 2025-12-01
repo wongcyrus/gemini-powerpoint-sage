@@ -131,35 +131,6 @@ async def process_presentation(
     return output_path_notes, output_path_visuals
 
 
-def get_english_notes(pptx_path: str) -> dict:
-    """
-    Load English speaker notes as baseline for translation.
-    
-    Args:
-        pptx_path: Path to the PPTX file
-        
-    Returns:
-        Dictionary mapping slide indices to English notes
-    """
-    from utils.progress_utils import get_progress_file_path, load_progress
-    
-    en_progress_file = get_progress_file_path(pptx_path, "en")
-    if not os.path.exists(en_progress_file):
-        return {}
-    
-    en_progress = load_progress(en_progress_file)
-    en_notes = {}
-    
-    for slide_key, slide_data in en_progress.get("slides", {}).items():
-        if slide_data.get("status") == "success":
-            slide_idx = slide_data.get("slide_index")
-            note = slide_data.get("note")
-            if slide_idx and note:
-                en_notes[slide_idx] = note
-    
-    return en_notes
-
-
 async def process_folder(
     folder_path: str,
     course_id: str = None,
@@ -308,8 +279,68 @@ def main():
              "Examples: en, 'en,zh-CN', 'en,yue-HK,zh-CN'",
         default="en"
     )
+    parser.add_argument(
+        "--refine",
+        help="Refine an existing progress JSON file for TTS (removes markdown, simplifies text). "
+             "Outputs to <filename>_refined.json by default."
+    )
 
     args = parser.parse_args()
+    
+    # Handle refinement mode
+    if args.refine:
+        # Import RefinementProcessor
+        from services.refinement_processor import RefinementProcessor
+        from agents.refiner import refiner_agent
+        
+        input_path = os.path.abspath(args.refine)
+        if not os.path.exists(input_path):
+            print(f"Error: Path not found: {input_path}")
+            sys.exit(1)
+
+        processor = RefinementProcessor(refiner_agent)
+
+        async def run_batch_refinement(files):
+            for file_path, output_path in files:
+                try:
+                    logger.info(f"Refining: {os.path.basename(file_path)} -> {os.path.basename(output_path)}")
+                    await processor.refine(file_path, output_path)
+                except Exception as e:
+                    logger.error(f"Failed to refine {file_path}: {e}")
+
+        if os.path.isdir(input_path):
+            # Process all JSON files in folder
+            json_files = [
+                f for f in os.listdir(input_path) 
+                if f.lower().endswith('.json') and not f.lower().endswith('_refined.json')
+            ]
+            
+            if not json_files:
+                print(f"No suitable JSON files found in {input_path}")
+                return
+
+            logger.info(f"Found {len(json_files)} JSON files to refine in {input_path}")
+            
+            files_to_process = []
+            for json_file in json_files:
+                fp = os.path.join(input_path, json_file)
+                base, ext = os.path.splitext(fp)
+                op = f"{base}_refined{ext}"
+                files_to_process.append((fp, op))
+            
+            asyncio.run(run_batch_refinement(files_to_process))
+            
+        else:
+            # Single file mode
+            base, ext = os.path.splitext(input_path)
+            output_path = f"{base}_refined{ext}"
+            
+            logger.info(f"Refining JSON file: {input_path}")
+            logger.info(f"Output will be saved to: {output_path}")
+            
+            asyncio.run(processor.refine(input_path, output_path))
+            
+        return
     
     # Validate that either --pptx or --folder is provided
     if not args.pptx and not args.folder:
@@ -330,83 +361,41 @@ def main():
             args.region,
             args.skip_visuals,
             args.generate_videos,
-            args.language  # Pass as comma-separated string
+            args.language
         ))
         return
     
-    # Parse languages for single file mode
-    lang_list = [lang.strip() for lang in args.language.split(",")]
-    if "en" not in lang_list:
-        lang_list.insert(0, "en")
-    elif lang_list[0] != "en":
-        lang_list.remove("en")
-        lang_list.insert(0, "en")
+    # Import utilities
+    from utils.cli_utils import parse_languages, resolve_pptx_path, resolve_pdf_path
     
+    # Parse languages
+    lang_list = parse_languages(args.language)
     logger.info(f"Languages to process: {', '.join(lang_list)}")
     
-    # Normalize PPTX path (trim whitespace, replace non-breaking spaces)
-    original_pptx_arg = args.pptx
-    normalized_pptx_arg = original_pptx_arg.strip().replace('\u00A0', ' ')
-    if not os.path.exists(normalized_pptx_arg):
-        # Attempt fuzzy match by collapsing multiple spaces
-        pptx_dir_try = os.path.dirname(normalized_pptx_arg) or os.getcwd()
-        base_try = os.path.basename(normalized_pptx_arg)
-        collapsed_target = ' '.join(base_try.split())
-        resolved = None
-        try:
-            for fname in os.listdir(pptx_dir_try):
-                if ' '.join(fname.split()) == collapsed_target:
-                    resolved = os.path.join(pptx_dir_try, fname)
-                    break
-        except Exception:
-            pass
-        if resolved and os.path.exists(resolved):
-            normalized_pptx_arg = resolved
-        else:
-            print("Error: PPTX/PPTM file not found after normalization attempts.")
-            print(f"Provided: {original_pptx_arg}")
-            print("Hint: Remove trailing spaces or unusual characters before .pptx or .pptm")
-            # List nearby candidates for user assistance
-            try:
-                print("Nearby PPTX/PPTM files in directory:")
-                for f in os.listdir(pptx_dir_try):
-                    if f.lower().endswith(('.pptx', '.pptm')):
-                        print(f"  - {f}")
-            except Exception:
-                pass
-            sys.exit(1)
-
-    pptx_abs = os.path.abspath(normalized_pptx_arg)
-    pptx_dir = os.path.dirname(pptx_abs)
-    pptx_base = os.path.splitext(os.path.basename(pptx_abs))[0]
+    try:
+        pptx_abs = resolve_pptx_path(args.pptx)
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
     # Resolve PDF path
-    pdf_path = args.pdf
-    if pdf_path:
-        pdf_path = os.path.abspath(pdf_path)
-        # Enforce same directory
-        if os.path.dirname(pdf_path) != pptx_dir:
-            print("Provided PDF must be in the same folder as the PPTX/PPTM.")
-            pdf_path = None
+    pdf_path = resolve_pdf_path(args.pdf, pptx_abs)
+    
     if not pdf_path:
-        # Attempt auto-detect with same basename
-        candidate = os.path.join(pptx_dir, pptx_base + ".pdf")
-        if os.path.exists(candidate):
-            pdf_path = candidate
-        else:
-            # Prompt user for PDF path (must be inside pptx_dir)
-            print("PDF file not found next to PPTX. Please input PDF filename (must be in same folder) or press Enter to abort:")
-            while True:
-                user_input = input("PDF filename (e.g. slides.pdf): ").strip()
-                if not user_input:
-                    print("Aborting: PDF not provided.")
-                    return
-                tentative = os.path.join(pptx_dir, user_input)
-                if os.path.exists(tentative):
-                    pdf_path = tentative
-                    break
-                else:
-                    print("File not found in PPTX folder. Try again or press Enter to abort.")
+        # Prompt user for PDF path (must be inside pptx_dir)
+        pptx_dir = os.path.dirname(pptx_abs)
+        print("PDF file not found next to PPTX. Please input PDF filename (must be in same folder) or press Enter to abort:")
+        while True:
+            user_input = input("PDF filename (e.g. slides.pdf): ").strip()
+            if not user_input:
+                print("Aborting: PDF not provided.")
+                return
+            tentative = os.path.join(pptx_dir, user_input)
+            if os.path.exists(tentative):
+                pdf_path = tentative
+                break
+            else:
+                print("File not found in PPTX folder. Try again or press Enter to abort.")
 
     # Final existence check
     if not pdf_path or not os.path.exists(pdf_path):
@@ -416,7 +405,7 @@ def main():
     # Resolve progress file path: default or relative names go next to PPTX
     # Note: Only set env var if user explicitly provided --progress-file
     # Otherwise, let progress_utils.py handle language-specific naming
-    pptx_dir = os.path.dirname(os.path.abspath(args.pptx))
+    pptx_dir = os.path.dirname(pptx_abs)
     if args.progress_file:
         # If provided path is not absolute, place it in the PPTX directory
         if os.path.isabs(args.progress_file):
@@ -431,7 +420,7 @@ def main():
         # Don't set env var - let progress_utils handle language suffix
         logging.getLogger(__name__).info(
             "Progress file will use language-specific naming: "
-            f"{os.path.splitext(os.path.basename(args.pptx))[0]}_"
+            f"{os.path.splitext(os.path.basename(pptx_abs))[0]}_"
             "{{language}}_progress.json"
         )
     if args.retry_errors:

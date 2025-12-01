@@ -167,301 +167,28 @@ class PresentationProcessor:
         # Initialize supervisor runner
         supervisor_runner = await self._initialize_supervisor()
 
-        # Process slides
-        missing_visuals_count, slide_data = await self._process_slides(
+        # PHASE 1: Generate all speaker notes
+        slide_data = await self._phase_generate_notes(
             prs_notes, prs_visuals, pdf_doc, limit, progress,
-            supervisor_runner, presentation_theme,
-            global_context
+            supervisor_runner, presentation_theme, global_context
+        )
+
+        # PHASE 2: Generate all visuals
+        missing_visuals_count = await self._phase_generate_visuals(
+            prs_visuals, slide_data
         )
 
         # PHASE 3: Generate videos (if enabled)
-        if self.config.generate_videos and self.video_generator_agent:
-            logger.info("\n" + "="*60)
-            logger.info("PHASE 3: Generating videos for all slides")
-            logger.info("="*60)
-            try:
-                await self._generate_videos_for_slides(
-                    slide_data, presentation_theme, global_context
-                )
-            except Exception:
-                logger.error("Error during video generation phase", exc_info=True)
-                logger.warning("Continuing without videos")
-
-        # Save both presentations
-        output_path_notes = self.config.output_path
-        output_path_visuals = self.config.output_path_with_visuals
-
-        # Save notes presentation to a temporary .pptx, then convert to .pptm
-        # if input was .pptm (to preserve macros).
-        def _ensure_pptx_path(path: str) -> str:
-            base, ext = os.path.splitext(path)
-            if ext.lower() == ".pptx":
-                return path
-            return base + ".pptx"
-
-        def _finalize_with_vba(original_src: str, generated_pptx: str, final_path: str) -> None:
-            # If original source contains vbaProject.bin, inject it and write final_path.
-            try:
-                with zipfile.ZipFile(original_src, 'r') as zorig:
-                    try:
-                        vba_data = zorig.read('ppt/vbaProject.bin')
-                    except KeyError:
-                        vba_data = None
-
-                if not vba_data:
-                    # No macros present; just move/rename generated file to final path
-                    shutil.move(generated_pptx, final_path)
-                    return
-
-                # Extract generated pptx to temp dir
-                tmpdir = tempfile.mkdtemp(prefix='pptm_merge_')
-                with zipfile.ZipFile(generated_pptx, 'r') as zgen:
-                    zgen.extractall(tmpdir)
-
-                # Ensure ppt/ exists and write vbaProject.bin
-                ppt_dir = os.path.join(tmpdir, 'ppt')
-                os.makedirs(ppt_dir, exist_ok=True)
-                with open(os.path.join(ppt_dir, 'vbaProject.bin'), 'wb') as f:
-                    f.write(vba_data)
-
-                # Update [Content_Types].xml
-                ctype_path = os.path.join(tmpdir, '[Content_Types].xml')
-                if os.path.exists(ctype_path):
-                    tree = ET.parse(ctype_path)
-                    root = tree.getroot()
-                    # Namespace handling
-                    override_tag = '{http://schemas.openxmlformats.org/package/2006/content-types}Override'
-                    exists = False
-                    for ov in root.findall(override_tag):
-                        if ov.attrib.get('PartName') == '/ppt/vbaProject.bin':
-                            exists = True
-                            break
-                    if not exists:
-                        ET.register_namespace('', 'http://schemas.openxmlformats.org/package/2006/content-types')
-                        new = ET.Element(override_tag, PartName='/ppt/vbaProject.bin', ContentType='application/vnd.ms-office.vbaProject')
-                        root.append(new)
-                        tree.write(ctype_path, encoding='utf-8', xml_declaration=True)
-
-                # Update ppt/_rels/presentation.xml.rels
-                rels_dir = os.path.join(tmpdir, 'ppt', '_rels')
-                os.makedirs(rels_dir, exist_ok=True)
-                pres_rels = os.path.join(rels_dir, 'presentation.xml.rels')
-                rel_tag = '{http://schemas.openxmlformats.org/package/2006/relationships}Relationship'
-
-                if os.path.exists(pres_rels):
-                    tree = ET.parse(pres_rels)
-                    root = tree.getroot()
-                else:
-                    # Create minimal rels structure
-                    root = ET.Element('{http://schemas.openxmlformats.org/package/2006/relationships}Relationships')
-                    tree = ET.ElementTree(root)
-
-                # Check if vba relationship already exists
-                exists = False
-                for r in root.findall(rel_tag):
-                    if r.attrib.get('Type') == 'http://schemas.microsoft.com/office/2006/relationships/vbaProject':
-                        exists = True
-                        break
-
-                if not exists:
-                    # generate a relationship Id
-                    rid = 'rIdVBA1'
-                    newr = ET.Element(rel_tag, Id=rid, Type='http://schemas.microsoft.com/office/2006/relationships/vbaProject', Target='vbaProject.bin')
-                    root.append(newr)
-                    tree.write(pres_rels, encoding='utf-8', xml_declaration=True)
-
-                # Ensure parent directory exists before creating zipfile
-                final_dir = os.path.dirname(final_path)
-                if final_dir:
-                    os.makedirs(final_dir, exist_ok=True)
-
-                # Repack into final_path
-                with zipfile.ZipFile(final_path, 'w', zipfile.ZIP_DEFLATED) as zout:
-                    for foldername, subfolders, filenames in os.walk(tmpdir):
-                        for filename in filenames:
-                            file_path = os.path.join(foldername, filename)
-                            arcname = os.path.relpath(file_path, tmpdir)
-                            zout.write(file_path, arcname)
-
-                # Cleanup
-                shutil.rmtree(tmpdir)
-                try:
-                    os.remove(generated_pptx)
-                except Exception:
-                    pass
-
-            except Exception as e:
-                logger.error('Failed to preserve VBA project: %s', e, exc_info=True)
-                try:
-                    shutil.move(generated_pptx, final_path)
-                except Exception:
-                    pass
-
-        # Notes output
-        temp_notes_pptx = _ensure_pptx_path(output_path_notes)
-        prs_notes.save(temp_notes_pptx)
-        logger.info('Saved presentation (intermediate) to: %s', temp_notes_pptx)
-
-        # If final desired extension is .pptm and source had macros, inject them
-        src_ext = os.path.splitext(self.config.pptx_path)[1].lower()
-        if src_ext == '.pptm' and output_path_notes.lower().endswith('.pptm'):
-            _finalize_with_vba(self.config.pptx_path, temp_notes_pptx, output_path_notes)
-            logger.info('Saved presentation with notes (pptm) to: %s', output_path_notes)
-        else:
-            if temp_notes_pptx != output_path_notes:
-                shutil.move(temp_notes_pptx, output_path_notes)
-            logger.info('Saved presentation with notes to: %s', output_path_notes)
-
-        # Only save visuals presentation if all images were generated
-        if missing_visuals_count == 0:
-            # Force 16:9 aspect ratio for visuals presentation
-            from pptx.util import Inches
-            prs_visuals.slide_width = Inches(10)
-            prs_visuals.slide_height = Inches(5.625)
-
-            temp_visuals_pptx = _ensure_pptx_path(output_path_visuals)
-            prs_visuals.save(temp_visuals_pptx)
-
-            if src_ext == '.pptm' and output_path_visuals and output_path_visuals.lower().endswith('.pptm'):
-                _finalize_with_vba(self.config.pptx_path, temp_visuals_pptx, output_path_visuals)
-                logger.info('Saved presentation with visuals (pptm) to: %s', output_path_visuals)
-            else:
-                if temp_visuals_pptx != output_path_visuals:
-                    shutil.move(temp_visuals_pptx, output_path_visuals)
-                logger.info('Saved presentation with visuals to: %s', output_path_visuals)
-        else:
-            logger.warning(
-                'Skipping visuals presentation save: %d slide(s) missing images', missing_visuals_count
-            )
-            output_path_visuals = None
-
-        return output_path_notes, output_path_visuals
-
-    async def _get_global_context(
-        self,
-        pdf_doc,
-        limit: int,
-        progress: Dict[str, Any]
-    ) -> str:
-        """Generate or retrieve cached global context."""
-        # Check if cached
-        if (
-            "global_context" in progress
-            and progress["global_context"]
-            and len(progress["global_context"]) > 50
-            and not self.retry_errors
-        ):
-            logger.info("Using cached Global Context from progress file.")
-            return progress["global_context"]
-
-        # For non-English, try to translate from English global context
-        if self.config.language != "en":
-            from utils.progress_utils import get_progress_file_path
-            en_progress_file = get_progress_file_path(
-                self.config.pptx_path, "en"
-            )
-            if os.path.exists(en_progress_file):
-                en_progress = load_progress(en_progress_file)
-                en_global_context = en_progress.get("global_context")
-                if en_global_context and len(en_global_context) > 50:
-                    logger.info(
-                        "--- Pass 1: Translating Global Context from English ---"
-                    )
-                    
-                    locale_map = {
-                        "zh-CN": "Simplified Chinese (简体中文)",
-                        "zh-TW": "Traditional Chinese (繁體中文)",
-                        "yue-HK": "Cantonese (廣東話)",
-                        "es": "Spanish (Español)",
-                        "fr": "French (Français)",
-                        "ja": "Japanese (日本語)",
-                        "ko": "Korean (한국어)",
-                    }
-                    lang_name = locale_map.get(
-                        self.config.language,
-                        self.config.language
-                    )
-                    
-                    translate_prompt = (
-                        f"Translate the following presentation overview "
-                        f"to {lang_name}:\n\n{en_global_context}"
-                    )
-                    
-                    global_context = await run_stateless_agent(
-                        self.translator_agent,
-                        translate_prompt
-                    )
-                    
-                    logger.info(
-                        f"Global Context Translated: {len(global_context)} chars"
-                    )
-                    
-                    # Cache it
-                    progress["global_context"] = global_context
-                    save_progress(self.progress_file, progress)
-                    
-                    return global_context
-
-        # Generate new context
-        logger.info("--- Pass 1: Generating Global Context ---")
-
-        all_images = []
-        for i in range(limit):
-            pix = pdf_doc[i].get_pixmap(dpi=75)
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            all_images.append(img)
-
-        global_context = await run_stateless_agent(
-            self.overviewer_agent,
-            "Here are the slides for the entire presentation. Analyze them.",
-            images=all_images
+        await self._phase_generate_videos(
+            slide_data, presentation_theme, global_context
         )
 
-        logger.info(f"Global Context Generated: {len(global_context)} chars")
-
-        # Cache it
-        progress["global_context"] = global_context
-        save_progress(self.progress_file, progress)
-
-        return global_context
-
-    def _configure_supervisor_tools(
-        self,
-        presentation_theme: str,
-        global_context: str,
-        english_notes: dict = None,
-    ) -> None:
-        """Configure the supervisor agent's tools."""
-        self.supervisor_agent.tools = [
-            AgentTool(agent=self.auditor_agent),
-            self.tool_factory.create_analyst_tool(),
-            self.tool_factory.create_writer_tool(
-                presentation_theme,
-                global_context,
-                self.config.language,
-                english_notes
-            ),
-        ]
-
-    async def _initialize_supervisor(self) -> InMemoryRunner:
-        """Initialize and create supervisor session."""
-        supervisor_runner = InMemoryRunner(
-            agent=self.supervisor_agent,
-            app_name="agents"
+        # Finalize and save
+        return self._save_outputs(
+            prs_notes, prs_visuals, missing_visuals_count
         )
 
-        user_id = "supervisor_user"
-        session_id = "supervisor_session"
-
-        await supervisor_runner.session_service.create_session(
-            app_name="agents",
-            user_id=user_id,
-            session_id=session_id
-        )
-
-        return supervisor_runner
-
-    async def _process_slides(
+    async def _phase_generate_notes(
         self,
         prs_notes: Presentation,
         prs_visuals: Presentation,
@@ -470,23 +197,25 @@ class PresentationProcessor:
         progress: Dict[str, Any],
         supervisor_runner: InMemoryRunner,
         presentation_theme: str,
-        global_context: str,
-    ) -> int:
-        """Process all slides in both presentations.
+        global_context: str
+    ) -> list:
+        """
+        Phase 1: Generate all speaker notes.
         
         Returns:
-            Number of slides with missing visuals
+            List of slide data dictionaries for visual processing.
         """
-        user_id = "supervisor_user"
-        session_id = "supervisor_session"
-
-        # PHASE 1: Generate all speaker notes
         logger.info("\n" + "="*60)
         logger.info("PHASE 1: Generating speaker notes for all slides")
         logger.info("="*60)
         
+        from utils.pptx_utils import get_slide_notes, update_slide_notes
+        
         slide_data = []  # Store slide data for visual processing
         previous_slide_summary = "Start of presentation."
+        
+        user_id = "supervisor_user"
+        session_id = "supervisor_session"
 
         for i in range(limit):
             slide_idx = i + 1
@@ -497,7 +226,7 @@ class PresentationProcessor:
             logger.info(f"--- Processing Notes for Slide {slide_idx} ---")
 
             # Get existing notes (from notes presentation)
-            existing_notes = self._get_existing_notes(slide_notes)
+            existing_notes = get_slide_notes(slide_notes)
             skey = create_slide_key(slide_idx, existing_notes)
             entry = progress["slides"].get(skey)
 
@@ -517,10 +246,10 @@ class PresentationProcessor:
             # Update slide notes in both presentations
             if status == "success":
                 # Update notes in notes-only presentation
-                self._update_slide_notes(slide_notes, final_response)
+                update_slide_notes(slide_notes, final_response)
                 
                 # Update notes in visuals presentation
-                self._update_slide_notes(slide_visuals, final_response)
+                update_slide_notes(slide_visuals, final_response)
                 
                 previous_slide_summary = final_response[:200]
 
@@ -545,8 +274,20 @@ class PresentationProcessor:
 
             # Cleanup
             unregister_image(image_id)
+            
+        return slide_data
 
-        # PHASE 2: Generate all visuals
+    async def _phase_generate_visuals(
+        self,
+        prs_visuals: Presentation,
+        slide_data: list
+    ) -> int:
+        """
+        Phase 2: Generate all visuals.
+        
+        Returns:
+            Number of slides with missing visuals.
+        """
         logger.info("\n" + "="*60)
         logger.info("PHASE 2: Generating visuals for all slides")
         logger.info("="*60)
@@ -708,13 +449,227 @@ class PresentationProcessor:
                 )
                 missing_visuals_count += 1
         
-        return missing_visuals_count, slide_data
+        return missing_visuals_count
 
-    def _get_existing_notes(self, slide) -> str:
-        """Extract existing notes from a slide."""
-        if slide.has_notes_slide and slide.notes_slide.notes_text_frame:
-            return slide.notes_slide.notes_text_frame.text.strip()
-        return ""
+    async def _phase_generate_videos(
+        self,
+        slide_data: list,
+        presentation_theme: str,
+        global_context: str
+    ) -> None:
+        """
+        Phase 3: Generate videos (if enabled).
+        """
+        if self.config.generate_videos and self.video_generator_agent:
+            logger.info("\n" + "="*60)
+            logger.info("PHASE 3: Generating videos for all slides")
+            logger.info("="*60)
+            try:
+                await self._generate_videos_for_slides(
+                    slide_data, presentation_theme, global_context
+                )
+            except Exception:
+                logger.error("Error during video generation phase", exc_info=True)
+                logger.warning("Continuing without videos")
+
+    def _save_outputs(
+        self,
+        prs_notes: Presentation,
+        prs_visuals: Presentation,
+        missing_visuals_count: int
+    ) -> tuple[str, str]:
+        """
+        Save the processed presentations to disk.
+        """
+        from utils.pptx_utils import ensure_pptx_path, restore_vba_project
+        
+        output_path_notes = self.config.output_path
+        output_path_visuals = self.config.output_path_with_visuals
+
+        # Notes output
+        temp_notes_pptx = ensure_pptx_path(output_path_notes)
+        prs_notes.save(temp_notes_pptx)
+        logger.info('Saved presentation (intermediate) to: %s', temp_notes_pptx)
+
+        # If final desired extension is .pptm and source had macros, inject them
+        src_ext = os.path.splitext(self.config.pptx_path)[1].lower()
+        if src_ext == '.pptm' and output_path_notes.lower().endswith('.pptm'):
+            restore_vba_project(
+                self.config.pptx_path, temp_notes_pptx, output_path_notes
+            )
+            logger.info(
+                'Saved presentation with notes (pptm) to: %s', output_path_notes
+            )
+        else:
+            if temp_notes_pptx != output_path_notes:
+                shutil.move(temp_notes_pptx, output_path_notes)
+            logger.info(
+                'Saved presentation with notes to: %s', output_path_notes
+            )
+
+        # Only save visuals presentation if all images were generated
+        if missing_visuals_count == 0:
+            # Force 16:9 aspect ratio for visuals presentation
+            from pptx.util import Inches
+            prs_visuals.slide_width = Inches(10)
+            prs_visuals.slide_height = Inches(5.625)
+
+            temp_visuals_pptx = ensure_pptx_path(output_path_visuals)
+            prs_visuals.save(temp_visuals_pptx)
+
+            if (
+                src_ext == '.pptm'
+                and output_path_visuals
+                and output_path_visuals.lower().endswith('.pptm')
+            ):
+                restore_vba_project(
+                    self.config.pptx_path,
+                    temp_visuals_pptx,
+                    output_path_visuals
+                )
+                logger.info(
+                    'Saved presentation with visuals (pptm) to: %s',
+                    output_path_visuals
+                )
+            else:
+                if temp_visuals_pptx != output_path_visuals:
+                    shutil.move(temp_visuals_pptx, output_path_visuals)
+                logger.info(
+                    'Saved presentation with visuals to: %s',
+                    output_path_visuals
+                )
+        else:
+            logger.warning(
+                'Skipping visuals presentation save: %d slide(s) missing images',
+                missing_visuals_count
+            )
+            output_path_visuals = None
+
+        return output_path_notes, output_path_visuals
+
+    async def _get_global_context(
+        self,
+        pdf_doc,
+        limit: int,
+        progress: Dict[str, Any]
+    ) -> str:
+        """Generate or retrieve cached global context."""
+        # Check if cached
+        if (
+            "global_context" in progress
+            and progress["global_context"]
+            and len(progress["global_context"]) > 50
+            and not self.retry_errors
+        ):
+            logger.info("Using cached Global Context from progress file.")
+            return progress["global_context"]
+
+        # For non-English, try to translate from English global context
+        if self.config.language != "en":
+            from utils.progress_utils import get_progress_file_path
+            en_progress_file = get_progress_file_path(
+                self.config.pptx_path, "en"
+            )
+            if os.path.exists(en_progress_file):
+                en_progress = load_progress(en_progress_file)
+                en_global_context = en_progress.get("global_context")
+                if en_global_context and len(en_global_context) > 50:
+                    logger.info(
+                        "--- Pass 1: Translating Global Context from English ---"
+                    )
+                    
+                    locale_map = {
+                        "zh-CN": "Simplified Chinese (简体中文)",
+                        "zh-TW": "Traditional Chinese (繁體中文)",
+                        "yue-HK": "Cantonese (廣東話)",
+                        "es": "Spanish (Español)",
+                        "fr": "French (Français)",
+                        "ja": "Japanese (日本語)",
+                        "ko": "Korean (한국어)",
+                    }
+                    lang_name = locale_map.get(
+                        self.config.language,
+                        self.config.language
+                    )
+                    
+                    translate_prompt = (
+                        f"Translate the following presentation overview "
+                        f"to {lang_name}:\n\n{en_global_context}"
+                    )
+                    
+                    global_context = await run_stateless_agent(
+                        self.translator_agent,
+                        translate_prompt
+                    )
+                    
+                    logger.info(
+                        f"Global Context Translated: {len(global_context)} chars"
+                    )
+                    
+                    # Cache it
+                    progress["global_context"] = global_context
+                    save_progress(self.progress_file, progress)
+                    
+                    return global_context
+
+        # Generate new context
+        logger.info("--- Pass 1: Generating Global Context ---")
+
+        all_images = []
+        for i in range(limit):
+            pix = pdf_doc[i].get_pixmap(dpi=75)
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            all_images.append(img)
+
+        global_context = await run_stateless_agent(
+            self.overviewer_agent,
+            "Here are the slides for the entire presentation. Analyze them.",
+            images=all_images
+        )
+
+        logger.info(f"Global Context Generated: {len(global_context)} chars")
+
+        # Cache it
+        progress["global_context"] = global_context
+        save_progress(self.progress_file, progress)
+
+        return global_context
+
+    def _configure_supervisor_tools(
+        self,
+        presentation_theme: str,
+        global_context: str,
+        english_notes: dict = None,
+    ) -> None:
+        """Configure the supervisor agent's tools."""
+        self.supervisor_agent.tools = [
+            AgentTool(agent=self.auditor_agent),
+            self.tool_factory.create_analyst_tool(),
+            self.tool_factory.create_writer_tool(
+                presentation_theme,
+                global_context,
+                self.config.language,
+                english_notes
+            ),
+        ]
+
+    async def _initialize_supervisor(self) -> InMemoryRunner:
+        """Initialize and create supervisor session."""
+        supervisor_runner = InMemoryRunner(
+            agent=self.supervisor_agent,
+            app_name="agents"
+        )
+
+        user_id = "supervisor_user"
+        session_id = "supervisor_session"
+
+        await supervisor_runner.session_service.create_session(
+            app_name="agents",
+            user_id=user_id,
+            session_id=session_id
+        )
+
+        return supervisor_runner
 
     def _extract_slide_image(self, pdf_page) -> Image.Image:
         """Extract image from PDF page."""
@@ -899,27 +854,6 @@ class PresentationProcessor:
             f"Global Context: \"{global_context}\"\n\n"
             f"Please proceed with the workflow."
         )
-
-    def _update_slide_notes(self, slide, notes: str) -> None:
-        """Update the notes on a slide as plain text without bullets."""
-        try:
-            if not slide.has_notes_slide:
-                slide.notes_slide
-            
-            text_frame = slide.notes_slide.notes_text_frame
-            text_frame.clear()
-            
-            # Add notes as single paragraph without bullet formatting
-            p = text_frame.paragraphs[0]
-            p.text = notes
-            p.level = 0
-            
-            # Explicitly remove bullet formatting
-            from pptx.enum.text import PP_ALIGN
-            p.alignment = PP_ALIGN.LEFT
-            
-        except Exception as e:
-            logger.error(f"Failed to update slide notes: {e}")
 
     async def _translate_notes(
         self, english_note: str, slide_idx: int

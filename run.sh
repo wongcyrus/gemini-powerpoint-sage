@@ -7,7 +7,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR" || exit 1
 
 # Basic presence check for --pptx or --folder
-if ! printf '%s\n' "$@" | grep -qE -- '--(pptx|folder)'; then
+if ! printf '%s\n' "$@" | grep -qE -- '--(pptx|folder|refine)'; then
     echo "Usage: ./run.sh --pptx <path_to_pptx> [--pdf <path_to_pdf>] [other flags]" >&2
     echo "   or: ./run.sh --folder <path_to_folder> [--language <locale>]" >&2
     echo "If --pdf omitted, main.py auto-detects a PDF with the same basename in the PPTX folder." >&2
@@ -15,6 +15,7 @@ if ! printf '%s\n' "$@" | grep -qE -- '--(pptx|folder)'; then
     echo "Example: ./run.sh --folder ../data --language zh-CN" >&2
     exit 1
 fi
+
 
 # Activate virtual environment if it exists
 if [ -d ".venv" ]; then

@@ -205,6 +205,7 @@ export GOOGLE_CLOUD_LOCATION='us-central1'
 *   `--skip-visuals` - Skip AI visual generation (notes only, faster)
 *   `--generate-videos` - Generate video prompts for all slides (requires Veo 3.1 for actual video generation)
 *   `--region <region>` - GCP region (default: global)
+*   `--refine <path>` - Refine an existing progress JSON file for TTS (removes markdown, simplifies text)
 
 ## Multi-Language Translation Workflow
 
@@ -241,6 +242,26 @@ lecture_yue-HK_visuals/          # Translated visuals (text in Cantonese)
 - 📐 **Design Consistency**: Layout and style maintained across languages
 - 🎯 **Consistent**: All versions based on same English baseline
 - ✅ **Quality**: English serves as reviewed baseline
+
+## Refining Speaker Notes (TTS Optimization)
+
+You can refine existing generated speaker notes to be optimized for **Text-to-Speech (TTS)** systems. This process:
+*   Removes markdown formatting (bold, italics, headers)
+*   Simplifies complex sentence structures
+*   Converts bullet points into natural conversational flow
+*   Removes visual references (e.g., "As you can see in this chart")
+
+**Usage:**
+```bash
+# Single file
+./run.sh --refine path/to/progress.json
+
+# Batch process folder (refines all .json files in folder)
+./run.sh --refine path/to/folder/
+```
+
+**Output:**
+Creates a new file with the `_refined.json` suffix (e.g., `progress_refined.json`) for each processed file.
 
 ## Output Files
 
