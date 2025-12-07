@@ -1,5 +1,6 @@
 """Configuration package for Gemini Powerpoint Sage."""
 
+from .config import Config
 from .constants import (
     ModelConfig,
     ProcessingConfig,
@@ -10,6 +11,7 @@ from .constants import (
 )
 
 __all__ = [
+    "Config",
     "ModelConfig",
     "ProcessingConfig",
     "FilePatterns",

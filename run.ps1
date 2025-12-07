@@ -77,13 +77,17 @@ if ($folder) {
     Write-Host "No --pdf supplied; main.py will auto-detect a matching PDF." -ForegroundColor Yellow
 }
 
-# Set Google Cloud environment variables (defaults only if not already set)
-if (-not $env:GOOGLE_CLOUD_PROJECT) { $env:GOOGLE_CLOUD_PROJECT = 'langbridge-presenter' }
-if (-not $env:GOOGLE_CLOUD_LOCATION) { $env:GOOGLE_CLOUD_LOCATION = 'global' }
-if (-not $env:GOOGLE_GENAI_USE_VERTEXAI) { $env:GOOGLE_GENAI_USE_VERTEXAI = 'True' }
+# Note: Environment variables are loaded from .env file by main.py using python-dotenv
+# You can still override them here if needed:
+# $env:GOOGLE_CLOUD_PROJECT = "your-project-id"
+# $env:GOOGLE_CLOUD_LOCATION = "us-central1"
 
 Write-Host "Starting Gemini Powerpoint Sage..." -ForegroundColor Cyan
-Write-Host "Project: $($env:GOOGLE_CLOUD_PROJECT)" -ForegroundColor Cyan
+if ($env:GOOGLE_CLOUD_PROJECT) {
+    Write-Host "Project: $($env:GOOGLE_CLOUD_PROJECT)" -ForegroundColor Cyan
+} else {
+    Write-Host "Project: (will be loaded from .env file)" -ForegroundColor Cyan
+}
 
 # Forward all original arguments exactly as received
 

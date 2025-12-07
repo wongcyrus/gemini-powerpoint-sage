@@ -25,3 +25,4 @@ dist/
 # Environment variables
 *.env
 notes/
+tests/sample_data/generate

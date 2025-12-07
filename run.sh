@@ -26,13 +26,17 @@ else
     echo "Continuing with system Python..."
 fi
 
-# Set Google Cloud Environment Variables (defaults only if not already set)
-export GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-"langbridge-presenter"}
-export GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-"global"}
-export GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI:-"True"}
+# Note: Environment variables are loaded from .env file by main.py using python-dotenv
+# You can still override them here if needed:
+# export GOOGLE_CLOUD_PROJECT="your-project-id"
+# export GOOGLE_CLOUD_LOCATION="us-central1"
 
 echo "Starting Gemini Powerpoint Sage..."
-echo "Project: $GOOGLE_CLOUD_PROJECT"
+if [ -n "$GOOGLE_CLOUD_PROJECT" ]; then
+    echo "Project: $GOOGLE_CLOUD_PROJECT"
+else
+    echo "Project: (will be loaded from .env file)"
+fi
 
 # Run the python script
 # Arguments are passed directly, so if user provides --region, python argparse handles it.

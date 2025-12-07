@@ -17,7 +17,13 @@ import os
 import sys
 from datetime import datetime
 
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 from config import Config
+# Note: Config is imported from config.py (root module), not config package
 from services.presentation_processor import PresentationProcessor
 
 # Setup logging with both file and console output
