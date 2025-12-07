@@ -1,0 +1,70 @@
+# Gemini Powerpoint Sage Configuration Example
+# Copy this file to config.yaml and customize for your needs
+
+# ============================================================================
+# INPUT FILES (choose one method)
+# ============================================================================
+
+# Method 1: Single file processing
+pptx: "tests/sample_data/cloudtech.pptm"
+pdf: "tests/sample_data/cloudtech.pdf"  # Optional if same name as PPTX
+
+# Method 2: Folder processing (comment out pptx/pdf above and uncomment below)
+# folder: "path/to/folder"
+
+# ============================================================================
+# GOOGLE CLOUD SETTINGS
+# ============================================================================
+
+region: "global"  # Options: global, us-central1, europe-west1, asia-northeast1
+
+# ============================================================================
+# LANGUAGE SETTINGS
+# ============================================================================
+
+# Single language
+language: "en"
+
+# Multiple languages (English is always processed first)
+# language: "en,zh-CN,yue-HK"
+
+# ============================================================================
+# STYLE/THEME
+# ============================================================================
+
+# Option 1: Simple unified style (applies to both visuals and speaker notes)
+style: "Professional"
+
+# Option 2: Separate visual and speaker styles for more control
+# style:
+#   visual_style: |
+#     Gundam - Mecha-inspired futuristic design
+#     - Towering mecha aesthetics with gleaming metallic armor
+#     - Glowing energy effects (blue/green accents)
+#     - Angular, geometric shapes and technical diagrams
+#     - Military/tactical color schemes
+#   
+#   speaker_style: |
+#     Military Tactical Briefing
+#     - Strategic and tactical language
+#     - Military precision terminology
+#     - Example: "Deploy this solution across all sectors" instead of "Use this solution"
+#     - Example: "Engage the target with precision" instead of "Address the issue carefully"
+
+# ============================================================================
+# GENERATION OPTIONS
+# ============================================================================
+
+skip_visuals: false      # Set to true to only generate speaker notes
+generate_videos: false   # Set to true to generate videos with Veo 3.1
+retry_errors: false      # Set to true to retry slides that previously failed
+
+# ============================================================================
+# ADVANCED OPTIONS
+# ============================================================================
+
+# Optional course ID for additional context
+# course_id: "course-123"
+
+# Custom progress file path (default: auto-generated)
+# progress_file: "custom_progress.json"

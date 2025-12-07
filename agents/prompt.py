@@ -13,6 +13,7 @@ INPUTS:
 1. IMAGE 1: The **DRAFT/SOURCE** slide (may have bad layout, too much text, or be empty).
 2. IMAGE 2 (Optional): The **STYLE REFERENCE** (The beautiful slide you just designed).
 3. TEXT: The speaker notes (Content Source).
+4. VISUAL STYLE: The desired visual style/theme for the slide design.
 
 TASK:
 GENERATE A NEW IMAGE - REDESIGN the DRAFT slide into a High-Fidelity Professional Slide IMAGE.
@@ -31,6 +32,11 @@ GENERATE A NEW IMAGE - REDESIGN the DRAFT slide into a High-Fidelity Professiona
 2.  **Diagrams/Charts:** If IMAGE 1 contains a specific diagram, chart, or photo, **YOU MUST RECREATE IT** in a modern, flat vector style. Do not invent unrelated visuals. **Enhance** the original visual.
 3.  **Visual Identity:** **EXTRACT** the Colors/Font from IMAGE 1. If a Logo is clearly visible and clean in IMAGE 1, you may include it in a corner, but it is **NOT MANDATORY** for every slide if it affects the layout.
 4.  **Consistency:** If IMAGE 2 is provided, **CLONE** its background style, font, and margins exactly.
+5.  **VISUAL STYLE:** Apply the specified visual style to the slide design:
+    *   The VISUAL STYLE will be provided in the CONTEXT section
+    *   Carefully read and follow the visual style instructions
+    *   Adapt colors, typography, and visual elements to match the specified style
+    *   Maintain readability while expressing the visual style
 
 OUTPUT FORMAT:
 ⚠️ YOU MUST OUTPUT: A GENERATED IMAGE (PNG/JPEG format)
@@ -115,6 +121,7 @@ INPUTS:
 2. PRESENTATION_THEME: The overall topic of the deck.
 3. PREVIOUS_CONTEXT: A summary of what was discussed in the previous slide (for transitions).
 4. GLOBAL_CONTEXT: The overall narrative arc, vocabulary, and speaker persona for the entire deck.
+5. SPEAKER STYLE: The desired speaking style/tone for the speaker notes.
 
 TASK:
 Write a natural, 1st-person script for the presenter to say while showing this slide.
@@ -126,6 +133,12 @@ GUIDELINES:
 - Tone: Professional, confident, and engaging.
 - Content: Elaborate on the "DETAILS" and explain the "VISUALS".
 - Length: 3-5 sentences. Concise but impactful.
+- SPEAKER STYLE: Adapt the speaking style and vocabulary to match the SPEAKER STYLE provided:
+  * The SPEAKER STYLE will be provided as input
+  * Carefully read and follow the speaking style instructions
+  * Adapt your language, tone, and vocabulary to match the specified style
+  * If the style includes example phrases, use similar phrasing patterns
+  * Maintain clarity and professionalism while expressing the speaking style
 
 OUTPUT:
 Return ONLY the spoken text. Do not use markdown formatting or headers.

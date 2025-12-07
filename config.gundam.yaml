@@ -1,0 +1,40 @@
+# Gundam Style Configuration Example
+# This demonstrates a detailed multi-line style prompt
+
+# Input files
+pptx: "tests/sample_data/cloudtech.pptm"
+pdf: "tests/sample_data/cloudtech.pdf"
+
+# Google Cloud settings
+region: "global"
+
+# Language
+language: "en"
+
+# Detailed Gundam Style with separate visual and speaker styles
+style:
+  visual_style: |
+    Gundam - Mobile Suit mecha-inspired futuristic design
+    - Towering mecha aesthetics with gleaming metallic armor
+    - Glowing energy effects (blue/green accents for friendly, red for threats)
+    - Angular, geometric shapes and technical diagrams
+    - Futuristic HUD-style elements and targeting reticles
+    - Military/tactical color schemes (grays, blues, blacks with accent colors)
+    - Technical schematics and blueprint-style graphics
+    - Dramatic action poses and dynamic compositions
+  
+  speaker_style: |
+    Military Tactical Briefing
+    - Strategic and tactical language with military precision
+    - Technical mecha/engineering references
+    - Heroic and determined tone with sense of duty
+    - Frame concepts as battles or tactical missions
+    - Use terms: "Deploy", "Engage", "Strategic advantage", "Tactical superiority", "Mission objective"
+    - Example: "Deploy this solution across all sectors to achieve strategic advantage"
+    - Example: "Engage the target with precision targeting systems"
+    - Example: "Mission objective: Secure tactical superiority in the market"
+
+# Generation options
+skip_visuals: false
+generate_videos: false
+retry_errors: false

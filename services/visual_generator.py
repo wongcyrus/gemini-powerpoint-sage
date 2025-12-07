@@ -33,6 +33,7 @@ class VisualGenerator:
         output_dir: str,
         skip_generation: bool = False,
         fallback_imagen_model: str = "imagen-4.0-generate-001",
+        style: str = "Professional",
     ):
         """
         Initialize the visual generator.
@@ -42,11 +43,13 @@ class VisualGenerator:
             output_dir: Directory to save generated visuals
             skip_generation: Whether to skip visual generation
             fallback_imagen_model: Imagen model name for fallback generation
+            style: Style/theme for visual generation
         """
         self.designer_agent = designer_agent
         self.fallback_imagen_model = fallback_imagen_model
         self.output_dir = output_dir
         self.skip_generation = skip_generation
+        self.visual_style = style  # This is visual_style from config
         self.previous_image: Optional[Image.Image] = None
 
         # Ensure output directory exists
@@ -321,12 +324,15 @@ class VisualGenerator:
                 f"{lang_name}."
             )
         
+        # Visual style instruction
+        style_instruction = f"\n\nVISUAL STYLE: {self.visual_style}"
+        
         return (
             f"IMAGE 1: Original Slide Image provided.\n\n"
             f"IMAGE 2: {style_ref}\n\n"
             f"Speaker Notes: \"{speaker_notes}\"\n\n"
             f"TASK: Generate the high-fidelity slide image now.\n\n"
-            f"CONTEXT: {logo_instruction}{lang_instruction}\n"
+            f"CONTEXT: {logo_instruction}{lang_instruction}{style_instruction}\n"
         )
 
     def _build_fallback_prompt(

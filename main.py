@@ -66,6 +66,7 @@ async def process_presentation(
     skip_visuals: bool = False,
     generate_videos: bool = False,
     language: str = "en",
+    style: str = None,
 ) -> str:
     """
     Process a presentation and generate speaker notes.
@@ -77,6 +78,7 @@ async def process_presentation(
         skip_visuals: Whether to skip visual generation
         generate_videos: Whether to generate videos for slides
         language: Language locale code
+        style: Optional style/theme for content generation
 
     Returns:
         Path to the enhanced presentation file
@@ -103,6 +105,7 @@ async def process_presentation(
         skip_visuals=skip_visuals,
         generate_videos=generate_videos,
         language=language,
+        style=style,
     )
 
     # Validate configuration
@@ -145,6 +148,7 @@ async def process_folder(
     skip_visuals: bool = False,
     generate_videos: bool = False,
     languages: str = "en",
+    style: str = None,
 ) -> None:
     """
     Process all PPTX files in a folder.
@@ -157,6 +161,7 @@ async def process_folder(
         skip_visuals: Whether to skip visual generation
         generate_videos: Whether to generate videos for slides
         languages: Comma-separated language locale codes
+        style: Optional style/theme for content generation
     """
     if not os.path.isdir(folder_path):
         print(f"Error: Folder not found: {folder_path}")
@@ -222,7 +227,8 @@ async def process_folder(
                     course_id,
                     skip_visuals,
                     generate_videos,
-                    lang
+                    lang,
+                    style
                 )
                 logger.info(
                     f"Successfully processed {os.path.basename(pptx_path)} "
@@ -246,7 +252,14 @@ async def process_folder(
 def main():
     """Main entry point for the Gemini Powerpoint Sage CLI."""
     parser = argparse.ArgumentParser(
-        description="Generate Speaker Notes with Supervisor Agent"
+        description="Generate Speaker Notes with Supervisor Agent",
+        epilog="Use --config to load settings from a YAML/JSON file for easier management."
+    )
+    parser.add_argument(
+        "--config",
+        help="Path to YAML configuration file. "
+             "Command-line arguments override config file settings. "
+             "Example: --config config.yaml"
     )
     parser.add_argument("--pptx", required=False, help="Path to input PPTX or PPTM")
     parser.add_argument("--folder", required=False, help="Path to folder containing PPTX files to process")
@@ -286,12 +299,40 @@ def main():
         default="en"
     )
     parser.add_argument(
+        "--style",
+        help="Style/theme for content generation. "
+             "Influences both speaker notes and slide visuals. "
+             "Examples: 'Gundam', 'Cyberpunk', 'Minimalist', 'Corporate', 'Professional' (default)",
+        default=None
+    )
+    parser.add_argument(
         "--refine",
         help="Refine an existing progress JSON file for TTS (removes markdown, simplifies text). "
              "Outputs to <filename>_refined.json by default."
     )
 
     args = parser.parse_args()
+    
+    # Load configuration from file if specified
+    config_dict = {}
+    if args.config:
+        from config.config_loader import ConfigFileLoader
+        
+        try:
+            config_dict = ConfigFileLoader.load_from_file(args.config)
+            ConfigFileLoader.validate_config(config_dict)
+            # Merge with command-line arguments (CLI takes precedence)
+            config_dict = ConfigFileLoader.merge_with_args(config_dict, args)
+            
+            # Update args with config values
+            for key, value in config_dict.items():
+                if not hasattr(args, key) or getattr(args, key) is None:
+                    setattr(args, key, value)
+            
+            logger.info(f"Loaded configuration from: {args.config}")
+        except Exception as e:
+            print(f"Error loading configuration file: {e}")
+            sys.exit(1)
     
     # Handle refinement mode
     if args.refine:
@@ -367,7 +408,8 @@ def main():
             args.region,
             args.skip_visuals,
             args.generate_videos,
-            args.language
+            args.language,
+            args.style
         ))
         return
     
@@ -447,7 +489,7 @@ def main():
         asyncio.run(
             process_presentation(
                 pptx_abs, pdf_path, args.course_id, args.skip_visuals,
-                args.generate_videos, lang
+                args.generate_videos, lang, args.style
             )
         )
 

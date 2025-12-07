@@ -6,7 +6,7 @@ from . import prompt
 
 translator_agent = LlmAgent(
     name="translator",
-    model=os.getenv("MODEL_TRANSLATOR", "gemini-1.5-flash"),
+    model=os.getenv("MODEL_TRANSLATOR", "gemini-2.5-flash"),
     description="Translates speaker notes and slide text to target languages with cultural adaptation.",
     instruction=prompt.TRANSLATOR_PROMPT,
 )

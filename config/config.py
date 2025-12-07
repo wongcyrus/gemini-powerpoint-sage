@@ -24,6 +24,7 @@ class Config:
         skip_visuals: bool = False,
         generate_videos: bool = False,
         language: str = "en",
+        style: Optional[str] = None,
     ):
         """
         Initialize configuration.
@@ -38,6 +39,7 @@ class Config:
             skip_visuals: Whether to skip visual generation
             generate_videos: Whether to generate videos for slides
             language: Language locale code (e.g., en, zh-CN, yue-HK)
+            style: Optional style/theme for content generation (e.g., "Gundam", "Cyberpunk", "Minimalist")
         """
         self.pptx_path = pptx_path
         self.pdf_path = pdf_path
@@ -48,6 +50,16 @@ class Config:
         self.skip_visuals = skip_visuals
         self.generate_videos = generate_videos
         self.language = language
+        
+        # Handle style - can be a string or dict with visual_style and speaker_style
+        if isinstance(style, dict):
+            self.visual_style = style.get("visual_style", "Professional")
+            self.speaker_style = style.get("speaker_style", "Professional")
+        else:
+            # Single style applies to both
+            default_style = style or os.getenv("PRESENTATION_STYLE", "Professional")
+            self.visual_style = default_style
+            self.speaker_style = default_style
 
         # Apply environment variable overrides
         self._apply_env_overrides()
@@ -182,5 +194,6 @@ class Config:
         return (
             f"Config(pptx={self.pptx_path}, pdf={self.pdf_path}, "
             f"course_id={self.course_id}, region={self.region}, "
-            f"skip_visuals={self.skip_visuals}, language={self.language})"
+            f"skip_visuals={self.skip_visuals}, language={self.language}, "
+            f"visual_style={self.visual_style}, speaker_style={self.speaker_style})"
         )

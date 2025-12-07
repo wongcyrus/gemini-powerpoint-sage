@@ -125,15 +125,37 @@ The setup script will:
 
 ## Usage
 
+### Quick Start with Config File (Recommended)
+
+The easiest way to run the tool is with a configuration file:
+
+```bash
+# 1. Copy the example config
+cp config.example.yaml config.yaml
+
+# 2. Edit config.yaml with your settings
+
+# 3. Run with config file
+python main.py --config config.yaml
+```
+
+See [CONFIG_FILE_GUIDE.md](CONFIG_FILE_GUIDE.md) for detailed configuration options.
+
 ### Linux/macOS
 Run the `run.sh` script (it will automatically activate the virtual environment):
 
 ```bash
+# With config file (recommended)
+./run.sh --config config.yaml
+
 # Basic usage - PDF auto-detected
 ./run.sh --pptx /path/to/presentation.pptx
 
 # With explicit PDF
 ./run.sh --pptx /path/to/presentation.pptx --pdf /path/to/presentation.pdf
+
+# With custom style
+./run.sh --pptx /path/to/presentation.pptx --style "Gundam"
 
 # Multiple languages
 ./run.sh --pptx /path/to/file.pptx --language "en,zh-CN,yue-HK"
@@ -146,11 +168,17 @@ Run the `run.sh` script (it will automatically activate the virtual environment)
 Run the `run.ps1` PowerShell script (it will automatically activate the virtual environment):
 
 ```powershell
+# With config file (recommended)
+.\run.ps1 --config config.yaml
+
 # Basic usage - PDF auto-detected
 .\run.ps1 --pptx "C:\path\to\presentation.pptx"
 
 # With explicit PDF
 .\run.ps1 --pptx "C:\path\to\presentation.pptx" --pdf "C:\path\to\presentation.pdf"
+
+# With custom style
+.\run.ps1 --pptx "path\to\file.pptx" --style "Cyberpunk"
 
 # Multiple languages
 .\run.ps1 --pptx "path\to\file.pptx" --language "en,zh-CN,yue-HK"
@@ -401,3 +429,56 @@ Process multiple PPTX files in a folder with a single command:
 *   **Rolling Context:** The Supervisor Agent maintains a "rolling context" by being aware of the previous slide's generated note. This helps in creating smooth transitions between slides.
 *   **Presentation Theme:** The overall theme of the presentation is either a generic default or derived from the `--course-id` (if provided), helping agents align their output with the subject matter.
 
+
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the `docs/` folder:
+
+### Quick Start
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get started in 3 easy steps
+- **[Configuration File Guide](docs/CONFIG_FILE_GUIDE.md)** - Use YAML/JSON config files
+- **[Style Examples](docs/STYLE_EXAMPLES.md)** - Apply custom themes (Gundam, Cyberpunk, etc.)
+
+### Reference
+- **[Folder Structure](docs/FOLDER_STRUCTURE.md)** - Understand output organization
+- **[Quick Reference](docs/QUICK_REFERENCE.md)** - Command-line reference
+
+### Architecture
+- **[Architecture](docs/ARCHITECTURE.md)** - System architecture overview
+- **[Refactored Architecture](docs/REFACTORED_ARCHITECTURE.md)** - Improved design
+
+**Full documentation index:** [docs/README.md](docs/README.md)
+
+## 🎨 Configuration Files
+
+Instead of long command lines, use configuration files:
+
+```bash
+# 1. Copy example
+cp config.example.yaml config.yaml
+
+# 2. Edit config.yaml with your settings
+
+# 3. Run
+python main.py --config config.yaml
+```
+
+See [Configuration File Guide](docs/CONFIG_FILE_GUIDE.md) for details.
+
+## 🎭 Custom Styles
+
+Apply themes to your presentations:
+
+```bash
+# Gundam/Mecha style
+python main.py --config config.yaml --style "Gundam"
+
+# Cyberpunk style
+python main.py --config config.yaml --style "Cyberpunk"
+
+# Minimalist style
+python main.py --config config.yaml --style "Minimalist"
+```
+
+See [Style Examples](docs/STYLE_EXAMPLES.md) for more options.

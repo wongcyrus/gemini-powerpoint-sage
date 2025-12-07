@@ -6,7 +6,7 @@ from . import prompt
 
 image_translator_agent = LlmAgent(
     name="image_translator",
-    model=os.getenv("MODEL_IMAGE_TRANSLATOR", "gemini-1.5-pro"),
+    model=os.getenv("MODEL_IMAGE_TRANSLATOR", "gemini-2.5-flash"),
     description="Translates and localizes slide visuals for different languages while maintaining design consistency.",
     instruction=prompt.IMAGE_TRANSLATOR_PROMPT,
 )

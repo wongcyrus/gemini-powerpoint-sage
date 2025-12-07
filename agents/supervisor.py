@@ -12,7 +12,7 @@ from .writer import writer_agent
 
 supervisor_agent = LlmAgent(
     name="supervisor",
-    model=os.getenv("MODEL_SUPERVISOR", "gemini-1.5-flash"),
+    model=os.getenv("MODEL_SUPERVISOR", "gemini-2.5-flash"),
     description="The orchestrator that manages the slide generation workflow.",
     instruction=prompt.SUPERVISOR_PROMPT,
     tools=[

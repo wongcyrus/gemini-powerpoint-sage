@@ -1,0 +1,42 @@
+# Cyberpunk Style Configuration Example
+# Dystopian tech aesthetic with neon colors and edgy tone
+
+# Input files
+pptx: "tests/sample_data/cloudtech.pptm"
+pdf: "tests/sample_data/cloudtech.pdf"
+
+# Google Cloud settings
+region: "global"
+
+# Language
+language: "en"
+
+# Detailed Cyberpunk Style with separate visual and speaker styles
+style:
+  visual_style: |
+    Cyberpunk - Dystopian high-tech aesthetic
+    - Neon colors (cyan, magenta, purple, hot pink) on dark backgrounds
+    - Glitch effects and digital artifacts
+    - High contrast with deep blacks
+    - Holographic and transparent UI elements
+    - Urban dystopian imagery (rain-slicked streets, neon signs)
+    - Matrix-style code rain and digital patterns
+    - Futuristic but gritty technology
+    - Scanline and CRT monitor effects
+  
+  speaker_style: |
+    Hacker/Tech Culture
+    - Edgy, tech-savvy language with hacker terminology
+    - Slightly rebellious or disruptive tone
+    - Anti-establishment perspective
+    - Frame solutions as hacks or exploits
+    - Use terms: "hack", "exploit", "system", "network", "breach", "decrypt", "jack in"
+    - Example: "Hack the system by exploiting this vulnerability"
+    - Example: "Jack into the network and decrypt the data"
+    - Example: "Breach the firewall to access hidden potential"
+    - Emphasize unconventional solutions and breaking rules
+
+# Generation options
+skip_visuals: false
+generate_videos: false
+retry_errors: false

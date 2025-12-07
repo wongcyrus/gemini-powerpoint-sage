@@ -73,6 +73,7 @@ class AgentToolFactory:
         global_context: str,
         language: str = "en",
         english_notes: dict = None,
+        speaker_style: str = "Professional",
     ) -> Callable:
         """
         Create the writer tool function.
@@ -82,6 +83,7 @@ class AgentToolFactory:
             global_context: Global context from overviewer
             language: Language locale code (e.g., en, zh-CN, yue-HK)
             english_notes: Dict of English notes for translation mode
+            speaker_style: Speaking style/tone for speaker notes
 
         Returns:
             Async function that writes speaker notes
@@ -137,7 +139,8 @@ class AgentToolFactory:
                     f"SLIDE_ANALYSIS:\n{analysis}\n\n"
                     f"PRESENTATION_THEME: {theme}\n"
                     f"PREVIOUS_CONTEXT: {previous_context}\n"
-                    f"GLOBAL_CONTEXT: {global_ctx}{language_instruction}\n"
+                    f"GLOBAL_CONTEXT: {global_ctx}\n"
+                    f"SPEAKER STYLE: {speaker_style}{language_instruction}\n"
                 )
 
             result = await run_stateless_agent(self.writer_agent, prompt)

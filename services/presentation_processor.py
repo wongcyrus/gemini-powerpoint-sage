@@ -91,6 +91,7 @@ class PresentationProcessor:
             output_dir=config.visuals_dir,
             skip_generation=config.skip_visuals,
             fallback_imagen_model=fallback_model,
+            style=config.visual_style,
         )
 
         # Progress tracking
@@ -649,7 +650,8 @@ class PresentationProcessor:
                 presentation_theme,
                 global_context,
                 self.config.language,
-                english_notes
+                english_notes,
+                self.config.speaker_style
             ),
         ]
 

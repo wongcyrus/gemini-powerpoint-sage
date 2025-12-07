@@ -1,0 +1,28 @@
+# Sample Configuration for Testing
+# This config uses the test sample data
+
+# Input files
+pptx: "tests/sample_data/cloudtech.pptm"
+pdf: "tests/sample_data/cloudtech.pdf"
+
+# Google Cloud settings
+region: "global"
+
+# Language
+language: "en"
+
+# Style - try different themes!
+# Simple: Professional, Gundam, Cyberpunk, Minimalist, Corporate
+style: "Professional"
+
+# OR use detailed multi-line style (uncomment to try):
+# style: |
+#   Gundam Style - Futuristic mecha-inspired presentation
+#   
+#   Visuals: Metallic armor aesthetics, glowing energy effects, angular shapes
+#   Tone: Strategic, tactical, heroic language with military precision
+
+# Generation options
+skip_visuals: false
+generate_videos: false
+retry_errors: false
