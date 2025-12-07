@@ -1,5 +1,6 @@
 """Supervisor Agent."""
 
+import os
 from google.adk.agents import LlmAgent
 from google.adk.tools.agent_tool import AgentTool
 from . import prompt
@@ -11,7 +12,7 @@ from .writer import writer_agent
 
 supervisor_agent = LlmAgent(
     name="supervisor",
-    model="gemini-2.5-flash",
+    model=os.getenv("MODEL_SUPERVISOR", "gemini-1.5-flash"),
     description="The orchestrator that manages the slide generation workflow.",
     instruction=prompt.SUPERVISOR_PROMPT,
     tools=[

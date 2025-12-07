@@ -23,7 +23,7 @@ except Exception:
 
     video_generator_agent = LlmAgent(
         name="video_generator",
-        model="gemini-2.5-flash",
+        model=os.getenv("MODEL_VIDEO_GENERATOR", "gemini-1.5-flash"),
         description="Generates video prompts from slide speaker notes.",
         instruction=prompt.VIDEO_GENERATOR_PROMPT,
     )

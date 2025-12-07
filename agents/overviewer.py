@@ -1,12 +1,13 @@
 """Presentation Overviewer Agent."""
 
+import os
 from google.adk.agents import LlmAgent
 from google.adk.tools import google_search
 from . import prompt
 
 overviewer_agent = LlmAgent(
     name="presentation_overviewer",
-    model="gemini-3-pro-preview", # Use gemini-3-pro-preview for high quality overview
+    model=os.getenv("MODEL_OVERVIEWER", "gemini-1.5-pro"),
     description="Analyzes the entire slide deck to establish global context and narrative flow.",
     instruction=prompt.OVERVIEWER_PROMPT,
     tools=[google_search]
