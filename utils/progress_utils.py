@@ -7,6 +7,8 @@ import os
 import tempfile
 from typing import Dict, Any
 
+from config.constants import EnvironmentVars, FilePatterns
+
 logger = logging.getLogger(__name__)
 
 
@@ -89,9 +91,9 @@ def get_progress_file_path(pptx_path: str, language: str = "en") -> str:
     Returns:
         Path to the progress file
     """
-    progress_file = os.environ.get("SPEAKER_NOTE_PROGRESS_FILE")
+    progress_file = os.environ.get(EnvironmentVars.PROGRESS_FILE)
     if not progress_file:
-        progress_file = os.getenv("SPEAKER_NOTE_PROGRESS_FILE")
+        progress_file = os.getenv(EnvironmentVars.PROGRESS_FILE)
     
     if not progress_file:
         # Create file-specific progress file name with language suffix
@@ -99,10 +101,11 @@ def get_progress_file_path(pptx_path: str, language: str = "en") -> str:
         pptx_base = os.path.splitext(os.path.basename(pptx_path))[0]
         generate_dir = os.path.join(pptx_dir, "generate")
         os.makedirs(generate_dir, exist_ok=True)
-        progress_file = os.path.join(
-            generate_dir,
-            f"{pptx_base}_{language}_progress.json"
+        filename = FilePatterns.PROGRESS_FILE.format(
+            base=pptx_base,
+            lang=language
         )
+        progress_file = os.path.join(generate_dir, filename)
     
     return progress_file
 
@@ -114,4 +117,6 @@ def should_retry_errors() -> bool:
     Returns:
         True if errors should be retried
     """
-    return os.environ.get("SPEAKER_NOTE_RETRY_ERRORS", "false").lower() == "true"
+    return os.environ.get(
+        EnvironmentVars.RETRY_ERRORS, "false"
+    ).lower() == "true"

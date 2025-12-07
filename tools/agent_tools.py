@@ -6,6 +6,7 @@ from typing import Callable, Optional
 from PIL import Image
 from google.adk.agents import LlmAgent
 
+from config.constants import LanguageConfig
 from utils.agent_utils import run_stateless_agent
 from utils.image_utils import get_image
 
@@ -85,25 +86,7 @@ class AgentToolFactory:
         Returns:
             Async function that writes speaker notes
         """
-        # Map common locale codes to language names for clear instructions
-        locale_map = {
-            "en": "English",
-            "zh-CN": "Simplified Chinese (简体中文)",
-            "zh-TW": "Traditional Chinese (繁體中文)",
-            "yue-HK": "Cantonese (廣東話)",
-            "es": "Spanish (Español)",
-            "fr": "French (Français)",
-            "ja": "Japanese (日本語)",
-            "ko": "Korean (한국어)",
-            "de": "German (Deutsch)",
-            "it": "Italian (Italiano)",
-            "pt": "Portuguese (Português)",
-            "ru": "Russian (Русский)",
-            "ar": "Arabic (العربية)",
-            "hi": "Hindi (हिन्दी)",
-            "th": "Thai (ไทย)",
-            "vi": "Vietnamese (Tiếng Việt)",
-        }
+
         
         async def speech_writer(
             analysis: str,
@@ -119,7 +102,7 @@ class AgentToolFactory:
             if language != "en" and english_notes and slide_idx:
                 en_note = english_notes.get(slide_idx)
                 if en_note:
-                    lang_name = locale_map.get(language, language)
+                    lang_name = LanguageConfig.get_language_name(language)
                     prompt = (
                         f"TRANSLATION TASK:\n"
                         f"Translate the following English speaker notes to {lang_name}.\n"
@@ -131,7 +114,7 @@ class AgentToolFactory:
                     )
                 else:
                     # Fallback if no English note found
-                    lang_name = locale_map.get(language, language)
+                    lang_name = LanguageConfig.get_language_name(language)
                     prompt = (
                         f"SLIDE_ANALYSIS:\n{analysis}\n\n"
                         f"PRESENTATION_THEME: {theme}\n"
@@ -144,7 +127,7 @@ class AgentToolFactory:
                 # Original English generation mode
                 language_instruction = ""
                 if language and language.lower() != "en":
-                    lang_name = locale_map.get(language, language)
+                    lang_name = LanguageConfig.get_language_name(language)
                     language_instruction = (
                         f"\n\nIMPORTANT: Write the speaker notes in {lang_name}. "
                         f"All content must be in {lang_name}."

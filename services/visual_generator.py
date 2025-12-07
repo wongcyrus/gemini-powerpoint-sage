@@ -18,6 +18,7 @@ from google.adk.agents import LlmAgent
 from google import genai
 from google.genai import types
 
+from config.constants import EnvironmentVars, FilePatterns, LanguageConfig
 from utils.agent_utils import run_visual_agent
 
 logger = logging.getLogger(__name__)
@@ -81,7 +82,7 @@ class VisualGenerator:
             return None
 
         # Check if visual already exists
-        img_filename = f"slide_{slide_idx}_reimagined.png"
+        img_filename = FilePatterns.REIMAGINED_SLIDE.format(idx=slide_idx)
         img_path = os.path.join(self.output_dir, img_filename)
 
         if os.path.exists(img_path) and not retry_errors:
@@ -99,7 +100,7 @@ class VisualGenerator:
                 # Fall through to regenerate
 
         # Generate new visual
-        force_fallback = os.getenv("FORCE_FALLBACK_IMAGE_GEN") == "1"
+        force_fallback = os.getenv(EnvironmentVars.FORCE_FALLBACK_IMAGE_GEN) == "1"
         logger.info("--- Generating Visual for Slide %d (force_fallback=%s) ---" % (slide_idx, force_fallback))
 
         img_bytes = None
@@ -309,16 +310,7 @@ class VisualGenerator:
         )
         
         # Language-specific instructions
-        lang_map = {
-            "zh-CN": "Simplified Chinese (简体中文)",
-            "zh-TW": "Traditional Chinese (繁體中文)",
-            "yue-HK": "Cantonese (廣東話)",
-            "es": "Spanish (Español)",
-            "fr": "French (Français)",
-            "ja": "Japanese (日本語)",
-            "ko": "Korean (한국어)",
-        }
-        lang_name = lang_map.get(language, language)
+        lang_name = LanguageConfig.get_language_name(language)
         
         lang_instruction = ""
         if language != "en":
@@ -344,16 +336,7 @@ class VisualGenerator:
     ) -> str:
         """Prompt for Imagen fallback rendering."""
         # Language-specific instructions
-        lang_map = {
-            "zh-CN": "Simplified Chinese (简体中文)",
-            "zh-TW": "Traditional Chinese (繁體中文)",
-            "yue-HK": "Cantonese (廣東話)",
-            "es": "Spanish (Español)",
-            "fr": "French (Français)",
-            "ja": "Japanese (日本語)",
-            "ko": "Korean (한국어)",
-        }
-        lang_name = lang_map.get(language, language)
+        lang_name = LanguageConfig.get_language_name(language)
         
         lang_instruction = ""
         if language != "en":

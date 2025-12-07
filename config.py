@@ -5,6 +5,8 @@ import os
 import sys
 from typing import Optional
 
+from config.constants import EnvironmentVars, FilePatterns
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,16 +55,16 @@ class Config:
     def _apply_env_overrides(self) -> None:
         """Apply configuration from environment variables."""
         if self.progress_file:
-            os.environ["SPEAKER_NOTE_PROGRESS_FILE"] = self.progress_file
+            os.environ[EnvironmentVars.PROGRESS_FILE] = self.progress_file
 
         if self.retry_errors:
-            os.environ["SPEAKER_NOTE_RETRY_ERRORS"] = "true"
+            os.environ[EnvironmentVars.RETRY_ERRORS] = "true"
 
         # Set Google Cloud Location
         if self.region:
-            os.environ["GOOGLE_CLOUD_LOCATION"] = self.region
-        elif "GOOGLE_CLOUD_LOCATION" not in os.environ:
-            os.environ["GOOGLE_CLOUD_LOCATION"] = "global"
+            os.environ[EnvironmentVars.GOOGLE_CLOUD_LOCATION] = self.region
+        elif EnvironmentVars.GOOGLE_CLOUD_LOCATION not in os.environ:
+            os.environ[EnvironmentVars.GOOGLE_CLOUD_LOCATION] = "global"
 
     @property
     def output_path(self) -> str:
@@ -74,10 +76,12 @@ class Config:
         # If source is a macro-enabled presentation, prefer .pptm output
         src_ext = os.path.splitext(self.pptx_path)[1].lower()
         out_ext = ".pptm" if src_ext == ".pptm" else ".pptx"
-        return os.path.join(
-            generate_dir,
-            f"{pptx_base}_{self.language}_with_notes{out_ext}"
+        filename = FilePatterns.NOTES_OUTPUT.format(
+            base=pptx_base,
+            lang=self.language,
+            ext=out_ext
         )
+        return os.path.join(generate_dir, filename)
 
     @property
     def output_path_with_visuals(self) -> str:
@@ -88,10 +92,12 @@ class Config:
         os.makedirs(generate_dir, exist_ok=True)
         src_ext = os.path.splitext(self.pptx_path)[1].lower()
         out_ext = ".pptm" if src_ext == ".pptm" else ".pptx"
-        return os.path.join(
-            generate_dir,
-            f"{pptx_base}_{self.language}_with_visuals{out_ext}"
+        filename = FilePatterns.VISUALS_OUTPUT.format(
+            base=pptx_base,
+            lang=self.language,
+            ext=out_ext
         )
+        return os.path.join(generate_dir, filename)
 
     @property
     def visuals_dir(self) -> str:
@@ -99,9 +105,11 @@ class Config:
         pptx_dir = os.path.dirname(self.pptx_path)
         pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
         generate_dir = os.path.join(pptx_dir, "generate")
-        return os.path.join(
-            generate_dir, f"{pptx_base}_{self.language}_visuals"
+        dirname = FilePatterns.VISUALS_DIR.format(
+            base=pptx_base,
+            lang=self.language
         )
+        return os.path.join(generate_dir, dirname)
 
     @property
     def videos_dir(self) -> str:
@@ -109,9 +117,11 @@ class Config:
         pptx_dir = os.path.dirname(self.pptx_path)
         pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
         generate_dir = os.path.join(pptx_dir, "generate")
-        videos_dir = os.path.join(
-            generate_dir, f"{pptx_base}_{self.language}_videos"
+        dirname = FilePatterns.VIDEOS_DIR.format(
+            base=pptx_base,
+            lang=self.language
         )
+        videos_dir = os.path.join(generate_dir, dirname)
         os.makedirs(videos_dir, exist_ok=True)
         return videos_dir
 
