@@ -11,7 +11,7 @@
       "slide_index": 2,
       "existing_notes_hash": "8cd2720f",
       "original_notes": "Definition and Key Characteristics",
-      "note": "Alright, chooms, we just wrapped up talkin' about how we're gonna dive deep into new tech. Now, we're cutting straight to the real biz: an 'Introduction to Cloud Computing'. This ain't some corpo fantasy, it's the new net, where the eddies flow if you know how to jack in. We're gonna tear into what makes this preem tech tick, and how we can use it to score some major gigs.",
+      "note": "Alright chooms, we talked about getting into this cloud biz. Now, let's jack in and get a real intel briefing on what 'Cloud Computing' actually means. Forget those old, clunky corpo mainframes tied to some megacorp's basement – that's old bloatware designed to keep you tethered. This is about having your processing power, your intel, your data shards, out on the Net, distributed and ready to hit when you need it, no matter where your rig is. It's expandable chrome for your biz, giving us the speed and scale to run preem gigs that'd make any corpo's ice look like wet tissue. This is the new game, choom.",
       "status": "success"
     },
     "slide_3_374f13f4": {
@@ -25,7 +25,7 @@
       "slide_index": 4,
       "existing_notes_hash": "0568ff95",
       "original_notes": "IaaS, PaaS, and SaaS Explained",
-      "note": "Alright, chooms, so we just jacked into what cloud computing is, the raw data, right? Now, it ain't just one big, faceless corpo server; these digital constructs come in different flavors, each with its own advantages and glitches. This next gig is all about cutting through the noise and checking out the various types of cloud services out there, so you know exactly what kind of hardware you're dealing with.",
+      "note": "Alright chooms, we just laid out what 'the Net' gives us – flexible rigs, storage, and processing power delivered over the wire. But here's the biz: it ain't a one-size-fits-all deal. To really stack those eddies and make our gigs run preem, we gotta understand the different types of cloud services out there. Knowing these distinctions is how you pick the right chrome for the job, and that's what we're jackin' into next.",
       "status": "success"
     },
     "slide_5_80316228": {
@@ -39,7 +39,7 @@
       "slide_index": 6,
       "existing_notes_hash": "81a86745",
       "original_notes": "Advantages and Potential Risks",
-      "note": "Alright, chooms, we just scoped out the different types of cloud tech – IaaS, PaaS, SaaS, the whole biz. Now, we ain't gonks, we know every piece of nova tech has its glitches and its preem perks, right? This next gig is all about cutting through the corpo-speak to see what makes cloud tech worth the eddies, and what kinda ice we gotta flatline to make it work. We're gonna dive deep into the benefits that can get us to the major leagues, and the challenges that can make us flatline if we ain't careful.",
+      "note": "Alright chooms, we've just covered the different types of cloud rigs – IaaS, PaaS, SaaS – and what kind of chrome they offer. Now, it's time to get down to the real biz of cloud tech: what's preem about it, and where are the weak spots that can flatline your gig. Every piece of chrome, no matter how nova, comes with its own set of risks and rewards, and you gotta know both sides to make it out alive in Night City. We're gonna dive deep into the benefits that can help you make some serious eddies, and the challenges you need to watch out for so some corpo doesn't zero your operation.",
       "status": "success"
     },
     "slide_7_80023871": {
@@ -53,7 +53,7 @@
       "slide_index": 8,
       "existing_notes_hash": "2518884c",
       "original_notes": "Emerging Innovations and Directions",
-      "note": "Alright, chooms, we just ran through how cloud tech keeps the eddies flowing and the systems running smooth, making those corpo execs happy. But the game ain't static. Now we're gonna jack into the future, peel back the layers on the real next-gen stuff. This is where we see the new gigs, the preem tech that's gonna reshape everything and make today's ice look like kiddie code. So, buckle up, because we're about to explore the trends that'll decide who makes it to the major leagues and who flatlines in the data dust.",
+      "note": "Alright, chooms, we've broken down the current cloud chrome – the benefits, the challenges, and how it helps us stay agile and make some eddies. But Night City's always moving, and if you're not patching your firmware, you're flatlining. This next gig, \"Future Trends in Cloud Computing\" – yeah, that big beige intel on the screen is exactly what we're jackin' into. It's time to scope out what new tech the corpos are cooking up, what edge computing means for our operations, and how we keep our tech nova and our wallets fat. Let's see what's on the horizon, chooms, before someone else gets there first.",
       "status": "success"
     },
     "slide_9_aea83681": {
@@ -64,5 +64,5 @@
       "status": "success"
     }
   },
-  "global_context": "1.  **The Narrative Arc:** The presentation follows a clear informational arc, starting with an introduction to Cloud Technologies and defining Cloud Computing. It then categorizes the types of cloud services (IaaS, PaaS, SaaS), discusses the benefits and challenges, and concludes by exploring future trends and emerging innovations in the field.\n\n2.  **Key Themes & Vocabulary:**\n    *   Cloud Technologies/Computing\n    *   Scalability / Scalable\n    *   Digital Computing / Digital Transformation\n    *   IT Infrastructure / IT Services\n    *   On-demand access\n    *   Pay-as-you-go\n    *   IaaS, PaaS, SaaS\n    *   Cost efficiency\n    *   Accessibility / Collaboration\n    *   Security / Compliance / Risks\n    *   Reliability / Downtime\n    *   Edge Computing\n    *   AI / Machine Learning\n    *   Multi-Cloud / Hybrid Strategies\n\n3.  **Speaker Persona:** The speaker persona is **Informative and Analytical**. The presentation is structured to educate the audience on the fundamental aspects, benefits, challenges, and future directions of cloud computing, maintaining a balanced and objective tone.\n\n4.  **Total Slide Count:** 9 slides."
+  "global_context": "Here's a \"Global Context\" guide for the presentation:\n\n1.  **The Narrative Arc:** The presentation begins with an introduction to Cloud Technologies, establishing its core definition and key characteristics. It then proceeds to explain the various types of cloud services (IaaS, PaaS, SaaS). Following this, it provides a balanced view by outlining both the benefits and potential challenges associated with cloud technologies. The presentation concludes by looking forward, discussing future trends and emerging innovations within cloud computing.\n\n2.  **Key Themes & Vocabulary:**\n    *   Cloud Technologies/Computing\n    *   Scalable Digital Computing\n    *   IT Services/Infrastructure\n    *   Scalability, On-demand Access, Pay-as-you-go\n    *   IaaS (Infrastructure as a Service), PaaS (Platform as a Service), SaaS (Software as a Service)\n    *   Cost Efficiency, Operational Costs\n    *   Accessibility, Collaboration\n    *   Security, Compliance, Risks, Reliability, Downtime\n    *   Edge Computing, IoT (Internet of Things)\n    *   AI (Artificial Intelligence), Machine Learning\n    *   Multi-Cloud, Hybrid Strategies\n    *   Digital Transformation\n\n3.  **Speaker Persona:** The speaker persona is informative, educational, and objective. The tone is akin to that of an expert guide or a technical educator, providing clear definitions, explanations, and balanced perspectives on the advantages and challenges of cloud technologies, as well as future outlooks.\n\n4.  **Total Slide Count:** 9"
 }

@@ -144,7 +144,10 @@ Generate multiple style variants automatically:
 python run_all_styles.py
 
 # With specific language
-python run_all_styles.py --language zh-CN
+python run_all_styles.py zh-CN
+
+# With multiple languages
+python run_all_styles.py "en,yue-HK,zh-CN"
 ```
 
 Output structure:
