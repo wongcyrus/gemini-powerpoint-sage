@@ -33,7 +33,7 @@
 - Production code uses `agent_factory.create_all_agents()`
 
 #### 4. Configuration Cleanup ✅
-- Moved style configs to `config/styles/`:
+- Moved style configs to `styles/` (root level):
   - `config.cyberpunk.yaml`
   - `config.gundam.yaml`
   - `config.starwars.yaml`
