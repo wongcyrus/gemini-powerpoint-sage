@@ -79,7 +79,7 @@ rm -rf logs/*
 - **Style Gallery:** `docs/STYLE_CONFIGS.md`
 - **Run Scripts:** `docs/RUN_SCRIPTS_USAGE.md`
 - **Test Commands:** `TEST_COMMANDS.md`
-- **Full Summary:** `UPDATES_SUMMARY.md`
+- **Documentation:** `docs/README.md`
 
 ## ⚡ Quick Checks
 
@@ -149,6 +149,6 @@ ls tests/sample_data/generate/
 
 ---
 
-**Need help?** See `UPDATES_SUMMARY.md` for complete details.
+**Need help?** See `docs/README.md` for complete documentation.
 
 **May the Force be with your presentations!** 🌌

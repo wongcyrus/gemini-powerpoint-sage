@@ -89,16 +89,16 @@ project/
 ├── presentation.pdf
 ├── cyberpunk/
 │   └── generate/
-│       ├── presentation_notes.pptx
-│       └── presentation_visuals.pptx
+│       ├── presentation_en_notes.pptx
+│       └── presentation_en_visuals.pptx
 ├── gundam/
 │   └── generate/
-│       ├── presentation_notes.pptx
-│       └── presentation_visuals.pptx
+│       ├── presentation_en_notes.pptx
+│       └── presentation_en_visuals.pptx
 └── star_wars/
     └── generate/
-        ├── presentation_notes.pptx
-        └── presentation_visuals.pptx
+        ├── presentation_en_notes.pptx
+        └── presentation_en_visuals.pptx
 ```
 
 **Benefits:**

@@ -50,7 +50,7 @@ presentations/
 │
 ├── lecture_en_with_notes.pptx                # English baseline (generated)
 ├── lecture_en_with_visuals.pptx
-├── lecture_en_progress.json
+├── lecture_en_progress.json                  # ✓ Self-contained progress
 ├── lecture_en_visuals/
 │   ├── slide_1_reimagined.png
 │   ├── slide_2_reimagined.png
@@ -58,7 +58,7 @@ presentations/
 │
 ├── lecture_zh-CN_with_notes.pptx             # Simplified Chinese (translated from EN)
 ├── lecture_zh-CN_with_visuals.pptx
-├── lecture_zh-CN_progress.json
+├── lecture_zh-CN_progress.json               # ✓ Self-contained progress
 ├── lecture_zh-CN_visuals/
 │   ├── slide_1_reimagined.png                # Copied from English
 │   ├── slide_2_reimagined.png
@@ -66,12 +66,14 @@ presentations/
 │
 ├── lecture_yue-HK_with_notes.pptx            # Cantonese (translated from EN)
 ├── lecture_yue-HK_with_visuals.pptx
-├── lecture_yue-HK_progress.json
+├── lecture_yue-HK_progress.json              # ✓ Self-contained progress
 └── lecture_yue-HK_visuals/
     ├── slide_1_reimagined.png                # Copied from English
     ├── slide_2_reimagined.png
     └── slide_3_reimagined.png
 ```
+
+**Note:** Each language variant is self-contained with its own progress JSON file, making it easy to move, share, or archive individual language versions.
 
 ## Example: Multiple Files in Folder Mode
 
@@ -92,7 +94,7 @@ presentations/
 ├── module1.pdf
 ├── module1_zh-CN_with_notes.pptx
 ├── module1_zh-CN_with_visuals.pptx
-├── module1_zh-CN_progress.json
+├── module1_zh-CN_progress.json               # ✓ Self-contained
 ├── module1_zh-CN_visuals/
 │   ├── slide_1_reimagined.png
 │   └── slide_2_reimagined.png
@@ -101,11 +103,13 @@ presentations/
 ├── module2.pdf
 ├── module2_zh-CN_with_notes.pptx
 ├── module2_zh-CN_with_visuals.pptx
-├── module2_zh-CN_progress.json
+├── module2_zh-CN_progress.json               # ✓ Self-contained
 └── module2_zh-CN_visuals/
     ├── slide_1_reimagined.png
     └── slide_2_reimagined.png
 ```
+
+**Each file's output is self-contained** with its own progress tracking, making batch processing results easy to manage.
 
 ## Common Locale Codes
 
@@ -124,12 +128,14 @@ presentations/
 
 ## Benefits of This Structure
 
-1. **No Conflicts**: Process the same presentation in multiple languages without overwriting files
-2. **Clean Organization**: Easy to identify which language version you're working with
-3. **Isolated Progress**: Each language maintains its own progress tracking
-4. **Parallel Processing**: Can process different languages simultaneously
-5. **Easy Cleanup**: Delete all files for a specific language using wildcard patterns
-6. **Version Control Friendly**: Clear file naming makes it easy to track changes
+1. **Self-Contained**: Each output includes progress JSON - move/share folders independently
+2. **No Conflicts**: Process the same presentation in multiple languages without overwriting files
+3. **Clean Organization**: Easy to identify which language version you're working with
+4. **Isolated Progress**: Each language maintains its own progress tracking
+5. **Parallel Processing**: Can process different languages simultaneously
+6. **Easy Cleanup**: Delete all files for a specific language using wildcard patterns
+7. **Version Control Friendly**: Clear file naming makes it easy to track changes
+8. **Portable**: Archive or distribute complete outputs with progress data intact
 
 ## Commands for Common Workflows
 

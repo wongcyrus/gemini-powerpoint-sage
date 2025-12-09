@@ -97,7 +97,8 @@ class PresentationProcessor:
         # Progress tracking
         self.progress_file = get_progress_file_path(
             config.pptx_path,
-            config.language
+            config.language,
+            config._get_output_dir()
         )
         self.retry_errors = should_retry_errors()
 
@@ -130,7 +131,7 @@ class PresentationProcessor:
         if self.config.language != "en":
             from utils.progress_utils import get_progress_file_path
             en_progress_file = get_progress_file_path(
-                self.config.pptx_path, "en"
+                self.config.pptx_path, "en", self.config._get_output_dir()
             )
             if os.path.exists(en_progress_file):
                 en_progress = load_progress(en_progress_file)
@@ -569,7 +570,7 @@ class PresentationProcessor:
         if self.config.language != "en":
             from utils.progress_utils import get_progress_file_path
             en_progress_file = get_progress_file_path(
-                self.config.pptx_path, "en"
+                self.config.pptx_path, "en", self.config._get_output_dir()
             )
             if os.path.exists(en_progress_file):
                 en_progress = load_progress(en_progress_file)

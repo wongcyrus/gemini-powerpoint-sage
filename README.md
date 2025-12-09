@@ -199,6 +199,38 @@ Run the `run.ps1` PowerShell script (it will automatically activate the virtual 
 .\run.ps1 --pptx "path\to\file.pptx" --retry-errors
 ```
 
+### Process All Styles at Once
+
+Generate multiple style variants automatically using all YAML configs in `styles/` directory:
+
+```bash
+# Linux/macOS (uses files from YAML configs)
+./run_all_styles.sh
+
+# Python (cross-platform)
+python run_all_styles.py
+
+# Windows PowerShell
+.\run_all_styles.ps1
+
+# With specific language
+./run_all_styles.sh zh-CN
+```
+
+This processes the presentation with all style configurations, creating organized outputs:
+```
+cyberpunk/generate/presentation_en_notes.pptx
+gundam/generate/presentation_en_notes.pptx
+star_wars/generate/presentation_en_notes.pptx
+professional/generate/presentation_en_notes.pptx
+```
+
+**Note:** Language code is always included in filenames (e.g., `_en_`, `_zh-CN_`).
+
+**Note:** PPTX and PDF paths are read from each YAML config file.
+
+See [RUN_ALL_STYLES.md](docs/RUN_ALL_STYLES.md) for detailed documentation.
+
 ### Environment Variables (Optional)
 
 ```powershell
@@ -293,32 +325,59 @@ Creates a new file with the `_refined.json` suffix (e.g., `progress_refined.json
 
 ## Output Files
 
-The tool generates **two** PowerPoint files per language:
+The tool generates **self-contained output folders** with all files per language/style:
+
+**Generated files per language:**
 1. **`{filename}_{locale}_with_notes.pptx`**: Original slides with updated/generated speaker notes
 2. **`{filename}_{locale}_with_visuals.pptx`**: Slides with both speaker notes and AI-generated visuals (unless `--skip-visuals` is used)
+3. **`{filename}_{locale}_progress.json`**: Progress tracking for incremental processing (always included)
+4. **`{filename}_{locale}_visuals/`**: Directory containing AI-generated slide images (PNG files)
 
-Additional files:
-- **`{filename}_{locale}_progress.json`**: Progress tracking for incremental processing
-- **`{filename}_{locale}_visuals/`**: Directory containing AI-generated slide images (PNG files)
-
-**Example structure:**
+**Example structure (single file):**
 ```
 presentations/
 ├── lecture.pptx (original)
 ├── lecture.pdf (original)
 ├── lecture_en_with_notes.pptx
 ├── lecture_en_with_visuals.pptx
-├── lecture_en_progress.json
+├── lecture_en_progress.json          # Self-contained progress tracking
 ├── lecture_en_visuals/
 │   ├── slide_1_reimagined.png
 │   └── slide_2_reimagined.png
 ├── lecture_zh-CN_with_notes.pptx
 ├── lecture_zh-CN_with_visuals.pptx
-├── lecture_zh-CN_progress.json
+├── lecture_zh-CN_progress.json       # Self-contained progress tracking
 └── lecture_zh-CN_visuals/
     ├── slide_1_reimagined.png
     └── slide_2_reimagined.png
 ```
+
+**Example structure (with styles):**
+```
+output/
+├── cyberpunk/
+│   └── generate/
+│       ├── lecture_en_notes.pptx
+│       ├── lecture_en_visuals.pptx
+│       ├── lecture_en_progress.json  # Self-contained
+│       └── lecture_en_visuals/
+├── gundam/
+│   └── generate/
+│       ├── lecture_en_notes.pptx
+│       ├── lecture_en_visuals.pptx
+│       ├── lecture_en_progress.json  # Self-contained
+│       └── lecture_en_visuals/
+└── star_wars/
+    └── generate/
+        ├── lecture_en_notes.pptx
+        ├── lecture_en_visuals.pptx
+        ├── lecture_en_progress.json  # Self-contained
+        └── lecture_en_visuals/
+```
+
+**Note:** Language code (`en`, `zh-CN`, etc.) is always included in all filenames.
+
+**Each output folder is self-contained** - you can move, share, or archive any folder independently with all its progress data intact.
 
 ## Progress Tracking & Resume
 

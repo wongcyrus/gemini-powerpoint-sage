@@ -77,16 +77,17 @@ def create_slide_key(index: int, notes: str) -> str:
     return f"slide_{index}_{h}"
 
 
-def get_progress_file_path(pptx_path: str, language: str = "en") -> str:
+def get_progress_file_path(pptx_path: str, language: str = "en", output_dir: str = None) -> str:
     """
     Determine the progress file path.
     
     Checks environment variable first, then defaults to file-specific name
-    in the same directory as PPTX.
+    in the output directory (or same directory as PPTX if no output_dir specified).
     
     Args:
         pptx_path: Path to the PowerPoint file
         language: Language locale code (e.g., en, zh-CN, yue-HK)
+        output_dir: Optional custom output directory (if None, uses pptx_dir/generate)
         
     Returns:
         Path to the progress file
@@ -97,9 +98,15 @@ def get_progress_file_path(pptx_path: str, language: str = "en") -> str:
     
     if not progress_file:
         # Create file-specific progress file name with language suffix
-        pptx_dir = os.path.dirname(pptx_path)
         pptx_base = os.path.splitext(os.path.basename(pptx_path))[0]
-        generate_dir = os.path.join(pptx_dir, "generate")
+        
+        # Use custom output_dir if provided, otherwise default to pptx_dir/generate
+        if output_dir:
+            generate_dir = output_dir
+        else:
+            pptx_dir = os.path.dirname(pptx_path)
+            generate_dir = os.path.join(pptx_dir, "generate")
+        
         os.makedirs(generate_dir, exist_ok=True)
         filename = FilePatterns.PROGRESS_FILE.format(
             base=pptx_base,

@@ -13,20 +13,24 @@ project/
 ├── presentation.pptx
 ├── presentation.pdf
 └── generate/
-    ├── presentation_notes.pptx          # Professional style (default)
-    ├── presentation_visuals.pptx
+    ├── presentation_en_notes.pptx          # Professional style (default)
+    ├── presentation_en_visuals.pptx
+    ├── presentation_en_progress.json       # Progress tracking
     ├── cyberpunk/
-    │   ├── presentation_notes.pptx      # Cyberpunk style
-    │   ├── presentation_visuals.pptx
-    │   └── presentation_visuals/
+    │   ├── presentation_en_notes.pptx      # Cyberpunk style
+    │   ├── presentation_en_visuals.pptx
+    │   ├── presentation_en_progress.json
+    │   └── presentation_en_visuals/
     │       └── slide_1_reimagined.png
     ├── gundam/
-    │   ├── presentation_notes.pptx      # Gundam style
-    │   ├── presentation_visuals.pptx
-    │   └── presentation_visuals/
+    │   ├── presentation_en_notes.pptx      # Gundam style
+    │   ├── presentation_en_visuals.pptx
+    │   ├── presentation_en_progress.json
+    │   └── presentation_en_visuals/
     └── star_wars/
-        ├── presentation_notes.pptx      # Star Wars style
-        └── presentation_visuals.pptx
+        ├── presentation_en_notes.pptx      # Star Wars style
+        ├── presentation_en_visuals.pptx
+        └── presentation_en_progress.json
 ```
 
 ### Key Points
@@ -34,11 +38,11 @@ project/
 1. **Professional style** (default) goes directly in `generate/`
 2. **Other styles** get their own subfolder: `generate/{style}/`
 3. **Filenames stay clean** - no style suffix needed
-4. **Language is in filename** if not English: `presentation_zh-CN_notes.pptx`
+4. **Language code is always included**: `presentation_en_notes.pptx`, `presentation_zh-CN_notes.pptx`
 
 ## Filename Convention
 
-Filenames include **language only** (not style):
+Filenames **always include language code** (not style):
 
 ```
 {original_name}_{language}_{suffix}.{extension}
@@ -46,33 +50,35 @@ Filenames include **language only** (not style):
 
 ### Components:
 - **original_name**: Original presentation filename (without extension)
-- **language**: Language code (if not "en") - e.g., `zh-CN`, `ja`, `yue-HK`
+- **language**: Language code (always required) - e.g., `en`, `zh-CN`, `ja`, `yue-HK`
 - **suffix**: Type of output (`notes` or `visuals`)
 - **extension**: Original file extension (`.pptx`, `.pptm`)
+
+**Note:** Language code is mandatory for all outputs, including English (`en`).
 
 ## Examples
 
 ### Basic Processing (English, Professional)
 ```bash
-python main.py --pptx presentation.pptx --pdf presentation.pdf
+python main.py --pptx presentation.pptx --pdf presentation.pdf --language en
 ```
 **Output:**
 ```
 generate/
-├── presentation_notes.pptx
-└── presentation_visuals.pptx
+├── presentation_en_notes.pptx
+└── presentation_en_visuals.pptx
 ```
 
 ### With Cyberpunk Style
 ```bash
-python main.py --pptx presentation.pptx --pdf presentation.pdf --style Cyberpunk
+python main.py --pptx presentation.pptx --pdf presentation.pdf --style Cyberpunk --language en
 ```
 **Output:**
 ```
 generate/
 └── cyberpunk/
-    ├── presentation_notes.pptx
-    └── presentation_visuals.pptx
+    ├── presentation_en_notes.pptx
+    └── presentation_en_visuals.pptx
 ```
 
 ### With Chinese Language
@@ -100,19 +106,19 @@ generate/
 
 ### Multiple Styles - No Overwrites!
 ```bash
-python main.py --pptx deck.pptx --pdf deck.pdf --style Cyberpunk
-python main.py --pptx deck.pptx --pdf deck.pdf --style Gundam
-python main.py --pptx deck.pptx --pdf deck.pdf --style "Star Wars"
+python main.py --pptx deck.pptx --pdf deck.pdf --style Cyberpunk --language en
+python main.py --pptx deck.pptx --pdf deck.pdf --style Gundam --language en
+python main.py --pptx deck.pptx --pdf deck.pdf --style "Star Wars" --language en
 ```
 **Output:**
 ```
 generate/
 ├── cyberpunk/
-│   └── deck_notes.pptx
+│   └── deck_en_notes.pptx
 ├── gundam/
-│   └── deck_notes.pptx
+│   └── deck_en_notes.pptx
 └── star_wars/
-    └── deck_notes.pptx
+    └── deck_en_notes.pptx
 ```
 
 ## Custom Output Directory
@@ -137,24 +143,24 @@ output/
 ```bash
 # Process each style to its own directory
 python main.py --pptx deck.pptx --pdf deck.pdf \
-  --style Cyberpunk --output-dir ./output/cyberpunk
+  --style Cyberpunk --output-dir ./output/cyberpunk --language en
 
 python main.py --pptx deck.pptx --pdf deck.pdf \
-  --style Gundam --output-dir ./output/gundam
+  --style Gundam --output-dir ./output/gundam --language en
 
 python main.py --pptx deck.pptx --pdf deck.pdf \
-  --style "Star Wars" --output-dir ./output/starwars
+  --style "Star Wars" --output-dir ./output/starwars --language en
 ```
 
 **Output:**
 ```
 output/
 ├── cyberpunk/
-│   └── deck_notes.pptx
+│   └── deck_en_notes.pptx
 ├── gundam/
-│   └── deck_notes.pptx
+│   └── deck_en_notes.pptx
 └── starwars/
-    └── deck_notes.pptx
+    └── deck_en_notes.pptx
 ```
 
 ## Using Configuration Files
@@ -239,37 +245,38 @@ Result:
 ```
 generate/
 └── gundam/
-    ├── deck_notes.pptx           # English
-    ├── deck_zh-CN_notes.pptx     # Chinese
-    └── deck_ja_notes.pptx        # Japanese
+    ├── deck_en_notes.pptx           # English
+    ├── deck_zh-CN_notes.pptx        # Chinese
+    └── deck_ja_notes.pptx           # Japanese
 ```
 
 ### 4. Comparing Styles
 All styles in one place for easy comparison:
 ```
 generate/
-├── deck_notes.pptx              # Professional
+├── deck_en_notes.pptx              # Professional
 ├── cyberpunk/
-│   └── deck_notes.pptx          # Cyberpunk
+│   └── deck_en_notes.pptx          # Cyberpunk
 ├── gundam/
-│   └── deck_notes.pptx          # Gundam
+│   └── deck_en_notes.pptx          # Gundam
 └── star_wars/
-    └── deck_notes.pptx          # Star Wars
+    └── deck_en_notes.pptx          # Star Wars
 ```
 
-## Visual and Video Directories
+## Complete Output Structure
 
-Visual and video outputs follow the same pattern:
+Each output folder is **self-contained** with all generated files including progress tracking:
 
 ```
 generate/
 └── cyberpunk/
-    ├── presentation_notes.pptx
-    ├── presentation_visuals.pptx
-    ├── presentation_visuals/
+    ├── presentation_en_notes.pptx
+    ├── presentation_en_visuals.pptx
+    ├── presentation_en_progress.json        # Progress tracking
+    ├── presentation_en_visuals/
     │   ├── slide_1_reimagined.png
     │   └── slide_2_reimagined.png
-    └── presentation_videos/
+    └── presentation_en_videos/
         ├── slide_1_video_prompt.txt
         └── slide_2_video_prompt.txt
 ```
@@ -280,26 +287,33 @@ generate/
 └── gundam/
     ├── presentation_zh-CN_notes.pptx
     ├── presentation_zh-CN_visuals.pptx
+    ├── presentation_zh-CN_progress.json     # Progress tracking
     └── presentation_zh-CN_visuals/
         └── slide_1_reimagined.png
 ```
 
 ## Progress Files
 
-Progress files are also organized by style:
+Progress JSON files are **always included** in the output folder, making each folder self-contained:
 
 ```
 generate/
 ├── cyberpunk/
-│   └── presentation_en_progress.json
+│   ├── presentation_en_progress.json
+│   ├── presentation_en_notes.pptx
+│   └── presentation_en_visuals.pptx
 └── gundam/
-    └── presentation_zh-CN_progress.json
+    ├── presentation_zh-CN_progress.json
+    ├── presentation_zh-CN_notes.pptx
+    └── presentation_zh-CN_visuals.pptx
 ```
 
-This allows you to:
-- Resume processing for specific style/language combinations
-- Track progress independently for each variant
-- Retry errors without affecting other variants
+**Benefits:**
+- **Self-contained**: Each folder has everything needed
+- **Resume processing**: Can resume from any folder independently
+- **Track progress**: See which slides succeeded/failed
+- **Portable**: Move folders without losing progress data
+- **Retry errors**: Retry specific style/language combinations
 
 ## Tips
 
@@ -312,9 +326,10 @@ This allows you to:
 ## Troubleshooting
 
 ### Where are my files?
-- **Professional style**: `generate/presentation_notes.pptx`
-- **Other styles**: `generate/{style}/presentation_notes.pptx`
+- **Professional style**: `generate/presentation_en_notes.pptx`
+- **Other styles**: `generate/{style}/presentation_en_notes.pptx`
 - **Custom output**: Whatever you specified in `--output-dir`
+- **Note**: Language code (`en`, `zh-CN`, etc.) is always in the filename
 
 ### Files overwriting?
 - Different styles go to different folders automatically

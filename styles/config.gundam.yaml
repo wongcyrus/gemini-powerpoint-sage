@@ -2,19 +2,20 @@
 # This demonstrates a detailed multi-line style prompt
 
 # Input files
-pptx: "tests/sample_data/cloudtech.pptm"
-pdf: "tests/sample_data/cloudtech.pdf"
+pptx: "sample_data/cloudtech.pptm"
+pdf: "sample_data/cloudtech.pdf"
 
 # Output directory (optional)
 # If not specified, outputs go to: {style}/generate/ next to input file
-# Example: gundam/generate/cloudtech_notes.pptx
-output_dir: "gundam/generate"
+# Example: gundam/generate/cloudtech_with_notes.pptx
+output_dir: "output/gundam/generate"
 
 # Google Cloud settings
 region: "global"
 
-# Language
-language: "en"
+# Language - comma-separated for multiple languages
+# English is always processed first, then other languages use translation mode
+language: "en,zh-CN,yue-HK"
 
 # Detailed Gundam Style with separate visual and speaker styles
 style:

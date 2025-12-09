@@ -163,13 +163,11 @@ class Config:
         pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
         output_dir = self._get_output_dir()
         
-        # Build directory name with language (style is in folder structure)
-        parts = [pptx_base]
-        if self.language != "en":
-            parts.append(self.language)
-        parts.append("visuals")
-        
-        dirname = "_".join(parts)
+        # Build directory name with language (always include language code)
+        dirname = FilePatterns.VISUALS_DIR.format(
+            base=pptx_base,
+            lang=self.language
+        )
         return os.path.join(output_dir, dirname)
 
     @property
@@ -178,13 +176,11 @@ class Config:
         pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
         output_dir = self._get_output_dir()
         
-        # Build directory name with language (style is in folder structure)
-        parts = [pptx_base]
-        if self.language != "en":
-            parts.append(self.language)
-        parts.append("videos")
-        
-        dirname = "_".join(parts)
+        # Build directory name with language (always include language code)
+        dirname = FilePatterns.VIDEOS_DIR.format(
+            base=pptx_base,
+            lang=self.language
+        )
         videos_dir = os.path.join(output_dir, dirname)
         os.makedirs(videos_dir, exist_ok=True)
         return videos_dir

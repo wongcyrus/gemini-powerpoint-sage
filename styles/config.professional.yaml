@@ -2,8 +2,8 @@
 # This config uses the test sample data
 
 # Input files
-pptx: "tests/sample_data/cloudtech.pptm"
-pdf: "tests/sample_data/cloudtech.pdf"
+pptx: "sample_data/cloudtech.pptm"
+pdf: "sample_data/cloudtech.pdf"
 
 # Output directory (optional)
 # Recommended pattern: {style}/generate/
@@ -12,13 +12,14 @@ pdf: "tests/sample_data/cloudtech.pdf"
 #   - "cyberpunk/generate" for Cyberpunk style
 #   - "custom/output" for any custom location
 # If not specified, uses default: generate/ next to input file
-# output_dir: "professional/generate"
+output_dir: "output/professional/generate"
 
 # Google Cloud settings
 region: "global"
 
-# Language
-language: "en"
+# Language - comma-separated for multiple languages
+# English is always processed first, then other languages use translation mode
+language: "en,zh-CN,yue-HK"
 
 # Style - try different themes!
 # Simple: Professional, Gundam, Cyberpunk, Minimalist, Corporate

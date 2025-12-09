@@ -41,6 +41,7 @@ class ContextService:
         language: str = "en",
         pptx_path: Optional[str] = None,
         retry_errors: bool = False,
+        output_dir: Optional[str] = None,
     ) -> str:
         """
         Get or generate global context for presentation.
@@ -52,6 +53,7 @@ class ContextService:
             language: Target language
             pptx_path: Path to PPTX file (for English context lookup)
             retry_errors: Whether to regenerate cached context
+            output_dir: Optional output directory (for finding English progress file)
             
         Returns:
             Global context string
@@ -67,7 +69,7 @@ class ContextService:
         # For non-English, try to translate from English
         if language != "en" and pptx_path:
             translated_context = await self._translate_from_english(
-                pptx_path, language
+                pptx_path, language, output_dir
             )
             if translated_context:
                 # Cache it
@@ -153,7 +155,8 @@ class ContextService:
     async def _translate_from_english(
         self,
         pptx_path: str,
-        target_language: str
+        target_language: str,
+        output_dir: Optional[str] = None
     ) -> Optional[str]:
         """
         Translate global context from English.
@@ -161,6 +164,7 @@ class ContextService:
         Args:
             pptx_path: Path to PPTX file
             target_language: Target language code
+            output_dir: Optional output directory
             
         Returns:
             Translated context or None
@@ -168,7 +172,7 @@ class ContextService:
         if not self.translator_agent:
             return None
         
-        en_progress_file = get_progress_file_path(pptx_path, "en")
+        en_progress_file = get_progress_file_path(pptx_path, "en", output_dir)
         
         if not os.path.exists(en_progress_file):
             return None
