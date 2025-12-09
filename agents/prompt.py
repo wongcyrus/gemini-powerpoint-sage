@@ -1,6 +1,40 @@
-"""Prompts for Gemini Powerpoint Sage Agents."""
+"""Prompts for Gemini Powerpoint Sage Agents.
 
-DESIGNER_PROMPT = """
+DEPRECATED: This module is kept for backward compatibility.
+Please import from agents.prompts instead.
+"""
+
+# Import all prompts from the new structure
+from .prompts import (
+    SUPERVISOR_PROMPT,
+    ANALYST_PROMPT,
+    WRITER_PROMPT,
+    AUDITOR_PROMPT,
+    OVERVIEWER_PROMPT,
+    DESIGNER_PROMPT,
+    TRANSLATOR_PROMPT,
+    IMAGE_TRANSLATOR_PROMPT,
+    VIDEO_GENERATOR_PROMPT,
+    TITLE_GENERATOR_PROMPT,
+    REFINER_PROMPT,
+)
+
+__all__ = [
+    "SUPERVISOR_PROMPT",
+    "ANALYST_PROMPT",
+    "WRITER_PROMPT",
+    "AUDITOR_PROMPT",
+    "OVERVIEWER_PROMPT",
+    "DESIGNER_PROMPT",
+    "TRANSLATOR_PROMPT",
+    "IMAGE_TRANSLATOR_PROMPT",
+    "VIDEO_GENERATOR_PROMPT",
+    "TITLE_GENERATOR_PROMPT",
+    "REFINER_PROMPT",
+]
+
+# Old inline definitions below - DEPRECATED
+_DESIGNER_PROMPT_OLD = """
 SYSTEM INSTRUCTION:
 You are an image generation AI. Your ONLY output is generated images.
 YOU MUST GENERATE AND RETURN IMAGE DATA.

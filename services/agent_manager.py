@@ -34,26 +34,37 @@ class AgentManager:
             logger.warning("Agents already initialized")
             return
         
-        # Import prompts
-        from agents import prompt
+        # Import prompts from new structure
+        from agents.prompts import (
+            AUDITOR_PROMPT,
+            ANALYST_PROMPT,
+            WRITER_PROMPT,
+            SUPERVISOR_PROMPT,
+            OVERVIEWER_PROMPT,
+            DESIGNER_PROMPT,
+            TRANSLATOR_PROMPT,
+            IMAGE_TRANSLATOR_PROMPT,
+            VIDEO_GENERATOR_PROMPT,
+            REFINER_PROMPT,
+        )
         
         # Initialize agents
         self._agents["auditor"] = LlmAgent(
             name="auditor",
             model=ModelConfig.AUDITOR,
             description="Evaluates existing speaker notes quality.",
-            instruction=prompt.AUDITOR_PROMPT,
+            instruction=AUDITOR_PROMPT,
         )
         
         self._agents["analyst"] = LlmAgent(
             name="slide_analyst",
             model=ModelConfig.ANALYST,
             description="Extracts insights from slide images.",
-            instruction=prompt.ANALYST_PROMPT,
+            instruction=ANALYST_PROMPT,
         )
         
         # Writer agent with speaker style injected into instruction
-        writer_instruction = f"{prompt.WRITER_PROMPT}\n\n**SPEAKER STYLE FOR THIS SESSION:**\n{self.speaker_style}"
+        writer_instruction = f"{WRITER_PROMPT}\n\n**SPEAKER STYLE FOR THIS SESSION:**\n{self.speaker_style}"
         self._agents["writer"] = LlmAgent(
             name="speech_writer",
             model=ModelConfig.WRITER,
@@ -66,7 +77,7 @@ class AgentManager:
             name="supervisor",
             model=ModelConfig.SUPERVISOR,
             description="Orchestrates the slide generation workflow.",
-            instruction=prompt.SUPERVISOR_PROMPT,
+            instruction=SUPERVISOR_PROMPT,
             tools=[
                 AgentTool(agent=self._agents["auditor"]),
                 AgentTool(agent=self._agents["writer"]),
@@ -77,11 +88,11 @@ class AgentManager:
             name="overviewer",
             model=ModelConfig.OVERVIEWER,
             description="Generates global presentation context.",
-            instruction=prompt.OVERVIEWER_PROMPT,
+            instruction=OVERVIEWER_PROMPT,
         )
         
         # Designer agent with visual style injected into instruction
-        designer_instruction = f"{prompt.DESIGNER_PROMPT}\n\n**VISUAL STYLE FOR THIS SESSION:**\n{self.visual_style}"
+        designer_instruction = f"{DESIGNER_PROMPT}\n\n**VISUAL STYLE FOR THIS SESSION:**\n{self.visual_style}"
         self._agents["designer"] = LlmAgent(
             name="designer",
             model=ModelConfig.DESIGNER,
@@ -93,28 +104,28 @@ class AgentManager:
             name="translator",
             model=ModelConfig.TRANSLATOR,
             description="Translates speaker notes to target languages.",
-            instruction=prompt.TRANSLATOR_PROMPT,
+            instruction=TRANSLATOR_PROMPT,
         )
         
         self._agents["image_translator"] = LlmAgent(
             name="image_translator",
             model=ModelConfig.IMAGE_TRANSLATOR,
             description="Translates slide visuals to target languages.",
-            instruction=prompt.IMAGE_TRANSLATOR_PROMPT,
+            instruction=IMAGE_TRANSLATOR_PROMPT,
         )
         
         self._agents["video_generator"] = LlmAgent(
             name="video_generator",
             model=ModelConfig.VIDEO_GENERATOR,
             description="Generates video prompts for slides.",
-            instruction=prompt.VIDEO_GENERATOR_PROMPT,
+            instruction=VIDEO_GENERATOR_PROMPT,
         )
         
         self._agents["refiner"] = LlmAgent(
             name="refiner",
             model=ModelConfig.REFINER,
             description="Refines speaker notes for TTS.",
-            instruction=prompt.REFINER_PROMPT,
+            instruction=REFINER_PROMPT,
         )
         
         self._initialized = True

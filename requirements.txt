@@ -1,5 +1,19 @@
-google-adk
-google-genai
-python-pptx
-pymupdf
-Pillow
+# Core Google AI dependencies
+google-adk>=0.1.0
+google-genai>=0.1.0
+
+# Presentation and document processing
+python-pptx>=0.6.21
+pymupdf>=1.23.0
+Pillow>=10.0.0
+
+# Configuration and environment
+python-dotenv>=1.0.0
+pyyaml>=6.0
+
+# MCP Server (optional, for video generation)
+fastmcp>=0.1.0
+pydantic>=2.0.0
+
+# Type hints and validation
+typing-extensions>=4.8.0

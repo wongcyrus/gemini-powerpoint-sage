@@ -1,4 +1,8 @@
-"""Tests for AgentManager."""
+"""Tests for AgentManager (DEPRECATED - Legacy Code).
+
+AgentManager is deprecated in favor of agent_factory.
+These tests are kept for backward compatibility only.
+"""
 
 import pytest
 from unittest.mock import Mock, patch
@@ -48,13 +52,6 @@ class TestAgentManager:
         """Test getting an agent."""
         manager = AgentManager()
         
-        # Mock prompts
-        for attr in ['AUDITOR_PROMPT', 'ANALYST_PROMPT', 'WRITER_PROMPT',
-                     'SUPERVISOR_PROMPT', 'OVERVIEWER_PROMPT', 'DESIGNER_PROMPT',
-                     'TRANSLATOR_PROMPT', 'IMAGE_TRANSLATOR_PROMPT',
-                     'VIDEO_GENERATOR_PROMPT', 'REFINER_PROMPT']:
-            setattr(mock_prompt, attr, f"{attr.lower()}")
-        
         manager.initialize_agents()
         
         agent = manager.get_agent("supervisor")
@@ -65,13 +62,6 @@ class TestAgentManager:
     def test_get_agent_not_found(self, mock_prompt, mock_llm_agent):
         """Test getting non-existent agent."""
         manager = AgentManager()
-        
-        # Mock prompts
-        for attr in ['AUDITOR_PROMPT', 'ANALYST_PROMPT', 'WRITER_PROMPT',
-                     'SUPERVISOR_PROMPT', 'OVERVIEWER_PROMPT', 'DESIGNER_PROMPT',
-                     'TRANSLATOR_PROMPT', 'IMAGE_TRANSLATOR_PROMPT',
-                     'VIDEO_GENERATOR_PROMPT', 'REFINER_PROMPT']:
-            setattr(mock_prompt, attr, f"{attr.lower()}")
         
         manager.initialize_agents()
         
@@ -84,13 +74,6 @@ class TestAgentManager:
         """Test lazy initialization on first get_agent call."""
         manager = AgentManager()
         
-        # Mock prompts
-        for attr in ['AUDITOR_PROMPT', 'ANALYST_PROMPT', 'WRITER_PROMPT',
-                     'SUPERVISOR_PROMPT', 'OVERVIEWER_PROMPT', 'DESIGNER_PROMPT',
-                     'TRANSLATOR_PROMPT', 'IMAGE_TRANSLATOR_PROMPT',
-                     'VIDEO_GENERATOR_PROMPT', 'REFINER_PROMPT']:
-            setattr(mock_prompt, attr, f"{attr.lower()}")
-        
         assert manager._initialized is False
         
         manager.get_agent("supervisor")
@@ -102,13 +85,6 @@ class TestAgentManager:
     def test_getter_methods(self, mock_prompt, mock_llm_agent):
         """Test specific getter methods."""
         manager = AgentManager()
-        
-        # Mock prompts
-        for attr in ['AUDITOR_PROMPT', 'ANALYST_PROMPT', 'WRITER_PROMPT',
-                     'SUPERVISOR_PROMPT', 'OVERVIEWER_PROMPT', 'DESIGNER_PROMPT',
-                     'TRANSLATOR_PROMPT', 'IMAGE_TRANSLATOR_PROMPT',
-                     'VIDEO_GENERATOR_PROMPT', 'REFINER_PROMPT']:
-            setattr(mock_prompt, attr, f"{attr.lower()}")
         
         manager.initialize_agents()
         
@@ -147,13 +123,6 @@ class TestAgentManager:
     def test_double_initialization(self, mock_prompt, mock_llm_agent):
         """Test that double initialization is handled gracefully."""
         manager = AgentManager()
-        
-        # Mock prompts
-        for attr in ['AUDITOR_PROMPT', 'ANALYST_PROMPT', 'WRITER_PROMPT',
-                     'SUPERVISOR_PROMPT', 'OVERVIEWER_PROMPT', 'DESIGNER_PROMPT',
-                     'TRANSLATOR_PROMPT', 'IMAGE_TRANSLATOR_PROMPT',
-                     'VIDEO_GENERATOR_PROMPT', 'REFINER_PROMPT']:
-            setattr(mock_prompt, attr, f"{attr.lower()}")
         
         manager.initialize_agents()
         first_count = len(manager._agents)

@@ -1,11 +1,28 @@
-"""Factory for creating agents with custom styles."""
+"""
+Agent Factory - Single Source of Truth for Agent Creation.
+
+This module is the ONLY place where agents should be created.
+All agents are created with prompt rewriting for style integration.
+"""
 
 import os
 import logging
 from google.adk.agents import LlmAgent
 from google.adk.tools import google_search
 from google.adk.tools.agent_tool import AgentTool
-from . import prompt
+from .prompts import (
+    SUPERVISOR_PROMPT,
+    ANALYST_PROMPT,
+    WRITER_PROMPT,
+    AUDITOR_PROMPT,
+    OVERVIEWER_PROMPT,
+    DESIGNER_PROMPT,
+    TRANSLATOR_PROMPT,
+    IMAGE_TRANSLATOR_PROMPT,
+    VIDEO_GENERATOR_PROMPT,
+    TITLE_GENERATOR_PROMPT,
+    REFINER_PROMPT,
+)
 from services.prompt_rewriter import PromptRewriter
 
 logger = logging.getLogger(__name__)
@@ -22,7 +39,7 @@ def create_designer_agent(visual_style: str = "Professional") -> LlmAgent:
         Designer agent with rewritten instruction
     """
     rewriter = PromptRewriter(visual_style=visual_style)
-    instruction = rewriter.rewrite_designer_prompt(prompt.DESIGNER_PROMPT)
+    instruction = rewriter.rewrite_designer_prompt(DESIGNER_PROMPT)
     
     return LlmAgent(
         name="slide_designer",
@@ -43,7 +60,7 @@ def create_writer_agent(speaker_style: str = "Professional") -> LlmAgent:
         Writer agent with rewritten instruction
     """
     rewriter = PromptRewriter(speaker_style=speaker_style)
-    instruction = rewriter.rewrite_writer_prompt(prompt.WRITER_PROMPT)
+    instruction = rewriter.rewrite_writer_prompt(WRITER_PROMPT)
     
     return LlmAgent(
         name="speech_writer",
@@ -65,7 +82,7 @@ def create_title_generator_agent(speaker_style: str = "Professional") -> LlmAgen
         Title generator agent with rewritten instruction
     """
     rewriter = PromptRewriter(speaker_style=speaker_style)
-    instruction = rewriter.rewrite_title_generator_prompt(prompt.TITLE_GENERATOR_PROMPT)
+    instruction = rewriter.rewrite_title_generator_prompt(TITLE_GENERATOR_PROMPT)
     
     return LlmAgent(
         name="title_generator",
@@ -113,7 +130,7 @@ def create_all_agents(visual_style: str = "Professional", speaker_style: str = "
         name="supervisor",
         model=os.getenv("MODEL_SUPERVISOR", "gemini-2.5-flash"),
         description="The orchestrator that manages the slide generation workflow.",
-        instruction=prompt.SUPERVISOR_PROMPT,
+        instruction=SUPERVISOR_PROMPT,
         tools=[
             AgentTool(agent=auditor_agent),
             AgentTool(agent=writer)
