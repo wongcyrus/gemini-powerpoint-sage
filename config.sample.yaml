@@ -16,11 +16,19 @@ language: "en"
 style: "Professional"
 
 # OR use detailed multi-line style (uncomment to try):
-# style: |
-#   Gundam Style - Futuristic mecha-inspired presentation
+# style:
+#   visual_style: |
+#     Gundam Mecha Anime Style (Sunrise / Hajime Katoki)
+#     - Art Style: High-quality 2D anime art, cel-shaded, vibrant colors.
+#     - Key Visuals: Giant mecha (Mobile Suits) with realistic mechanical detailing.
+#     - Atmosphere: Space colonies, starry backgrounds with Minovsky particle effects.
+#     - Composition: Dynamic "Obari" poses, dramatic lighting.
 #   
-#   Visuals: Metallic armor aesthetics, glowing energy effects, angular shapes
-#   Tone: Strategic, tactical, heroic language with military precision
+#   speaker_style: |
+#     ROLEPLAY INSTRUCTION: Gundam Anime Antagonist (Char Aznable)
+#     - Tone: Aristocratic, philosophical, melodramatic.
+#     - Themes: "Gravity" (legacy tech), "Evolution" (innovation), "Oldtypes" (competitors).
+#     - Example: "Their souls are weighed down by gravity! We must force their evolution with this new solution!"
 
 # Generation options
 skip_visuals: false

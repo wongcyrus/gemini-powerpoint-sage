@@ -86,17 +86,6 @@ async def process_presentation(
     # Late import to allow environment variable configuration
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-    # Import agents
-    from agents.supervisor import supervisor_agent
-    from agents.analyst import analyst_agent
-    from agents.overviewer import overviewer_agent
-    from agents.designer import designer_agent
-    from agents.writer import writer_agent
-    from agents.auditor import auditor_agent
-    from agents.translator import translator_agent
-    from agents.image_translator import image_translator_agent
-    from agents.video_generator import video_generator_agent
-
     # Create configuration
     config = Config(
         pptx_path=pptx_path,
@@ -111,18 +100,25 @@ async def process_presentation(
     # Validate configuration
     config.validate()
 
+    # Create agents with styles injected into system instructions
+    from agents.agent_factory import create_all_agents
+    agents = create_all_agents(
+        visual_style=config.visual_style,
+        speaker_style=config.speaker_style
+    )
+
     # Create processor
     processor = PresentationProcessor(
         config=config,
-        supervisor_agent=supervisor_agent,
-        analyst_agent=analyst_agent,
-        writer_agent=writer_agent,
-        auditor_agent=auditor_agent,
-        overviewer_agent=overviewer_agent,
-        designer_agent=designer_agent,
-        translator_agent=translator_agent,
-        image_translator_agent=image_translator_agent,
-        video_generator_agent=video_generator_agent,
+        supervisor_agent=agents["supervisor"],
+        analyst_agent=agents["analyst"],
+        writer_agent=agents["writer"],
+        auditor_agent=agents["auditor"],
+        overviewer_agent=agents["overviewer"],
+        designer_agent=agents["designer"],
+        translator_agent=agents["translator"],
+        image_translator_agent=agents["image_translator"],
+        video_generator_agent=agents["video_generator"],
     )
 
     # Process presentation

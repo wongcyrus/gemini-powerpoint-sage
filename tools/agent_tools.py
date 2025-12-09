@@ -135,12 +135,12 @@ class AgentToolFactory:
                         f"All content must be in {lang_name}."
                     )
 
+                # Note: Speaker style is now in the agent's system instruction, not here
                 prompt = (
                     f"SLIDE_ANALYSIS:\n{analysis}\n\n"
                     f"PRESENTATION_THEME: {theme}\n"
                     f"PREVIOUS_CONTEXT: {previous_context}\n"
-                    f"GLOBAL_CONTEXT: {global_ctx}\n"
-                    f"SPEAKER STYLE: {speaker_style}{language_instruction}\n"
+                    f"GLOBAL_CONTEXT: {global_ctx}{language_instruction}\n"
                 )
 
             result = await run_stateless_agent(self.writer_agent, prompt)

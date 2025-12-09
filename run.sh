@@ -6,13 +6,20 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR" || exit 1
 
-# Basic presence check for --pptx or --folder
-if ! printf '%s\n' "$@" | grep -qE -- '--(pptx|folder|refine)'; then
+# Basic presence check for --pptx, --folder, --refine, or --config
+if ! printf '%s\n' "$@" | grep -qE -- '--(pptx|folder|refine|config)'; then
     echo "Usage: ./run.sh --pptx <path_to_pptx> [--pdf <path_to_pdf>] [other flags]" >&2
     echo "   or: ./run.sh --folder <path_to_folder> [--language <locale>]" >&2
+    echo "   or: ./run.sh --config <config_file.yaml>" >&2
+    echo "   or: ./run.sh --refine <progress_file.json>" >&2
+    echo "" >&2
     echo "If --pdf omitted, main.py auto-detects a PDF with the same basename in the PPTX folder." >&2
-    echo "Example: ./run.sh --pptx ../data/deck.pptx" >&2
-    echo "Example: ./run.sh --folder ../data --language zh-CN" >&2
+    echo "" >&2
+    echo "Examples:" >&2
+    echo "  ./run.sh --pptx ../data/deck.pptx" >&2
+    echo "  ./run.sh --folder ../data --language zh-CN" >&2
+    echo "  ./run.sh --config config.gundam.yaml" >&2
+    echo "  ./run.sh --refine progress.json" >&2
     exit 1
 fi
 

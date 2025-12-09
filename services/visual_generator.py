@@ -47,6 +47,7 @@ class VisualGenerator:
         """
         self.designer_agent = designer_agent
         self.fallback_imagen_model = fallback_imagen_model
+        self.secondary_model = os.getenv("MODEL_DESIGNER_SECONDARY", "gemini-2.5-flash-image")
         self.output_dir = output_dir
         self.skip_generation = skip_generation
         self.visual_style = style  # This is visual_style from config
@@ -102,28 +103,29 @@ class VisualGenerator:
                 logger.error(f"Failed to load existing image {img_path}: {e}")
                 # Fall through to regenerate
 
-        # Generate new visual
+        # Generate new visual with multi-tier fallback
         force_fallback = os.getenv(EnvironmentVars.FORCE_FALLBACK_IMAGE_GEN) == "1"
         logger.info("--- Generating Visual for Slide %d (force_fallback=%s) ---" % (slide_idx, force_fallback))
 
         img_bytes = None
-        if not force_fallback:
-            logo_instruction = self._get_logo_instruction(slide_idx)
-            designer_prompt = self._build_designer_prompt(
-                speaker_notes,
-                logo_instruction,
-                language
+        logo_instruction = self._get_logo_instruction(slide_idx)
+        designer_prompt = self._build_designer_prompt(
+            speaker_notes,
+            logo_instruction,
+            language
+        )
+        if designer_prompt is None:
+            logger.warning("_build_designer_prompt returned None; using minimal fallback prompt.")
+            designer_prompt = (
+                "Speaker Notes: " + speaker_notes[:400] + "\nTASK: Generate a high-fidelity slide image."
             )
-            if designer_prompt is None:
-                logger.warning("_build_designer_prompt returned None; using minimal fallback prompt.")
-                designer_prompt = (
-                    "Speaker Notes: " + speaker_notes[:400] + "\nTASK: Generate a high-fidelity slide image."
-                )
 
-            designer_images = [slide_image]
-            if self.previous_image:
-                designer_images.append(self.previous_image)
+        designer_images = [slide_image]
+        if self.previous_image:
+            designer_images.append(self.previous_image)
 
+        # Tier 1: Primary designer model (gemini-3-pro-image-preview)
+        if not force_fallback:
             img_bytes = await run_visual_agent(
                 self.designer_agent,
                 designer_prompt,
@@ -132,10 +134,32 @@ class VisualGenerator:
         else:
             logger.info("Force fallback enabled; skipping primary designer model.")
 
-        # Fallback using Imagen API directly if primary returned no image
-        if force_fallback or not img_bytes:
+        # Tier 2: Secondary Gemini model (gemini-2.5-flash-image)
+        if not img_bytes and not force_fallback:
             logger.info(
-                "FALLBACK: Calling Imagen model for Slide %d", slide_idx
+                "FALLBACK TIER 2: Trying secondary model (%s) for Slide %d",
+                self.secondary_model, slide_idx
+            )
+            from google.adk.agents import LlmAgent
+            secondary_agent = LlmAgent(
+                name="slide_designer_secondary",
+                model=self.secondary_model,
+                description="Secondary slide designer",
+                instruction=self.designer_agent.instruction
+            )
+            try:
+                img_bytes = await run_visual_agent(
+                    secondary_agent,
+                    designer_prompt,
+                    images=designer_images
+                )
+            except Exception as e:
+                logger.error("Secondary model failed for Slide %d: %s" % (slide_idx, e))
+
+        # Tier 3: Imagen API directly
+        if not img_bytes:
+            logger.info(
+                "FALLBACK TIER 3: Calling Imagen model for Slide %d", slide_idx
             )
             fallback_prompt = self._build_fallback_prompt(
                 speaker_notes, language
@@ -324,15 +348,14 @@ class VisualGenerator:
                 f"{lang_name}."
             )
         
-        # Visual style instruction
-        style_instruction = f"\n\nVISUAL STYLE: {self.visual_style}"
+        # Note: Visual style is now in the agent's system instruction, not here
         
         return (
             f"IMAGE 1: Original Slide Image provided.\n\n"
             f"IMAGE 2: {style_ref}\n\n"
             f"Speaker Notes: \"{speaker_notes}\"\n\n"
             f"TASK: Generate the high-fidelity slide image now.\n\n"
-            f"CONTEXT: {logo_instruction}{lang_instruction}{style_instruction}\n"
+            f"CONTEXT: {logo_instruction}{lang_instruction}\n"
         )
 
     def _build_fallback_prompt(

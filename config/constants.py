@@ -16,6 +16,7 @@ class ModelConfig:
     IMAGE_TRANSLATOR: Final[str] = "gemini-3-pro-image-preview"
     VIDEO_GENERATOR: Final[str] = "gemini-2.5-flash"
     REFINER: Final[str] = "gemini-2.5-flash"
+    PROMPT_REWRITER: Final[str] = "gemini-2.5-flash"
     FALLBACK_IMAGEN: Final[str] = "imagen-4.0-generate-001"
 
 

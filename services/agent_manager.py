@@ -15,10 +15,18 @@ logger = logging.getLogger(__name__)
 class AgentManager:
     """Centralized agent management and initialization."""
     
-    def __init__(self):
-        """Initialize the agent manager."""
+    def __init__(self, visual_style: str = "Professional", speaker_style: str = "Professional"):
+        """
+        Initialize the agent manager.
+        
+        Args:
+            visual_style: Visual style for designer agent
+            speaker_style: Speaking style for writer agent
+        """
         self._agents: dict[str, LlmAgent] = {}
         self._initialized = False
+        self.visual_style = visual_style
+        self.speaker_style = speaker_style
     
     def initialize_agents(self) -> None:
         """Initialize all agents with their configurations."""
@@ -44,11 +52,13 @@ class AgentManager:
             instruction=prompt.ANALYST_PROMPT,
         )
         
+        # Writer agent with speaker style injected into instruction
+        writer_instruction = f"{prompt.WRITER_PROMPT}\n\n**SPEAKER STYLE FOR THIS SESSION:**\n{self.speaker_style}"
         self._agents["writer"] = LlmAgent(
             name="speech_writer",
             model=ModelConfig.WRITER,
             description="Generates presentation scripts with context.",
-            instruction=prompt.WRITER_PROMPT,
+            instruction=writer_instruction,
             tools=[google_search],
         )
         
@@ -70,11 +80,13 @@ class AgentManager:
             instruction=prompt.OVERVIEWER_PROMPT,
         )
         
+        # Designer agent with visual style injected into instruction
+        designer_instruction = f"{prompt.DESIGNER_PROMPT}\n\n**VISUAL STYLE FOR THIS SESSION:**\n{self.visual_style}"
         self._agents["designer"] = LlmAgent(
             name="designer",
             model=ModelConfig.DESIGNER,
             description="Generates enhanced slide visuals.",
-            instruction=prompt.DESIGNER_PROMPT,
+            instruction=designer_instruction,
         )
         
         self._agents["translator"] = LlmAgent(

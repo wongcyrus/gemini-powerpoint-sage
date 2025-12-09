@@ -10,6 +10,8 @@ from .translator import translator_agent
 from .image_translator import image_translator_agent
 from .video_generator import video_generator_agent
 from .refiner import refiner_agent
+from .title_generator import title_generator_agent
+from .prompt_rewriter import prompt_rewriter_agent
 
 __all__ = [
     "supervisor_agent",
@@ -22,4 +24,6 @@ __all__ = [
     "image_translator_agent",
     "video_generator_agent",
     "refiner_agent",
+    "title_generator_agent",
+    "prompt_rewriter_agent",
 ]

@@ -38,18 +38,17 @@ style: "Professional"
 # Option 2: Separate visual and speaker styles for more control
 # style:
 #   visual_style: |
-#     Gundam - Mecha-inspired futuristic design
-#     - Towering mecha aesthetics with gleaming metallic armor
-#     - Glowing energy effects (blue/green accents)
-#     - Angular, geometric shapes and technical diagrams
-#     - Military/tactical color schemes
+#     Gundam Mecha Anime Style (Sunrise / Hajime Katoki)
+#     - Art Style: High-quality 2D anime art, cel-shaded, vibrant colors.
+#     - Key Visuals: Giant mecha (Mobile Suits) with realistic mechanical detailing.
+#     - Atmosphere: Space colonies, starry backgrounds with Minovsky particle effects.
+#     - Composition: Dynamic "Obari" poses, dramatic lighting.
 #   
 #   speaker_style: |
-#     Military Tactical Briefing
-#     - Strategic and tactical language
-#     - Military precision terminology
-#     - Example: "Deploy this solution across all sectors" instead of "Use this solution"
-#     - Example: "Engage the target with precision" instead of "Address the issue carefully"
+#     Gundam Ace Pilot / Commander
+#     - Tone: Melodramatic, intense, high-stakes.
+#     - Tropes: "Weight of gravity", "souls weighed down by earth", "Newtype" references.
+#     - Example: "The enemy's market share is weighing down our souls!"
 
 # ============================================================================
 # GENERATION OPTIONS

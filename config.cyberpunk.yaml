@@ -14,27 +14,19 @@ language: "en"
 # Detailed Cyberpunk Style with separate visual and speaker styles
 style:
   visual_style: |
-    Cyberpunk - Dystopian high-tech aesthetic
-    - Neon colors (cyan, magenta, purple, hot pink) on dark backgrounds
-    - Glitch effects and digital artifacts
-    - High contrast with deep blacks
-    - Holographic and transparent UI elements
-    - Urban dystopian imagery (rain-slicked streets, neon signs)
-    - Matrix-style code rain and digital patterns
-    - Futuristic but gritty technology
-    - Scanline and CRT monitor effects
+    Cyberpunk Edgerunners / Studio Trigger Style
+    - Art Style: High-contrast anime aesthetic, vibrant neon colors (cyan, magenta, electric yellow).
+    - Effects: Heavy chromatic aberration, glitch art artifacts, speed lines, "databosh" effects.
+    - Atmosphere: Night City vibes, rain-slicked streets reflecting neon, crowded futuristic slums, massive corporate towers.
+    - Tech: Holographic UI popups, cybernetic enhancements (chrome skin, glowing eyes, mantis blades), neural link cables.
+    - Composition: Kinetic, high-energy, exaggerated perspective, "trigger" style character designs.
   
   speaker_style: |
-    Hacker/Tech Culture
-    - Edgy, tech-savvy language with hacker terminology
-    - Slightly rebellious or disruptive tone
-    - Anti-establishment perspective
-    - Frame solutions as hacks or exploits
-    - Use terms: "hack", "exploit", "system", "network", "breach", "decrypt", "jack in"
-    - Example: "Hack the system by exploiting this vulnerability"
-    - Example: "Jack into the network and decrypt the data"
-    - Example: "Breach the firewall to access hidden potential"
-    - Emphasize unconventional solutions and breaking rules
+    Night City Edgerunner / Netrunner
+    - Tone: Gritty, rebellious, fast-talking, anti-corpo, "high-tech low-life".
+    - Slang: Use "Choom" (friend), "Nova" (cool), "Preem" (premium/great), "Gonk" (idiot), "Corpo" (corporate), "Flatline" (die/fail), "Biz" (business), "Eddies" (money).
+    - Structure: Frame tasks as "gigs", problems as "glitches" or "ice", success as "making it to the major leagues".
+    - Example: "Listen up, choom. This corpo data is shielded by heavy ice, but we're gonna flatline their defenses and grab the eddies."
 
 # Generation options
 skip_visuals: false

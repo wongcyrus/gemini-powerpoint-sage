@@ -468,17 +468,26 @@ See [Configuration File Guide](docs/CONFIG_FILE_GUIDE.md) for details.
 
 ## 🎭 Custom Styles
 
-Apply themes to your presentations:
+Apply themed styles to your presentations using pre-configured YAML files:
 
 ```bash
-# Gundam/Mecha style
-python main.py --config config.yaml --style "Gundam"
+# Star Wars - Epic space opera with Jedi Master narration
+./run.sh --config config.starwars.yaml
 
-# Cyberpunk style
-python main.py --config config.yaml --style "Cyberpunk"
+# Gundam - Mecha anime with dramatic Char Aznable-style speeches
+./run.sh --config config.gundam.yaml
 
-# Minimalist style
-python main.py --config config.yaml --style "Minimalist"
+# Cyberpunk - Neon-soaked dystopian aesthetic
+./run.sh --config config.cyberpunk.yaml
+
+# Or use inline styles
+python main.py --pptx file.pptx --style "Minimalist"
 ```
 
-See [Style Examples](docs/STYLE_EXAMPLES.md) for more options.
+**Available Style Configs:**
+- 🌌 **Star Wars** - Jedi briefings with epic space opera visuals
+- 🤖 **Gundam** - Mecha anime aesthetic with philosophical antagonist voice
+- 🌃 **Cyberpunk** - Neon colors with edgy tech-savvy narration
+- 📋 **Sample** - Professional and clean default style
+
+See [Style Configuration Gallery](docs/STYLE_CONFIGS.md) for detailed descriptions and how to create your own.

@@ -14,25 +14,26 @@ language: "en"
 # Detailed Gundam Style with separate visual and speaker styles
 style:
   visual_style: |
-    Gundam - Mobile Suit mecha-inspired futuristic design
-    - Towering mecha aesthetics with gleaming metallic armor
-    - Glowing energy effects (blue/green accents for friendly, red for threats)
-    - Angular, geometric shapes and technical diagrams
-    - Futuristic HUD-style elements and targeting reticles
-    - Military/tactical color schemes (grays, blues, blacks with accent colors)
-    - Technical schematics and blueprint-style graphics
-    - Dramatic action poses and dynamic compositions
+    Gundam Mecha Anime Style (Sunrise / Hajime Katoki)
+    - Art Style: High-quality 2D anime art, cel-shaded, vibrant colors, detailed mechanical design similar to Mobile Suit Gundam Unicorn or Hathaway.
+    - Key Visuals: Giant mecha (Mobile Suits) with realistic mechanical detailing (panel lines, hydraulic joints, thrusters).
+    - Atmosphere: Space colonies, starry backgrounds with Minovsky particle effects (pink/green glitter), laser beam effects.
+    - Composition: Dynamic "Obari" poses, dramatic lighting, lens flares, sense of scale (towering robots).
+    - Colors: Classic Tricolor (Blue, White, Red, Yellow) or Military Real Robot schemes (OD Green, Desert Sand, Titans Blue).
+    - Tech: Cockpit views with multi-monitor holographic HUDs, targeting reticles, "Lock-on" warnings.
   
   speaker_style: |
-    Military Tactical Briefing
-    - Strategic and tactical language with military precision
-    - Technical mecha/engineering references
-    - Heroic and determined tone with sense of duty
-    - Frame concepts as battles or tactical missions
-    - Use terms: "Deploy", "Engage", "Strategic advantage", "Tactical superiority", "Mission objective"
-    - Example: "Deploy this solution across all sectors to achieve strategic advantage"
-    - Example: "Engage the target with precision targeting systems"
-    - Example: "Mission objective: Secure tactical superiority in the market"
+    ROLEPLAY INSTRUCTION: YOU ARE A GUNDAM ANIME ANTAGONIST (Char Aznable archetype).
+    - **CRITICAL**: ABANDON all "professional" corporate tone. You are giving a dramatic speech from the cockpit of a mobile suit or a lunar base.
+    - **TONE**: Aristocratic, philosophical, melodramatic, and intense. You pity the "Oldtypes" (competitors/audience) who are trapped by conventional thinking (gravity).
+    - **CORE THEMES**:
+        - "Gravity": Represents legacy systems, old thinking, or technical debt. "Their souls are weighed down by gravity!"
+        - "Evolution/Newtypes": Represents innovation and the new solution.
+        - "The Future": A terrifying but necessary change.
+    - **MANDATORY PHRASING**:
+        - Refer to the project/product as "This Mobile Suit," "Operation Meteor," or "The Box."
+        - Refer to competitors as "The Federation," "Earthnoids," or "Oldtypes."
+    - **EXAMPLE**: "Humanity is content to stagnate in the gravity well of on-premise servers! But I have come to correct this mistake. Behold, the power of the Cloud... a power that will lead us to the future! I came here to laugh at you, but instead, I will save you!"
 
 # Generation options
 skip_visuals: false

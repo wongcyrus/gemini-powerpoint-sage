@@ -4,12 +4,15 @@ Equivalent to run.sh for Windows environments.
 Usage:
     ./run.ps1 --pptx <path_to_pptx> [--pdf <path_to_pdf>] [other flags]
     ./run.ps1 --folder <path_to_folder> [other flags]
+    ./run.ps1 --config <config_file.yaml>
+    ./run.ps1 --refine <progress_file.json>
 If --pdf is omitted, a PDF with the same basename in the PPTX folder is auto-detected.
-Example:
+Examples:
     ./run.ps1 --pptx ../data/deck.pptx
     ./run.ps1 --pptx ../data/deck.pptx --pdf ../data/deck.pdf
     ./run.ps1 --folder ../data --language zh-CN
-    ./run.ps1 --pptx ../data/deck.pptx --language yue-HK
+    ./run.ps1 --config config.gundam.yaml
+    ./run.ps1 --refine progress.json
 #>
 
 # Ensure we are running from the script's directory
@@ -25,8 +28,16 @@ if (Test-Path ".venv\Scripts\Activate.ps1") {
 }
 
 if ($args.Count -lt 2) {
-    Write-Host "Usage: ./run.ps1 --pptx <path_to_pptx> [--pdf <path_to_pdf>]" -ForegroundColor Yellow
+    Write-Host "Usage: ./run.ps1 --pptx <path_to_pptx> [--pdf <path_to_pdf>] [other flags]" -ForegroundColor Yellow
     Write-Host "   or: ./run.ps1 --folder <path_to_folder> [--language <locale>]" -ForegroundColor Yellow
+    Write-Host "   or: ./run.ps1 --config <config_file.yaml>" -ForegroundColor Yellow
+    Write-Host "   or: ./run.ps1 --refine <progress_file.json>" -ForegroundColor Yellow
+    Write-Host "" -ForegroundColor Yellow
+    Write-Host "Examples:" -ForegroundColor Yellow
+    Write-Host "  ./run.ps1 --pptx ../data/deck.pptx" -ForegroundColor Yellow
+    Write-Host "  ./run.ps1 --folder ../data --language zh-CN" -ForegroundColor Yellow
+    Write-Host "  ./run.ps1 --config config.gundam.yaml" -ForegroundColor Yellow
+    Write-Host "  ./run.ps1 --refine progress.json" -ForegroundColor Yellow
     exit 1
 }
 
@@ -52,28 +63,37 @@ for ($i = 0; $i -lt $args.Count; ) {
 
 $pptx = $argMap['--pptx']
 $folder = $argMap['--folder']
+$config = $argMap['--config']
+$refine = $argMap['--refine']
 
-# Validate that either --pptx or --folder is provided
-if (-not $pptx -and -not $folder) {
-    Write-Host "Error: Either --pptx or --folder must be provided." -ForegroundColor Red
+# Validate that at least one mode is provided
+if (-not $pptx -and -not $folder -and -not $config -and -not $refine) {
+    Write-Host "Error: One of --pptx, --folder, --config, or --refine must be provided." -ForegroundColor Red
     exit 1
 }
 
-if ($pptx -and $folder) {
-    Write-Host "Error: Cannot use both --pptx and --folder at the same time." -ForegroundColor Red
+# Check for conflicting modes
+$modeCount = 0
+if ($pptx) { $modeCount++ }
+if ($folder) { $modeCount++ }
+if ($config) { $modeCount++ }
+if ($refine) { $modeCount++ }
+
+if ($modeCount -gt 1) {
+    Write-Host "Error: Cannot use multiple modes (--pptx, --folder, --config, --refine) at the same time." -ForegroundColor Red
     exit 1
 }
 
-if (-not $pptx -and -not $folder) {
-    Write-Host "--pptx or --folder is required." -ForegroundColor Red
-    exit 1
-}
 $pdf = $argMap['--pdf']
 
-# For folder mode, PDF is not needed at this stage
-if ($folder) {
+# Display mode-specific messages
+if ($config) {
+    Write-Host "Using configuration file: $config" -ForegroundColor Cyan
+} elseif ($refine) {
+    Write-Host "Refining progress file: $refine" -ForegroundColor Cyan
+} elseif ($folder) {
     Write-Host "Processing all PPTX files in folder: $folder" -ForegroundColor Cyan
-} elseif (-not $pdf) {
+} elseif ($pptx -and -not $pdf) {
     Write-Host "No --pdf supplied; main.py will auto-detect a matching PDF." -ForegroundColor Yellow
 }
 
