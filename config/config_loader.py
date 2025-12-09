@@ -137,6 +137,7 @@ class ConfigFileLoader:
             "generate_videos": "generate_videos",
             "language": "language",
             "style": "style",
+            "output_dir": "output_dir",
         }
 
         for arg_name, config_key in arg_mappings.items():
@@ -184,6 +185,10 @@ def create_example_config(output_path: str) -> None:
         f.write(
             'style: "Professional"  # Gundam, Cyberpunk, Minimalist, etc.\n\n'
         )
+        f.write("# Output directory (optional)\n")
+        f.write("# Recommended pattern: {style}/generate/\n")
+        f.write('# Examples: "cyberpunk/generate", "gundam/generate"\n')
+        f.write('# output_dir: "cyberpunk/generate"\n\n')
         f.write("# Flags\n")
         f.write("skip_visuals: false\n")
         f.write("generate_videos: false\n")

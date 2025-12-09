@@ -260,7 +260,7 @@ class TestPresentation:
         """Test output path generation."""
         pptx_path, pdf_path = temp_files
         
-        # English presentation
+        # English presentation, no style
         pres_en = Presentation(pptx_path=pptx_path, pdf_path=pdf_path, language="en")
         output_en = pres_en.get_output_path()
         assert output_en.name == "test_notes.pptx"
@@ -269,3 +269,20 @@ class TestPresentation:
         pres_zh = Presentation(pptx_path=pptx_path, pdf_path=pdf_path, language="zh-CN")
         output_zh = pres_zh.get_output_path()
         assert output_zh.name == "test_zh-CN_notes.pptx"
+        
+        # With style (style NOT in filename, only in folder structure)
+        pres_style = Presentation(pptx_path=pptx_path, pdf_path=pdf_path, language="en", style="Cyberpunk")
+        output_style = pres_style.get_output_path()
+        assert output_style.name == "test_notes.pptx"  # No style in filename
+        
+        # With style and language (only language in filename)
+        pres_both = Presentation(pptx_path=pptx_path, pdf_path=pdf_path, language="zh-CN", style="Gundam")
+        output_both = pres_both.get_output_path()
+        assert output_both.name == "test_zh-CN_notes.pptx"  # Only language, no style
+        
+        # With output directory
+        output_dir = temp_files[0].parent / "output"
+        output_dir.mkdir(exist_ok=True)
+        output_custom = pres_style.get_output_path(output_dir=output_dir)
+        assert output_custom.parent == output_dir
+        assert output_custom.name == "test_notes.pptx"  # No style in filename

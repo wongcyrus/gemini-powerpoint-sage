@@ -25,6 +25,7 @@ class Config:
         generate_videos: bool = False,
         language: str = "en",
         style: Optional[str] = None,
+        output_dir: Optional[str] = None,
     ):
         """
         Initialize configuration.
@@ -40,6 +41,7 @@ class Config:
             generate_videos: Whether to generate videos for slides
             language: Language locale code (e.g., en, zh-CN, yue-HK)
             style: Optional style/theme for content generation (e.g., "Gundam", "Cyberpunk", "Minimalist")
+            output_dir: Optional output directory (defaults to generate/ folder next to input)
         """
         self.pptx_path = pptx_path
         self.pdf_path = pdf_path
@@ -50,16 +52,19 @@ class Config:
         self.skip_visuals = skip_visuals
         self.generate_videos = generate_videos
         self.language = language
+        self.output_dir = output_dir
         
         # Handle style - can be a string or dict with visual_style and speaker_style
         if isinstance(style, dict):
             self.visual_style = style.get("visual_style", "Professional")
             self.speaker_style = style.get("speaker_style", "Professional")
+            self.style = style.get("visual_style", "Professional")  # For filename generation
         else:
             # Single style applies to both
             default_style = style or os.getenv("PRESENTATION_STYLE", "Professional")
             self.visual_style = default_style
             self.speaker_style = default_style
+            self.style = default_style
 
         # Apply environment variable overrides
         self._apply_env_overrides()
@@ -78,62 +83,109 @@ class Config:
         elif EnvironmentVars.GOOGLE_CLOUD_LOCATION not in os.environ:
             os.environ[EnvironmentVars.GOOGLE_CLOUD_LOCATION] = "global"
 
+    def _get_output_dir(self) -> str:
+        """
+        Get the output directory, creating it if needed.
+        
+        If output_dir is specified, use it directly.
+        Otherwise, create a style-specific subfolder in generate/:
+        - generate/cyberpunk/ for Cyberpunk style
+        - generate/gundam/ for Gundam style
+        - generate/ for Professional style (default)
+        """
+        pptx_dir = os.path.dirname(self.pptx_path)
+        
+        if self.output_dir:
+            # User specified custom output directory - use it directly
+            output_dir = self.output_dir
+        else:
+            # Default behavior: organize by style in generate/ folder
+            base_dir = os.path.join(pptx_dir, "generate")
+            
+            # Create style-specific subfolder if not Professional
+            if self.style and self.style.lower() != "professional":
+                style_folder = self.style.replace(" ", "_").lower()
+                output_dir = os.path.join(base_dir, style_folder)
+            else:
+                # Professional style goes directly in generate/
+                output_dir = base_dir
+        
+        os.makedirs(output_dir, exist_ok=True)
+        return output_dir
+
     @property
     def output_path(self) -> str:
-        """Get the output path for the presentation with notes only."""
-        pptx_dir = os.path.dirname(self.pptx_path)
-        pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
-        generate_dir = os.path.join(pptx_dir, "generate")
-        os.makedirs(generate_dir, exist_ok=True)
-        # If source is a macro-enabled presentation, prefer .pptm output
-        src_ext = os.path.splitext(self.pptx_path)[1].lower()
-        out_ext = ".pptm" if src_ext == ".pptm" else ".pptx"
-        filename = FilePatterns.NOTES_OUTPUT.format(
-            base=pptx_base,
-            lang=self.language,
-            ext=out_ext
+        """
+        Get the output path for the presentation with notes only.
+        
+        DEPRECATED: Use Presentation.get_output_path() for style-aware naming.
+        This property is kept for backward compatibility.
+        """
+        from pathlib import Path
+        from core.domain.presentation import Presentation
+        
+        # Create a temporary presentation object to use its naming logic
+        pres = Presentation(
+            pptx_path=Path(self.pptx_path),
+            pdf_path=Path(self.pdf_path),
+            language=self.language,
+            style=self.style
         )
-        return os.path.join(generate_dir, filename)
+        
+        output_dir = Path(self._get_output_dir())
+        return str(pres.get_output_path(suffix="_notes", output_dir=output_dir))
 
     @property
     def output_path_with_visuals(self) -> str:
-        """Get the output path for the presentation with visuals."""
-        pptx_dir = os.path.dirname(self.pptx_path)
-        pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
-        generate_dir = os.path.join(pptx_dir, "generate")
-        os.makedirs(generate_dir, exist_ok=True)
-        src_ext = os.path.splitext(self.pptx_path)[1].lower()
-        out_ext = ".pptm" if src_ext == ".pptm" else ".pptx"
-        filename = FilePatterns.VISUALS_OUTPUT.format(
-            base=pptx_base,
-            lang=self.language,
-            ext=out_ext
+        """
+        Get the output path for the presentation with visuals.
+        
+        DEPRECATED: Use Presentation.get_output_path() for style-aware naming.
+        This property is kept for backward compatibility.
+        """
+        from pathlib import Path
+        from core.domain.presentation import Presentation
+        
+        # Create a temporary presentation object to use its naming logic
+        pres = Presentation(
+            pptx_path=Path(self.pptx_path),
+            pdf_path=Path(self.pdf_path),
+            language=self.language,
+            style=self.style
         )
-        return os.path.join(generate_dir, filename)
+        
+        output_dir = Path(self._get_output_dir())
+        return str(pres.get_output_path(suffix="_visuals", output_dir=output_dir))
 
     @property
     def visuals_dir(self) -> str:
         """Get the directory for storing visual outputs."""
-        pptx_dir = os.path.dirname(self.pptx_path)
         pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
-        generate_dir = os.path.join(pptx_dir, "generate")
-        dirname = FilePatterns.VISUALS_DIR.format(
-            base=pptx_base,
-            lang=self.language
-        )
-        return os.path.join(generate_dir, dirname)
+        output_dir = self._get_output_dir()
+        
+        # Build directory name with language (style is in folder structure)
+        parts = [pptx_base]
+        if self.language != "en":
+            parts.append(self.language)
+        parts.append("visuals")
+        
+        dirname = "_".join(parts)
+        return os.path.join(output_dir, dirname)
 
     @property
     def videos_dir(self) -> str:
         """Get the directory for storing video outputs."""
-        pptx_dir = os.path.dirname(self.pptx_path)
         pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
-        generate_dir = os.path.join(pptx_dir, "generate")
-        dirname = FilePatterns.VIDEOS_DIR.format(
-            base=pptx_base,
-            lang=self.language
-        )
-        videos_dir = os.path.join(generate_dir, dirname)
+        output_dir = self._get_output_dir()
+        
+        # Build directory name with language (style is in folder structure)
+        parts = [pptx_base]
+        if self.language != "en":
+            parts.append(self.language)
+        parts.append("videos")
+        
+        dirname = "_".join(parts)
+        videos_dir = os.path.join(output_dir, dirname)
         os.makedirs(videos_dir, exist_ok=True)
         return videos_dir
 

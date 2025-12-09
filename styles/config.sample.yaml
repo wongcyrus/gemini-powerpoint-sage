@@ -5,6 +5,15 @@
 pptx: "tests/sample_data/cloudtech.pptm"
 pdf: "tests/sample_data/cloudtech.pdf"
 
+# Output directory (optional)
+# Recommended pattern: {style}/generate/
+# Examples:
+#   - "professional/generate" for Professional style
+#   - "cyberpunk/generate" for Cyberpunk style
+#   - "custom/output" for any custom location
+# If not specified, uses default: generate/ next to input file
+# output_dir: "professional/generate"
+
 # Google Cloud settings
 region: "global"
 

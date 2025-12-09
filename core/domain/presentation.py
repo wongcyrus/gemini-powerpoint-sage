@@ -71,16 +71,36 @@ class Presentation:
         """Check if all slides are processed."""
         return all(slide.has_useful_notes() for slide in self.slides)
     
-    def get_output_path(self, suffix: str = "_notes") -> Path:
-        """Get output path for processed presentation."""
+    def get_output_path(self, suffix: str = "_notes", output_dir: Optional[Path] = None) -> Path:
+        """
+        Get output path for processed presentation.
+        
+        Style is organized by folder structure, not filename.
+        Only language is included in filename if not English.
+        
+        Args:
+            suffix: Suffix to add to filename (e.g., "_notes", "_visuals")
+            output_dir: Optional output directory (defaults to same as input)
+            
+        Returns:
+            Path for output file
+        """
         stem = self.pptx_path.stem
-        parent = self.pptx_path.parent
+        parent = output_dir if output_dir else self.pptx_path.parent
         ext = self.pptx_path.suffix
         
-        # Add language suffix if not English
+        # Build filename with language and suffix (NO style in filename)
+        parts = [stem]
+        
+        # Add language if not English
         if self.language != "en":
-            return parent / f"{stem}_{self.language}{suffix}{ext}"
-        return parent / f"{stem}{suffix}{ext}"
+            parts.append(self.language)
+        
+        # Add suffix
+        parts.append(suffix.lstrip("_"))
+        
+        filename = "_".join(parts) + ext
+        return parent / filename
     
     def __str__(self) -> str:
         """Return string representation."""

@@ -98,6 +98,13 @@ class CLI:
                  "Examples: 'Gundam', 'Cyberpunk', 'Minimalist', 'Corporate', 'Professional' (default)",
             default=None
         )
+        parser.add_argument(
+            "--output-dir",
+            help="Output directory for processed files. "
+                 "If not specified, files are saved in the same directory as input. "
+                 "Useful when processing with different styles to avoid overwriting.",
+            default=None
+        )
         
         # Refinement mode
         parser.add_argument(
@@ -168,6 +175,7 @@ class CLI:
             generate_videos=args.generate_videos,
             languages=args.language,
             style=args.style,
+            output_dir=args.output_dir,
         )
         await cmd.execute()
     
@@ -220,6 +228,7 @@ class CLI:
                 generate_videos=args.generate_videos,
                 language=lang,
                 style=args.style,
+                output_dir=args.output_dir,
             )
             await cmd.execute()
     

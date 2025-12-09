@@ -4,6 +4,7 @@ import logging
 import os
 import shutil
 import tempfile
+from typing import Optional
 
 import pymupdf
 from pptx import Presentation

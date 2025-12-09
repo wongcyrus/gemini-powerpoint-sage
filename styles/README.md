@@ -41,6 +41,9 @@ Copy `config.sample.yaml` and modify the `visual_style` and `speaker_style` sect
 pptx: "path/to/presentation.pptx"
 pdf: "path/to/presentation.pdf"
 
+# Output directory (recommended pattern: {style}/generate/)
+output_dir: "cyberpunk/generate"
+
 # Style configuration
 style: "YourStyleName"
 
@@ -63,6 +66,46 @@ language: "en"
 skip_visuals: false
 generate_videos: false
 ```
+
+### Output Directory Pattern
+
+**Recommended:** Use `{style}/generate/` pattern for clean organization:
+
+```yaml
+# Cyberpunk style
+output_dir: "cyberpunk/generate"
+
+# Gundam style
+output_dir: "gundam/generate"
+
+# Star Wars style
+output_dir: "star_wars/generate"
+```
+
+This creates a structure like:
+```
+project/
+├── presentation.pptx
+├── presentation.pdf
+├── cyberpunk/
+│   └── generate/
+│       ├── presentation_notes.pptx
+│       └── presentation_visuals.pptx
+├── gundam/
+│   └── generate/
+│       ├── presentation_notes.pptx
+│       └── presentation_visuals.pptx
+└── star_wars/
+    └── generate/
+        ├── presentation_notes.pptx
+        └── presentation_visuals.pptx
+```
+
+**Benefits:**
+- Each style has its own top-level folder
+- Easy to compare different styles
+- Clean separation of outputs
+- `generate/` subfolder keeps outputs organized
 
 ## Style Guidelines
 

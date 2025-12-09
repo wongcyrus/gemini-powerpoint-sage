@@ -5,6 +5,11 @@
 pptx: "tests/sample_data/cloudtech.pptm"
 pdf: "tests/sample_data/cloudtech.pdf"
 
+# Output directory (optional)
+# If not specified, outputs go to: {style}/generate/ next to input file
+# Example: gundam/generate/cloudtech_notes.pptx
+output_dir: "gundam/generate"
+
 # Google Cloud settings
 region: "global"
 

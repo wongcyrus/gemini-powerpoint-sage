@@ -24,6 +24,7 @@ class BatchCommand(Command):
         generate_videos: bool = False,
         languages: str = "en",
         style: Optional[str] = None,
+        output_dir: Optional[str] = None,
     ):
         """
         Initialize batch command.
@@ -37,6 +38,7 @@ class BatchCommand(Command):
             generate_videos: Whether to generate videos
             languages: Comma-separated language locale codes
             style: Optional style/theme for content
+            output_dir: Optional output directory
         """
         self.folder_path = folder_path
         self.course_id = course_id
@@ -46,6 +48,7 @@ class BatchCommand(Command):
         self.generate_videos = generate_videos
         self.languages = languages
         self.style = style
+        self.output_dir = output_dir
     
     def validate(self) -> None:
         """Validate command parameters."""
@@ -133,6 +136,7 @@ class BatchCommand(Command):
                         generate_videos=self.generate_videos,
                         language=lang,
                         style=self.style,
+                        output_dir=self.output_dir,
                     )
                     await cmd.execute()
                     

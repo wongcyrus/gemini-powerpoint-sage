@@ -25,6 +25,7 @@ class ProcessCommand(Command):
         generate_videos: bool = False,
         language: str = "en",
         style: Optional[str] = None,
+        output_dir: Optional[str] = None,
     ):
         """
         Initialize process command.
@@ -37,6 +38,7 @@ class ProcessCommand(Command):
             generate_videos: Whether to generate videos
             language: Language locale code
             style: Optional style/theme for content
+            output_dir: Optional output directory
         """
         self.pptx_path = pptx_path
         self.pdf_path = pdf_path
@@ -45,6 +47,7 @@ class ProcessCommand(Command):
         self.generate_videos = generate_videos
         self.language = language
         self.style = style
+        self.output_dir = output_dir
     
     def validate(self) -> None:
         """Validate command parameters."""
@@ -77,6 +80,7 @@ class ProcessCommand(Command):
             generate_videos=self.generate_videos,
             language=self.language,
             style=self.style,
+            output_dir=self.output_dir,
         )
         
         # Validate configuration

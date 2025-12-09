@@ -36,6 +36,7 @@ class FilePatterns:
     """File naming patterns."""
     
     PROGRESS_FILE: Final[str] = "{base}_{lang}_progress.json"
+    # Legacy patterns (deprecated - use Presentation.get_output_path() instead)
     NOTES_OUTPUT: Final[str] = "{base}_{lang}_with_notes{ext}"
     VISUALS_OUTPUT: Final[str] = "{base}_{lang}_with_visuals{ext}"
     VISUALS_DIR: Final[str] = "{base}_{lang}_visuals"

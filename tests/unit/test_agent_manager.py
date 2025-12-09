@@ -21,22 +21,9 @@ class TestAgentManager:
         assert manager._initialized is False
     
     @patch('services.agent_manager.LlmAgent')
-    @patch('services.agent_manager.prompt')
-    def test_initialize_agents(self, mock_prompt, mock_llm_agent):
+    def test_initialize_agents(self, mock_llm_agent):
         """Test agent initialization."""
         manager = AgentManager()
-        
-        # Mock prompt attributes
-        mock_prompt.AUDITOR_PROMPT = "auditor prompt"
-        mock_prompt.ANALYST_PROMPT = "analyst prompt"
-        mock_prompt.WRITER_PROMPT = "writer prompt"
-        mock_prompt.SUPERVISOR_PROMPT = "supervisor prompt"
-        mock_prompt.OVERVIEWER_PROMPT = "overviewer prompt"
-        mock_prompt.DESIGNER_PROMPT = "designer prompt"
-        mock_prompt.TRANSLATOR_PROMPT = "translator prompt"
-        mock_prompt.IMAGE_TRANSLATOR_PROMPT = "image translator prompt"
-        mock_prompt.VIDEO_GENERATOR_PROMPT = "video generator prompt"
-        mock_prompt.REFINER_PROMPT = "refiner prompt"
         
         manager.initialize_agents()
         
@@ -47,8 +34,7 @@ class TestAgentManager:
         assert "writer" in manager._agents
     
     @patch('services.agent_manager.LlmAgent')
-    @patch('services.agent_manager.prompt')
-    def test_get_agent(self, mock_prompt, mock_llm_agent):
+    def test_get_agent(self, mock_llm_agent):
         """Test getting an agent."""
         manager = AgentManager()
         
@@ -58,8 +44,7 @@ class TestAgentManager:
         assert agent is not None
     
     @patch('services.agent_manager.LlmAgent')
-    @patch('services.agent_manager.prompt')
-    def test_get_agent_not_found(self, mock_prompt, mock_llm_agent):
+    def test_get_agent_not_found(self, mock_llm_agent):
         """Test getting non-existent agent."""
         manager = AgentManager()
         
@@ -69,8 +54,7 @@ class TestAgentManager:
         assert agent is None
     
     @patch('services.agent_manager.LlmAgent')
-    @patch('services.agent_manager.prompt')
-    def test_lazy_initialization(self, mock_prompt, mock_llm_agent):
+    def test_lazy_initialization(self, mock_llm_agent):
         """Test lazy initialization on first get_agent call."""
         manager = AgentManager()
         
@@ -81,8 +65,7 @@ class TestAgentManager:
         assert manager._initialized is True
     
     @patch('services.agent_manager.LlmAgent')
-    @patch('services.agent_manager.prompt')
-    def test_getter_methods(self, mock_prompt, mock_llm_agent):
+    def test_getter_methods(self, mock_llm_agent):
         """Test specific getter methods."""
         manager = AgentManager()
         
@@ -100,27 +83,18 @@ class TestAgentManager:
         assert manager.get_refiner() is not None
     
     @patch('services.agent_manager.LlmAgent')
-    @patch('services.agent_manager.prompt')
-    def test_is_initialized_property(self, mock_prompt, mock_llm_agent):
+    def test_is_initialized_property(self, mock_llm_agent):
         """Test is_initialized property."""
         manager = AgentManager()
         
         assert manager.is_initialized is False
-        
-        # Mock prompts
-        for attr in ['AUDITOR_PROMPT', 'ANALYST_PROMPT', 'WRITER_PROMPT',
-                     'SUPERVISOR_PROMPT', 'OVERVIEWER_PROMPT', 'DESIGNER_PROMPT',
-                     'TRANSLATOR_PROMPT', 'IMAGE_TRANSLATOR_PROMPT',
-                     'VIDEO_GENERATOR_PROMPT', 'REFINER_PROMPT']:
-            setattr(mock_prompt, attr, f"{attr.lower()}")
         
         manager.initialize_agents()
         
         assert manager.is_initialized is True
     
     @patch('services.agent_manager.LlmAgent')
-    @patch('services.agent_manager.prompt')
-    def test_double_initialization(self, mock_prompt, mock_llm_agent):
+    def test_double_initialization(self, mock_llm_agent):
         """Test that double initialization is handled gracefully."""
         manager = AgentManager()
         
