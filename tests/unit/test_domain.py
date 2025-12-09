@@ -263,7 +263,7 @@ class TestPresentation:
         # English presentation, no style
         pres_en = Presentation(pptx_path=pptx_path, pdf_path=pdf_path, language="en")
         output_en = pres_en.get_output_path()
-        assert output_en.name == "test_notes.pptx"
+        assert output_en.name == "test_en_notes.pptx"
         
         # Chinese presentation
         pres_zh = Presentation(pptx_path=pptx_path, pdf_path=pdf_path, language="zh-CN")
@@ -273,7 +273,7 @@ class TestPresentation:
         # With style (style NOT in filename, only in folder structure)
         pres_style = Presentation(pptx_path=pptx_path, pdf_path=pdf_path, language="en", style="Cyberpunk")
         output_style = pres_style.get_output_path()
-        assert output_style.name == "test_notes.pptx"  # No style in filename
+        assert output_style.name == "test_en_notes.pptx"  # No style in filename
         
         # With style and language (only language in filename)
         pres_both = Presentation(pptx_path=pptx_path, pdf_path=pdf_path, language="zh-CN", style="Gundam")
@@ -285,4 +285,4 @@ class TestPresentation:
         output_dir.mkdir(exist_ok=True)
         output_custom = pres_style.get_output_path(output_dir=output_dir)
         assert output_custom.parent == output_dir
-        assert output_custom.name == "test_notes.pptx"  # No style in filename
+        assert output_custom.name == "test_en_notes.pptx"  # No style in filename

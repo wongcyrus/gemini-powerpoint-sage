@@ -92,9 +92,8 @@ class Presentation:
         # Build filename with language and suffix (NO style in filename)
         parts = [stem]
         
-        # Add language if not English
-        if self.language != "en":
-            parts.append(self.language)
+        # Always add language
+        parts.append(self.language)
         
         # Add suffix
         parts.append(suffix.lstrip("_"))
