@@ -150,10 +150,10 @@ python run_all_styles.py --language zh-CN
 Output structure:
 ```
 output/
-├── cyberpunk/generate/presentation_en_notes.pptx
-├── gundam/generate/presentation_en_notes.pptx
-├── starwars/generate/presentation_en_notes.pptx
-└── professional/generate/presentation_en_notes.pptx
+├── cyberpunk/generate/presentation_en_notes.pptm
+├── gundam/generate/presentation_en_notes.pptm
+├── starwars/generate/presentation_en_notes.pptm
+└── professional/generate/presentation_en_notes.pptm
 ```
 
 See [docs/RUN_ALL_STYLES.md](docs/RUN_ALL_STYLES.md) for details.
@@ -286,18 +286,18 @@ presentations/
 ```
 output/
 ├── cyberpunk/generate/
-│   ├── lecture_en_notes.pptx
-│   ├── lecture_en_visuals.pptx
+│   ├── lecture_en_notes.pptm
+│   ├── lecture_en_visuals.pptm
 │   ├── lecture_en_progress.json
 │   └── lecture_en_visuals/
 ├── gundam/generate/
-│   ├── lecture_en_notes.pptx
-│   ├── lecture_en_visuals.pptx
+│   ├── lecture_en_notes.pptm
+│   ├── lecture_en_visuals.pptm
 │   ├── lecture_en_progress.json
 │   └── lecture_en_visuals/
 └── starwars/generate/
-    ├── lecture_en_notes.pptx
-    ├── lecture_en_visuals.pptx
+    ├── lecture_en_notes.pptm
+    ├── lecture_en_visuals.pptm
     ├── lecture_en_progress.json
     └── lecture_en_visuals/
 ```
