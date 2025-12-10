@@ -625,7 +625,7 @@ class PresentationProcessor:
 
         global_context = await run_stateless_agent(
             self.overviewer_agent,
-            "Here are the slides for the entire presentation. Analyze them.",
+            f"Here are the slides for the entire presentation. Analyze them. Note: This presentation has exactly {len(all_images)} slides.",
             images=all_images
         )
 

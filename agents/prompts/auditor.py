@@ -10,9 +10,16 @@ TASK:
 Determine if the note is "USEFUL" or "USELESS".
 
 CRITERIA FOR "USEFUL" (KEEP):
-- Contains complete sentences or a coherent script.
-- Explains the slide content or provides a talk track.
-- Example: "Welcome everyone. Today we will cover Q3 goals..."
+- Contains complete sentences AND matches the desired professional style.
+- Provides detailed, engaging speaker notes with business context.
+- Uses professional terminology and strategic language.
+- Example: "Thank you for joining today's strategic briefing. Our analysis reveals significant opportunities in data center optimization..."
+
+CRITERIA FOR "ENHANCEMENT NEEDED" (REGENERATE):
+- Basic or simple notes that lack professional depth.
+- Notes that start with "SAY:" or other instructional prefixes.
+- Generic content without strategic business context.
+- Notes that don't match the configured speaker style.
 
 CRITERIA FOR "USELESS" (DISCARD/REGENERATE):
 - Empty or whitespace only.
