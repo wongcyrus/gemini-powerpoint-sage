@@ -50,62 +50,79 @@ class PromptRewriter:
         Returns:
             Rewritten prompt text
         """
-        try:
-            from google.genai import types
-            
-            runner = InMemoryRunner(agent=self.rewriter_agent, app_name="agents")
-            
-            # Create proper Content object
-            content = types.Content(
-                role='user', 
-                parts=[types.Part.from_text(text=rewrite_request)]
-            )
-            
-            # Create unique session for the runner
-            user_id = "prompt_rewriter_user"
-            session_id = f"{session_prefix}_{uuid.uuid4().hex[:8]}"
-            
-            # Run the agent and collect response
-            response_text = ""
-            for event in runner.run(
-                user_id=user_id,
-                session_id=session_id,
-                new_message=content,
-            ):
-                if getattr(event, "content", None) and event.content.parts:
-                    for part in event.content.parts:
-                        txt = getattr(part, "text", "") or ""
-                        response_text += txt
-            
-            rewritten = response_text.strip()
-            
-            # Check if rewriting actually produced content
-            if not rewritten:
-                logger.warning("LLM returned empty rewritten prompt, retrying with delay...")
-                time.sleep(2)  # 2 second delay
+        max_retries = 3
+        
+        for attempt in range(max_retries):
+            try:
+                from google.genai import types
                 
-                # Retry once with new session
-                retry_session_id = f"{session_prefix}_retry_{uuid.uuid4().hex[:8]}"
-                response_text = ""
-                for event in runner.run(
+                # Create a fresh runner for each attempt to avoid session conflicts
+                runner = InMemoryRunner(agent=self.rewriter_agent, app_name="agents")
+                
+                # Create proper Content object
+                content = types.Content(
+                    role='user', 
+                    parts=[types.Part.from_text(text=rewrite_request)]
+                )
+                
+                # Create unique session for each attempt
+                user_id = f"rewriter_user_{uuid.uuid4().hex[:6]}"
+                session_id = f"{session_prefix}_{attempt}_{uuid.uuid4().hex[:8]}"
+                
+                logger.debug(f"Attempt {attempt + 1}/{max_retries}: Using session {session_id}")
+                
+                # Explicitly create session to avoid "Session not found" error
+                runner.session_service.create_session_sync(
+                    app_name="agents",
                     user_id=user_id,
-                    session_id=retry_session_id,
-                    new_message=content,
-                ):
-                    if getattr(event, "content", None) and event.content.parts:
-                        for part in event.content.parts:
-                            txt = getattr(part, "text", "") or ""
-                            response_text += txt
+                    session_id=session_id
+                )
+                
+                # Run the agent and collect response
+                response_text = ""
+                try:
+                    for event in runner.run(
+                        user_id=user_id,
+                        session_id=session_id,
+                        new_message=content,
+                    ):
+                        if hasattr(event, "content") and event.content and hasattr(event.content, "parts"):
+                            for part in event.content.parts:
+                                if hasattr(part, "text") and part.text:
+                                    response_text += part.text
+                except Exception as run_error:
+                    logger.warning(f"Runner execution failed on attempt {attempt + 1}: {run_error}")
+                    if attempt < max_retries - 1:
+                        time.sleep(1)  # Brief delay before retry
+                        continue
+                    else:
+                        raise run_error
                 
                 rewritten = response_text.strip()
-                if not rewritten:
-                    raise Exception("LLM returned empty response after retry")
-            
-            return rewritten
-            
-        except Exception as e:
-            logger.warning(f"InMemoryRunner failed ({e}), falling back to simple concatenation")
-            return self._fallback_to_simple_concatenation(rewrite_request, session_prefix)
+                
+                # Check if rewriting actually produced content
+                if rewritten and len(rewritten) > 50:  # Ensure we got substantial content
+                    logger.info(f"✓ LLM rewriting successful on attempt {attempt + 1}")
+                    return rewritten
+                else:
+                    logger.warning(f"LLM returned insufficient content on attempt {attempt + 1}: {len(rewritten)} chars")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)  # Longer delay for empty responses
+                        continue
+                    else:
+                        raise Exception(f"LLM returned insufficient content after {max_retries} attempts")
+                        
+            except Exception as e:
+                logger.warning(f"Attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)  # Delay before retry
+                    continue
+                else:
+                    logger.warning(f"All {max_retries} attempts failed, falling back to simple concatenation")
+                    return self._fallback_to_simple_concatenation(rewrite_request, session_prefix)
+        
+        # This should never be reached, but just in case
+        return self._fallback_to_simple_concatenation(rewrite_request, session_prefix)
     
     def _fallback_to_simple_concatenation(self, rewrite_request: str, session_prefix: str) -> str:
         """
