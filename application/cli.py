@@ -9,7 +9,8 @@ from typing import Optional
 
 from dotenv import load_dotenv
 
-from .commands import ProcessCommand, BatchCommand, RefineCommand
+from .unified_processor import UnifiedProcessor
+from .commands import RefineCommand
 from utils.cli_utils import parse_languages, resolve_pptx_path, resolve_pdf_path
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,8 @@ class CLI:
         """Create argument parser."""
         parser = argparse.ArgumentParser(
             description="Generate Speaker Notes with Supervisor Agent",
-            epilog="Use --config to load settings from a YAML file for easier management."
+            epilog="Configuration is handled through YAML files in styles/ directory. "
+                   "Use --styles for all styles, --style-config for one specific style."
         )
         
         # Configuration file
@@ -37,26 +39,26 @@ class CLI:
                  "Example: --config config.yaml"
         )
         
-        # Input files
+        # Input modes
         parser.add_argument(
             "--pptx",
             required=False,
-            help="Path to input PPTX or PPTM"
-        )
-        parser.add_argument(
-            "--folder",
-            required=False,
-            help="Path to folder containing PPTX files to process (legacy)"
-        )
-        parser.add_argument(
-            "--input-folder",
-            required=False,
-            help="Path to folder containing PDF/PPTX pairs (auto-detects matching files)"
+            help="Path to input PPTX or PPTM file (for single file processing)"
         )
         parser.add_argument(
             "--pdf",
             required=False,
             help="Path to input PDF (optional if PDF with same name is in PPTX folder)"
+        )
+        parser.add_argument(
+            "--styles",
+            action="store_true",
+            help="Process using YAML configurations in styles/ directory (recommended)"
+        )
+        parser.add_argument(
+            "--style-config",
+            help="Process using a specific YAML style configuration file. "
+                 "Examples: 'cyberpunk', 'professional', 'gundam' or full path to config file"
         )
         
         # Processing options
@@ -88,26 +90,22 @@ class CLI:
             action="store_true",
             help="Generate promotional videos for each slide using Veo 3.1"
         )
+        # Single-file processing options (only used with --pptx)
         parser.add_argument(
             "--language",
-            help="Language locale(s) for speaker notes. "
-                 "Comma-separated for multiple languages. "
-                 "English (en) is always processed first. "
+            help="Language locale(s) for single-file processing. "
                  "Examples: en, 'en,zh-CN', 'en,yue-HK,zh-CN'",
-            default=None
+            default="en"
         )
         parser.add_argument(
             "--style",
-            help="Style/theme for content generation. "
-                 "Influences both speaker notes and slide visuals. "
-                 "Examples: 'Gundam', 'Cyberpunk', 'Minimalist', 'Corporate', 'Professional' (default)",
-            default=None
+            help="Style/theme for single-file processing. "
+                 "Examples: 'Gundam', 'Cyberpunk', 'Professional'",
+            default="Professional"
         )
         parser.add_argument(
             "--output-dir",
-            help="Output directory for processed files. "
-                 "If not specified, files are saved in the same directory as input. "
-                 "Useful when processing with different styles to avoid overwriting.",
+            help="Output directory for single-file processing.",
             default=None
         )
         
@@ -169,144 +167,66 @@ class CLI:
         cmd = RefineCommand(args.refine)
         await cmd.execute()
     
-    async def _handle_batch(self, args: argparse.Namespace) -> None:
-        """Handle batch processing mode."""
-        # Determine folder path (support both folder and input_folder)
-        folder_path = args.folder or getattr(args, 'input_folder', None)
-        
-        # Check if using new input_folder mode with validation
-        use_input_folder = getattr(args, 'input_folder', None) is not None
-        
-        if use_input_folder:
-            # Use new input_folder mode with PDF/PPTX pair validation
-            await self._handle_input_folder_batch(args, folder_path)
-        else:
-            # Use legacy folder mode
-            cmd = BatchCommand(
-                folder_path=folder_path,
+    async def _handle_processing(self, args: argparse.Namespace) -> None:
+        """Handle processing modes."""
+        # Determine processing mode
+        if args.pptx:
+            # Single file mode - use CLI parameters
+            logger.info("Processing single file...")
+            processor = UnifiedProcessor(
+                root_path=".",
                 course_id=args.course_id,
+                skip_visuals=args.skip_visuals,
+                generate_videos=args.generate_videos,
                 retry_errors=args.retry_errors,
-                region=args.region,
-                skip_visuals=args.skip_visuals,
-                generate_videos=args.generate_videos,
-                languages=args.language,
-                style=args.style,
-                output_dir=args.output_dir,
+                region=args.region
             )
-            await cmd.execute()
-    
-    async def _handle_input_folder_batch(self, args: argparse.Namespace, folder_path: str) -> None:
-        """Handle input_folder batch processing with PDF/PPTX pair validation."""
-        from config.config_loader import ConfigFileLoader
-        from .commands import ProcessCommand
-        from utils.cli_utils import parse_languages
-        
-        # Get valid file pairs
-        try:
-            file_pairs = ConfigFileLoader.get_file_pairs(folder_path)
-        except Exception as e:
-            print(f"Error processing input folder: {e}")
-            sys.exit(1)
-        
-        if not file_pairs:
-            print(f"No valid PDF/PPTX pairs found in folder: {folder_path}")
-            return
-        
-        # Parse languages
-        lang_list = parse_languages(args.language)
-        logger.info(f"Found {len(file_pairs)} PDF/PPTX pairs to process")
-        logger.info(f"Languages to process: {', '.join(lang_list)}")
-        
-        # Process each pair
-        for idx, (pptx_path, pdf_path) in enumerate(file_pairs, 1):
-            logger.info(f"\n{'='*60}")
-            logger.info(f"Processing pair {idx}/{len(file_pairs)}: "
-                       f"{os.path.basename(pptx_path)}")
-            logger.info(f"{'='*60}")
+            await processor.process_single_file(
+                args.pptx, 
+                args.pdf,
+                language=args.language,
+                style=args.style,
+                output_dir=args.output_dir
+            )
             
-            # Process each language
-            for lang in lang_list:
-                logger.info(f"\n--- Processing language: {lang} ---")
-                
-                try:
-                    cmd = ProcessCommand(
-                        pptx_path=pptx_path,
-                        pdf_path=pdf_path,
-                        course_id=args.course_id,
-                        skip_visuals=args.skip_visuals,
-                        generate_videos=args.generate_videos,
-                        language=lang,
-                        style=args.style,
-                        output_dir=args.output_dir,
-                    )
-                    await cmd.execute()
-                    
-                    logger.info(
-                        f"Successfully processed {os.path.basename(pptx_path)} ({lang})"
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"Error processing {os.path.basename(pptx_path)} ({lang}): {e}",
-                        exc_info=True
-                    )
-                    continue
-        
-        logger.info(f"\n{'='*60}")
-        logger.info(f"Input folder processing complete: {len(file_pairs)} pairs processed")
-        logger.info(f"{'='*60}")
-    
-    async def _handle_single(self, args: argparse.Namespace) -> None:
-        """Handle single file processing mode."""
-        # Parse languages
-        lang_list = parse_languages(args.language)
-        logger.info(f"Languages to process: {', '.join(lang_list)}")
-        
-        # Resolve paths
-        try:
-            pptx_abs = resolve_pptx_path(args.pptx)
-        except FileNotFoundError as e:
-            print(f"Error: {e}")
-            sys.exit(1)
-        
-        pdf_path = resolve_pdf_path(args.pdf, pptx_abs)
-        
-        if not pdf_path:
-            # Prompt user for PDF path
-            pptx_dir = os.path.dirname(pptx_abs)
-            print("PDF file not found next to PPTX. Please input PDF filename (must be in same folder) or press Enter to abort:")
-            while True:
-                user_input = input("PDF filename (e.g. slides.pdf): ").strip()
-                if not user_input:
-                    print("Aborting: PDF not provided.")
-                    sys.exit(1)
-                tentative = os.path.join(pptx_dir, user_input)
-                if os.path.exists(tentative):
-                    pdf_path = tentative
-                    break
-                else:
-                    print("File not found in PPTX folder. Try again or press Enter to abort.")
-        
-        if not pdf_path or not os.path.exists(pdf_path):
-            print("Error: Valid PDF file not resolved. Exiting.")
-            sys.exit(1)
-        
-        # Process each language
-        for lang in lang_list:
-            logger.info(f"\n{'='*60}")
-            logger.info(f"Processing language: {lang}")
-            logger.info(f"{'='*60}")
-            
-            cmd = ProcessCommand(
-                pptx_path=pptx_abs,
-                pdf_path=pdf_path,
+        elif args.styles:
+            # YAML-driven styles processing (all styles)
+            logger.info("Processing with YAML configurations...")
+            processor = UnifiedProcessor(
+                root_path=".",
                 course_id=args.course_id,
                 skip_visuals=args.skip_visuals,
                 generate_videos=args.generate_videos,
-                language=lang,
-                style=args.style,
-                output_dir=args.output_dir,
+                retry_errors=args.retry_errors,
+                region=args.region
             )
-            await cmd.execute()
+            await processor.process_styles_directory()
+            
+        elif args.style_config:
+            # Single style configuration processing
+            logger.info(f"Processing with single style configuration: {args.style_config}")
+            processor = UnifiedProcessor(
+                root_path=".",
+                course_id=args.course_id,
+                skip_visuals=args.skip_visuals,
+                generate_videos=args.generate_videos,
+                retry_errors=args.retry_errors,
+                region=args.region
+            )
+            await processor.process_single_style(args.style_config)
+        
+        else:
+            # Default to styles processing
+            logger.info("No mode specified, defaulting to YAML-driven styles processing...")
+            processor = UnifiedProcessor(
+                root_path=".",
+                course_id=args.course_id,
+                skip_visuals=args.skip_visuals,
+                generate_videos=args.generate_videos,
+                retry_errors=args.retry_errors,
+                region=args.region
+            )
+            await processor.process_styles_directory()
     
     def run(self, argv: Optional[list] = None) -> int:
         """
@@ -332,17 +252,12 @@ class CLI:
             asyncio.run(self._handle_refine(args))
             return 0
         
-        # Validate input (argparse converts dashes to underscores)
+        # Validate input methods
         input_methods = sum([
             bool(args.pptx),
-            bool(args.folder),
-            bool(getattr(args, 'input_folder', None))
+            bool(args.styles),
+            bool(args.style_config)
         ])
-        
-        if input_methods == 0:
-            print("Error: Either --pptx, --folder, or --input-folder must be provided.")
-            self.parser.print_help()
-            return 1
         
         if input_methods > 1:
             print("Error: Cannot use multiple input methods at the same time.")
@@ -351,12 +266,9 @@ class CLI:
         # Setup environment
         self._setup_environment(args)
         
-        # Handle batch or single mode
+        # Handle processing
         try:
-            if args.folder or getattr(args, 'input_folder', None):
-                asyncio.run(self._handle_batch(args))
-            else:
-                asyncio.run(self._handle_single(args))
+            asyncio.run(self._handle_processing(args))
             return 0
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)

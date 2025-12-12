@@ -1,41 +1,65 @@
 # Quick Reference Card
 
-## 🚀 Run Commands
+## 🚀 Three Processing Modes
 
+### 🌟 All Styles Processing (Production)
 ```bash
-# Star Wars Style (NEW!)
-./run.sh --config config.starwars.yaml
+python main.py --styles              # Process all available styles
+python main.py                       # Same as above (default)
+```
 
-# Gundam Style
-./run.sh --config config.gundam.yaml
+### 🎨 Single Style Processing (Focused)
+```bash
+python main.py --style-config starwars      # Star Wars style only
+python main.py --style-config gundam        # Gundam style only
+python main.py --style-config cyberpunk     # Cyberpunk style only
+python main.py --style-config professional  # Professional style only
+python main.py --style-config hkcomic       # Hong Kong Comic style only
+```
 
-# Cyberpunk Style
-./run.sh --config config.cyberpunk.yaml
+### 📄 Single File Processing (Quick Testing)
+```bash
+python main.py --pptx file.pptx --language en --style "Star Wars"
+python main.py --pptx file.pptx --language "en,zh-CN" --style Gundam
+python main.py --pptx file.pptx --language en --style Professional --output-dir output/test
+```
 
-# Professional Style
-./run.sh --config config.sample.yaml
-
-# Custom file
-./run.sh --pptx file.pptx --pdf file.pdf
-
-# Folder batch
-./run.sh --folder ./presentations
-
-# Multiple languages
-./run.sh --config config.starwars.yaml --language "en,zh-CN"
+## ⚙️ Additional Options (All Modes)
+```bash
+python main.py --styles --skip-visuals              # Skip visual generation
+python main.py --style-config cyberpunk --generate-videos  # Generate video prompts
+python main.py --styles --retry-errors              # Retry failed slides
+python main.py --style-config gundam --course-id course123  # Add course context
 ```
 
 ## 📁 Output Locations
 
+### YAML-Driven Processing (Modes 1 & 2)
 ```
-tests/sample_data/generate/
-├── cloudtech_en_with_notes.pptm      # Notes only
-├── cloudtech_en_with_visuals.pptm    # With redesigned slides
-├── cloudtech_en_progress.json        # Progress tracking
-└── cloudtech_en_visuals/             # Generated slide images
+notes/                                # input_folder from YAML
+├── presentation.pptx
+├── presentation.pdf
+└── ...
+
+notes/cyberpunk/generate/             # output_dir from YAML
+├── presentation_en_notes.pptm        # Notes only
+├── presentation_en_visuals.pptm      # With redesigned slides
+├── presentation_en_progress.json     # Progress tracking
+└── presentation_en_visuals/          # Generated slide images
     ├── slide_1_reimagined.png
     ├── slide_2_reimagined.png
     └── ...
+```
+
+### Single File Processing (Mode 3)
+```
+input/
+├── presentation.pptx                 # Input file
+├── presentation.pdf                  # Input PDF
+├── presentation_en_notes.pptm        # Generated notes
+├── presentation_en_visuals.pptm      # Generated visuals
+├── presentation_en_progress.json     # Progress tracking
+└── presentation_en_visuals/          # Generated images
 ```
 
 ## 🎨 Available Styles
@@ -51,25 +75,33 @@ tests/sample_data/generate/
 
 ### Create Custom Style
 ```bash
-cp config.starwars.yaml config.mystyle.yaml
-# Edit visual_style and speaker_style
-./run.sh --config config.mystyle.yaml
+cp styles/config.starwars.yaml styles/config.mystyle.yaml
+# Edit input_folder, output_dir, language, and style sections
+python main.py --style-config mystyle
 ```
 
-### Test Prompt Rewriter
+### Test Single File
 ```bash
-python test_prompt_rewriter.py
+python main.py --pptx test.pptx --language en --style Professional
 ```
 
-### Check Logs
+### Process Specific Style
 ```bash
-tail -f logs/gemini_powerpoint_sage_*.log
-grep "PROMPT REWRITER" logs/*.log
+python main.py --style-config cyberpunk
+```
+
+### Check Configuration
+```bash
+# View available styles
+ls styles/config.*.yaml
+
+# Check specific config
+cat styles/config.cyberpunk.yaml
 ```
 
 ### Clean Up
 ```bash
-rm -rf tests/sample_data/generate/*
+rm -rf notes/*/generate/*
 rm -rf logs/*
 ```
 
@@ -127,24 +159,47 @@ cat tests/sample_data/generate/cloudtech_en_progress.json | jq '.slides_processe
 ✅ Visuals match color palette and aesthetic  
 ✅ Tone is consistent throughout  
 
-## 🌟 Example Workflow
+## 🌟 Example Workflows
 
+### Development Workflow
 ```bash
-# 1. Choose or create style
-./run.sh --config config.starwars.yaml
+# 1. Test single file quickly
+python main.py --pptx test.pptx --language en --style Professional
 
-# 2. Check output
-ls tests/sample_data/generate/
+# 2. Test specific style configuration
+python main.py --style-config cyberpunk
 
-# 3. Review presentation
-# Open cloudtech_en_with_visuals.pptm
+# 3. Check output
+ls notes/cyberpunk/generate/
 
 # 4. Iterate if needed
-# Edit config.starwars.yaml
-./run.sh --config config.starwars.yaml
+# Edit styles/config.cyberpunk.yaml
+python main.py --style-config cyberpunk
+```
 
-# 5. Use for real presentation
-./run.sh --config config.starwars.yaml --pptx my-presentation.pptx
+### Production Workflow
+```bash
+# 1. Process all styles for complete coverage
+python main.py --styles
+
+# 2. Check all outputs
+ls notes/*/generate/
+
+# 3. Review presentations
+# Open notes/cyberpunk/generate/*_visuals.pptm
+# Open notes/professional/generate/*_visuals.pptm
+```
+
+### Team Workflow
+```bash
+# Designer: Test their style
+python main.py --style-config gundam
+
+# Content team: Process everything
+python main.py --styles
+
+# QA: Validate specific style
+python main.py --style-config professional
 ```
 
 ---

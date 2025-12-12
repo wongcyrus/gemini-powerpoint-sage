@@ -7,8 +7,10 @@ Welcome to the Gemini Powerpoint Sage documentation!
 Start here if you're new to the project:
 
 1. **[Quick Start Guide](QUICK_START.md)** - Get up and running in 3 steps
-2. **[Configuration File Guide](CONFIG_FILE_GUIDE.md)** - Learn to use config files
-3. **[Style Examples](STYLE_EXAMPLES.md)** - Customize your presentation style
+2. **[Three Processing Modes](../FINAL_SYSTEM_SUMMARY.md)** - Understand the new system
+3. **[Migration Guide](../MIGRATION_GUIDE.md)** - Migrate from old system
+4. **[Configuration File Guide](CONFIG_FILE_GUIDE.md)** - Learn to use YAML configs
+5. **[Style Examples](STYLE_EXAMPLES.md)** - Customize your presentation style
 
 ## 📖 User Guides
 
@@ -19,7 +21,8 @@ Start here if you're new to the project:
 - **[Folder Structure](FOLDER_STRUCTURE.md)** - Understand output organization
 
 ### Advanced Topics
-- **[Quick Reference](QUICK_REFERENCE.md)** - Command-line reference and tips
+- **[Quick Reference](../QUICK_REFERENCE.md)** - Command-line reference and tips
+- **[Usage Examples](../examples/usage_examples.py)** - Code examples for all three modes
 
 ## 🏗️ Architecture & Development
 
@@ -32,6 +35,12 @@ For developers and contributors:
 
 ## 📝 Additional Resources
 
+### System Documentation
+- **[Final System Summary](../FINAL_SYSTEM_SUMMARY.md)** - Complete three-mode system overview
+- **[Pure YAML Summary](../PURE_YAML_SUMMARY.md)** - YAML-driven approach details
+- **[Refactoring Summary](../REFACTORING_SUMMARY.md)** - What was changed and why
+
+### Development Resources
 - **[Codelab Notes](CODELAB_NOTES.md)** - Development notes and examples
 - **[README (Refactored)](README_REFACTORED.md)** - Alternative README version
 
@@ -42,11 +51,23 @@ For developers and contributors:
 **Get started quickly**
 → [Quick Start Guide](QUICK_START.md)
 
-**Use a config file instead of command-line arguments**
+**Understand the new three-mode system**
+→ [Final System Summary](../FINAL_SYSTEM_SUMMARY.md)
+
+**Migrate from the old system**
+→ [Migration Guide](../MIGRATION_GUIDE.md)
+
+**Use YAML configuration files**
 → [Configuration File Guide](CONFIG_FILE_GUIDE.md)
 
 **Apply a custom style/theme to my presentation**
 → [Style Examples](STYLE_EXAMPLES.md) or [Style Prompts Guide](STYLE_PROMPTS.md)
+
+**Process one specific style**
+→ `python main.py --style-config cyberpunk`
+
+**Process all styles at once**
+→ `python main.py --styles`
 
 **Understand the output folder structure**
 → [Folder Structure](FOLDER_STRUCTURE.md)

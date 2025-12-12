@@ -36,24 +36,26 @@ See the extended design rationale, sequence flows, and agent interface contracts
 
 ## Quick Start
 
+The system offers three processing modes for different use cases:
+
 ```bash
-# Linux/macOS - Using config file (recommended)
-./run.sh --config styles/config.gundam.yaml
+# 🌟 All Styles Processing (recommended for production)
+python main.py --styles
+python main.py  # defaults to --styles
 
-# Single file, English only
-./run.sh --pptx lecture.pptx
+# 🎨 Single Style Processing (focused processing)
+python main.py --style-config cyberpunk
+python main.py --style-config professional
 
-# Multiple languages
-./run.sh --pptx lecture.pptx --language "en,zh-CN,yue-HK"
-
-# Batch process folder
-./run.sh --folder presentations --language "en,zh-CN"
+# 📄 Single File Processing (quick testing)
+python main.py --pptx lecture.pptx --language en --style Professional
 ```
 
 ```powershell
 # Windows
-.\run.ps1 --config "styles\config.gundam.yaml"
-.\run.ps1 --pptx "lecture.pptx"
+python main.py --styles
+python main.py --style-config cyberpunk
+python main.py --pptx "lecture.pptx" --language en --style Professional
 ```
 
 ## Setup
@@ -91,84 +93,107 @@ gcloud auth application-default login
 
 ## Usage
 
-### With Config File (Recommended)
+### Three Processing Modes
+
+#### 🌟 All Styles Processing (Production)
+Process all files with all available style configurations:
 
 ```bash
-# Use pre-configured styles
-./run.sh --config styles/config.gundam.yaml
-./run.sh --config styles/config.cyberpunk.yaml
-./run.sh --config styles/config.starwars.yaml
+# Process all styles with their YAML configurations
+python main.py --styles
+python main.py  # defaults to --styles
 
-# Or create your own
-cp styles/config.professional.yaml my-config.yaml
-# Edit my-config.yaml
-./run.sh --config my-config.yaml
+# All configuration comes from styles/config.*.yaml files:
+# - input_folder: where to find PPTX/PDF pairs
+# - output_dir: where to save results
+# - language: languages to process
+# - style: visual and speaker style definitions
 ```
 
-### Command Line
+#### 🎨 Single Style Processing (Focused)
+Process all files with one specific style configuration:
+
+```bash
+# Process with cyberpunk style only
+python main.py --style-config cyberpunk
+
+# Process with professional style only
+python main.py --style-config professional
+
+# Use full path to config file
+python main.py --style-config /path/to/custom-config.yaml
+```
+
+#### 📄 Single File Processing (Quick Testing)
+Process one specific file with CLI parameters:
 
 ```bash
 # Basic usage - PDF auto-detected
-./run.sh --pptx presentation.pptx
+python main.py --pptx presentation.pptx --language en --style Professional
 
 # With explicit PDF
-./run.sh --pptx presentation.pptx --pdf presentation.pdf
-
-# With custom style
-./run.sh --pptx presentation.pptx --style "Gundam"
+python main.py --pptx presentation.pptx --pdf presentation.pdf --language en --style Gundam
 
 # Multiple languages
-./run.sh --pptx file.pptx --language "en,zh-CN,yue-HK"
-
-# Folder mode
-./run.sh --folder presentations --language "en,zh-CN"
-
-# Skip visual generation (faster, notes only)
-./run.sh --pptx file.pptx --skip-visuals
-
-# Generate video prompts
-./run.sh --pptx file.pptx --generate-videos
-
-# Retry failed slides
-./run.sh --pptx file.pptx --retry-errors
+python main.py --pptx file.pptx --language "en,zh-CN,yue-HK" --style Cyberpunk
 
 # Custom output directory
-./run.sh --pptx file.pptx --output-dir output/custom
+python main.py --pptx file.pptx --language en --style Professional --output-dir output/custom
 ```
 
-### Process All Styles at Once
-
-Generate multiple style variants automatically:
+### Additional Options (All Modes)
 
 ```bash
-python run_all_styles.py
+# Skip visual generation (faster, notes only)
+python main.py --styles --skip-visuals
 
-# With specific language
-python run_all_styles.py zh-CN
+# Generate video prompts
+python main.py --style-config cyberpunk --generate-videos
 
-# With multiple languages
-python run_all_styles.py "en,yue-HK,zh-CN"
+# Retry failed slides
+python main.py --styles --retry-errors
+
+# Custom course context
+python main.py --style-config professional --course-id course123
 ```
 
-Output structure:
-```
-output/
-├── cyberpunk/generate/presentation_en_notes.pptm
-├── gundam/generate/presentation_en_notes.pptm
-├── starwars/generate/presentation_en_notes.pptm
-└── professional/generate/presentation_en_notes.pptm
+### YAML Configuration Structure
+
+All organized processing uses YAML configuration files in the `styles/` directory:
+
+```yaml
+# styles/config.cyberpunk.yaml
+input_folder: "notes"                    # Where to find PPTX/PDF pairs
+output_dir: "notes/cyberpunk/generate"   # Where to save results
+language: "en,zh-CN,yue-HK"             # Languages to process
+style:
+  visual_style: "Cyberpunk aesthetic with neon colors..."
+  speaker_style: "Night City edgerunner persona..."
+skip_visuals: false
+generate_videos: false
 ```
 
-See [docs/RUN_ALL_STYLES.md](docs/RUN_ALL_STYLES.md) for details.
+**Available Style Configurations:**
+- `styles/config.cyberpunk.yaml` - Neon-soaked dystopian aesthetic
+- `styles/config.professional.yaml` - Clean and corporate
+- `styles/config.gundam.yaml` - Mecha anime with dramatic speeches
+- `styles/config.starwars.yaml` - Epic space opera with Jedi narration
+- `styles/config.hkcomic.yaml` - Vibrant Hong Kong comic book style
 
 ## Command-Line Arguments
 
-**Required (one of):**
-- `--pptx <path>` - Path to input PowerPoint file
-- `--folder <path>` - Path to folder with multiple PPTX files
+### Processing Modes (choose one)
 
-**Optional:**
-- `--config <path>` - Path to YAML configuration file (recommended)
+**YAML-Driven Processing:**
+- `--styles` - Process all files with all available YAML configurations (default)
+- `--style-config <name>` - Process all files with one specific YAML configuration
+  - Examples: `cyberpunk`, `professional`, `gundam`
+  - Can also use full path to config file
+
+**Single File Processing:**
+- `--pptx <path>` - Path to input PowerPoint file (requires CLI parameters)
+
+### Single File Parameters (only with --pptx)
 - `--pdf <path>` - Path to PDF export (auto-detected if not specified)
 - `--language <locale(s)>` - Language codes, comma-separated (default: `en`)
   - Examples: `en`, `zh-CN`, `"en,zh-CN,yue-HK"`
@@ -176,6 +201,8 @@ See [docs/RUN_ALL_STYLES.md](docs/RUN_ALL_STYLES.md) for details.
   - Supported: en, zh-CN, zh-TW, yue-HK, es, fr, ja, ko, de, it, pt, ru, ar, hi, th, vi
 - `--style <name>` - Style/theme for content generation (e.g., "Gundam", "Cyberpunk")
 - `--output-dir <path>` - Output directory for processed files
+
+### Global Options (all modes)
 - `--course-id <id>` - Firestore Course ID for thematic context
 - `--progress-file <path>` - Custom progress file location
 - `--retry-errors` - Retry previously failed slides
@@ -186,23 +213,21 @@ See [docs/RUN_ALL_STYLES.md](docs/RUN_ALL_STYLES.md) for details.
 
 ## 🎭 Custom Styles
 
-Apply themed styles using pre-configured YAML files in `styles/`:
+Apply themed styles using the three processing modes:
 
 ```bash
-# Star Wars - Epic space opera with Jedi Master narration
-./run.sh --config styles/config.starwars.yaml
+# Process all styles at once
+python main.py --styles
 
-# Gundam - Mecha anime with dramatic Char Aznable-style speeches
-./run.sh --config styles/config.gundam.yaml
+# Process one specific style
+python main.py --style-config starwars
+python main.py --style-config gundam
+python main.py --style-config cyberpunk
+python main.py --style-config hkcomic
+python main.py --style-config professional
 
-# Cyberpunk - Neon-soaked dystopian aesthetic
-./run.sh --config styles/config.cyberpunk.yaml
-
-# Hong Kong Comic - Vibrant comic book style
-./run.sh --config styles/config.hkcomic.yaml
-
-# Professional - Clean and corporate
-./run.sh --config styles/config.professional.yaml
+# Single file with style
+python main.py --pptx file.pptx --language en --style "Star Wars"
 ```
 
 **Available Styles:**
@@ -211,6 +236,14 @@ Apply themed styles using pre-configured YAML files in `styles/`:
 - 🌃 **Cyberpunk** - Neon colors with edgy tech-savvy narration
 - 🎨 **HK Comic** - Vibrant Hong Kong comic book style
 - 📋 **Professional** - Clean and corporate default style
+
+**Style Configuration Files:**
+Each style has a complete YAML configuration in `styles/config.{style}.yaml` containing:
+- Input folder specification
+- Output directory structure
+- Language settings
+- Detailed visual and speaker style definitions
+- Processing options
 
 See [docs/STYLE_CONFIGS.md](docs/STYLE_CONFIGS.md) for details and how to create your own.
 
@@ -226,7 +259,11 @@ See [docs/STYLE_CONFIGS.md](docs/STYLE_CONFIGS.md) for details and how to create
 ### Example
 
 ```bash
-./run.sh --pptx lecture.pptx --language "en,zh-CN,yue-HK"
+# Single file processing
+python main.py --pptx lecture.pptx --language "en,zh-CN,yue-HK" --style Professional
+
+# Or use YAML configuration for organized processing
+python main.py --style-config professional  # Uses styles/config.professional.yaml
 ```
 
 **Output:**
@@ -285,9 +322,17 @@ presentations/
     └── slide_2_reimagined.png
 ```
 
-**Example structure (with styles):**
+**Example structure (YAML-driven processing):**
 ```
-output/
+# Single style processing: python main.py --style-config cyberpunk
+notes/cyberpunk/generate/
+├── lecture_en_notes.pptm
+├── lecture_en_visuals.pptm
+├── lecture_en_progress.json
+└── lecture_en_visuals/
+
+# All styles processing: python main.py --styles
+notes/
 ├── cyberpunk/generate/
 │   ├── lecture_en_notes.pptm
 │   ├── lecture_en_visuals.pptm
@@ -298,7 +343,7 @@ output/
 │   ├── lecture_en_visuals.pptm
 │   ├── lecture_en_progress.json
 │   └── lecture_en_visuals/
-└── starwars/generate/
+└── professional/generate/
     ├── lecture_en_notes.pptm
     ├── lecture_en_visuals.pptm
     ├── lecture_en_progress.json
@@ -324,19 +369,41 @@ Progress files track:
 
 ## Batch Processing
 
-Process multiple PPTX files at once:
+The system automatically processes multiple PPTX files using YAML configurations:
 
 ```bash
-./run.sh --folder presentations --language "en,zh-CN"
+# Process all files with all styles
+python main.py --styles
+
+# Process all files with one specific style
+python main.py --style-config cyberpunk
 ```
 
-**Features:**
-- Auto-discovers all `.pptx` files in folder
+**How it works:**
+- YAML configs specify `input_folder` (e.g., "notes") containing PPTX/PDF pairs
+- Auto-discovers all `.pptx` files in the specified folder
 - Auto-detects matching PDF files (same basename)
-- Skips files without PDFs
+- Skips files without PDFs with warning
 - Independent progress tracking per file and language
 - Continues on individual file failures
 - Processes all languages for each file before moving to next
+
+**Directory Structure:**
+```
+notes/                          # input_folder from YAML
+├── module1.pptx
+├── module1.pdf
+├── module2.pptx
+├── module2.pdf
+└── module3.pptx
+└── module3.pdf
+
+notes/cyberpunk/generate/       # output_dir from YAML
+├── module1_en_notes.pptm
+├── module1_zh-CN_notes.pptm
+├── module2_en_notes.pptm
+└── module2_zh-CN_notes.pptm
+```
 
 See [docs/FOLDER_STRUCTURE.md](docs/FOLDER_STRUCTURE.md) for more details.
 
