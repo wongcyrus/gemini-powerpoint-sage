@@ -1,6 +1,8 @@
 """Prompt rewriter service for integrating styles into agent prompts."""
 
 import logging
+import uuid
+import time
 from typing import Dict, Any
 from google.adk.runners import InMemoryRunner
 
@@ -37,6 +39,161 @@ class PromptRewriter:
         logger.info(f"Speaker Style: {self.speaker_style[:100]}...")
         logger.info("=" * 80)
     
+    def _run_rewriter_with_retry(self, rewrite_request: str, session_prefix: str) -> str:
+        """
+        Run the rewriter agent with retry logic and fallback to simple concatenation.
+        
+        Args:
+            rewrite_request: The rewrite request to send to the LLM
+            session_prefix: Prefix for session ID generation
+            
+        Returns:
+            Rewritten prompt text
+        """
+        try:
+            from google.genai import types
+            
+            runner = InMemoryRunner(agent=self.rewriter_agent, app_name="agents")
+            
+            # Create proper Content object
+            content = types.Content(
+                role='user', 
+                parts=[types.Part.from_text(text=rewrite_request)]
+            )
+            
+            # Create unique session for the runner
+            user_id = "prompt_rewriter_user"
+            session_id = f"{session_prefix}_{uuid.uuid4().hex[:8]}"
+            
+            # Run the agent and collect response
+            response_text = ""
+            for event in runner.run(
+                user_id=user_id,
+                session_id=session_id,
+                new_message=content,
+            ):
+                if getattr(event, "content", None) and event.content.parts:
+                    for part in event.content.parts:
+                        txt = getattr(part, "text", "") or ""
+                        response_text += txt
+            
+            rewritten = response_text.strip()
+            
+            # Check if rewriting actually produced content
+            if not rewritten:
+                logger.warning("LLM returned empty rewritten prompt, retrying with delay...")
+                time.sleep(2)  # 2 second delay
+                
+                # Retry once with new session
+                retry_session_id = f"{session_prefix}_retry_{uuid.uuid4().hex[:8]}"
+                response_text = ""
+                for event in runner.run(
+                    user_id=user_id,
+                    session_id=retry_session_id,
+                    new_message=content,
+                ):
+                    if getattr(event, "content", None) and event.content.parts:
+                        for part in event.content.parts:
+                            txt = getattr(part, "text", "") or ""
+                            response_text += txt
+                
+                rewritten = response_text.strip()
+                if not rewritten:
+                    raise Exception("LLM returned empty response after retry")
+            
+            return rewritten
+            
+        except Exception as e:
+            logger.warning(f"InMemoryRunner failed ({e}), falling back to simple concatenation")
+            return self._fallback_to_simple_concatenation(rewrite_request, session_prefix)
+    
+    def _fallback_to_simple_concatenation(self, rewrite_request: str, session_prefix: str) -> str:
+        """
+        Fallback method that does simple prompt concatenation when LLM rewriting fails.
+        
+        Args:
+            rewrite_request: The original rewrite request
+            session_prefix: Session prefix to determine prompt type
+            
+        Returns:
+            Concatenated prompt with style integrated
+        """
+        logger.info(f"Using simple concatenation fallback for {session_prefix}")
+        
+        # Extract base prompt and style from the rewrite request
+        lines = rewrite_request.split('\n')
+        base_prompt = ""
+        style_guidelines = ""
+        style_type = ""
+        
+        current_section = None
+        for line in lines:
+            if line.startswith("BASE_PROMPT:"):
+                current_section = "base"
+                continue
+            elif line.startswith("STYLE_GUIDELINES:"):
+                current_section = "style"
+                continue
+            elif line.startswith("STYLE_TYPE:"):
+                style_type = line.split(":", 1)[1].strip()
+                current_section = None
+                continue
+            elif line.startswith("CRITICAL REQUIREMENT:") or line.startswith("Please rewrite"):
+                current_section = None
+                continue
+            
+            if current_section == "base":
+                base_prompt += line + "\n"
+            elif current_section == "style":
+                style_guidelines += line + "\n"
+        
+        base_prompt = base_prompt.strip()
+        style_guidelines = style_guidelines.strip()
+        
+        # Create enhanced prompt with style integration
+        if "writer" in session_prefix or "translator" in session_prefix:
+            # For speaker-related prompts, add strong language enforcement
+            enhanced_prompt = f"""{base_prompt}
+
+═══════════════════════════════════════════════════════════════════════════════
+STYLE INTEGRATION ({style_type.upper()})
+═══════════════════════════════════════════════════════════════════════════════
+
+{style_guidelines}
+
+═══════════════════════════════════════════════════════════════════════════════
+CRITICAL LANGUAGE ENFORCEMENT
+═══════════════════════════════════════════════════════════════════════════════
+
+**MANDATORY LANGUAGE COMPLIANCE:**
+- ALWAYS write in the target language specified by the user
+- The target language parameter OVERRIDES any language examples in the style
+- If English is requested, write 100% in English regardless of style examples
+- If Chinese is requested, write 100% in Chinese regardless of style examples
+- Style examples are for tone/voice reference only, NOT language selection
+
+**STYLE APPLICATION:**
+- Apply the speaking style, tone, and personality from the guidelines above
+- Use the vocabulary patterns and phrasing style shown in the examples
+- Maintain the character persona and voice described in the style
+- Ensure the output sounds natural in the TARGET LANGUAGE with the style applied
+
+Remember: Language compliance is MANDATORY. Style is applied WITHIN the target language."""
+        else:
+            # For visual prompts, simpler integration
+            enhanced_prompt = f"""{base_prompt}
+
+═══════════════════════════════════════════════════════════════════════════════
+VISUAL STYLE INTEGRATION
+═══════════════════════════════════════════════════════════════════════════════
+
+{style_guidelines}
+
+Apply these visual style guidelines throughout all design decisions and outputs."""
+        
+        logger.info(f"Fallback concatenation: {len(base_prompt)} + {len(style_guidelines)} chars")
+        return enhanced_prompt
+    
     def rewrite_designer_prompt(self, base_prompt: str) -> str:
         """
         Rewrite designer prompt with visual style deeply integrated using LLM.
@@ -62,43 +219,11 @@ STYLE_TYPE: visual
 Please rewrite the base prompt to deeply integrate the visual style guidelines throughout the instructions."""
         
         try:
-            from google.genai import types
-            
-            runner = InMemoryRunner(agent=self.rewriter_agent, app_name="agents")
-            
-            # Create proper Content object
-            content = types.Content(
-                role='user', 
-                parts=[types.Part.from_text(text=rewrite_request)]
-            )
-            
-            # Create session for the runner
-            user_id = "prompt_rewriter_user"
-            session_id = "designer_rewriter_session"
-            
-            # Run the agent and collect response
-            response_text = ""
-            for event in runner.run(
-                user_id=user_id,
-                session_id=session_id,
-                new_message=content,
-            ):
-                if getattr(event, "content", None) and event.content.parts:
-                    for part in event.content.parts:
-                        txt = getattr(part, "text", "") or ""
-                        response_text += txt
-            
-            rewritten = response_text.strip()
+            rewritten = self._run_rewriter_with_retry(rewrite_request, "designer_rewriter")
             
             logger.info(f"Original prompt length: {len(base_prompt)} chars")
             logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
             logger.info(f"Style integration: {len(self.visual_style)} chars of style content")
-            
-            # Check if rewriting actually produced content
-            if not rewritten:
-                logger.warning("LLM returned empty rewritten prompt, falling back to concatenation")
-                return self._fallback_designer_rewrite(base_prompt)
-            
             logger.info("✓ Designer prompt rewritten successfully")
             logger.info("=" * 80 + "\n")
             
@@ -112,8 +237,7 @@ Please rewrite the base prompt to deeply integrate the visual style guidelines t
             
         except Exception as e:
             logger.error(f"Failed to rewrite designer prompt with LLM: {e}")
-            logger.warning("Falling back to simple concatenation")
-            return self._fallback_designer_rewrite(base_prompt)
+            raise Exception(f"Designer prompt rewriting failed: {e}")
     
     def rewrite_writer_prompt(self, base_prompt: str) -> str:
         """
@@ -142,43 +266,11 @@ CRITICAL REQUIREMENT: When rewriting this prompt, you MUST include explicit lang
 Please rewrite the base prompt to deeply integrate the speaker style guidelines throughout the instructions while ensuring language compliance is enforced."""
         
         try:
-            from google.genai import types
-            
-            runner = InMemoryRunner(agent=self.rewriter_agent, app_name="agents")
-            
-            # Create proper Content object
-            content = types.Content(
-                role='user', 
-                parts=[types.Part.from_text(text=rewrite_request)]
-            )
-            
-            # Create session for the runner
-            user_id = "prompt_rewriter_user"
-            session_id = "writer_rewriter_session"
-            
-            # Run the agent and collect response
-            response_text = ""
-            for event in runner.run(
-                user_id=user_id,
-                session_id=session_id,
-                new_message=content,
-            ):
-                if getattr(event, "content", None) and event.content.parts:
-                    for part in event.content.parts:
-                        txt = getattr(part, "text", "") or ""
-                        response_text += txt
-            
-            rewritten = response_text.strip()
+            rewritten = self._run_rewriter_with_retry(rewrite_request, "writer_rewriter")
             
             logger.info(f"Original prompt length: {len(base_prompt)} chars")
             logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
             logger.info(f"Style integration: {len(self.speaker_style)} chars of style content")
-            
-            # Check if rewriting actually produced content
-            if not rewritten:
-                logger.warning("LLM returned empty rewritten prompt, falling back to concatenation")
-                return self._fallback_writer_rewrite(base_prompt)
-            
             logger.info("✓ Writer prompt rewritten successfully")
             logger.info("=" * 80 + "\n")
             
@@ -191,8 +283,7 @@ Please rewrite the base prompt to deeply integrate the speaker style guidelines 
             
         except Exception as e:
             logger.error(f"Failed to rewrite writer prompt with LLM: {e}")
-            logger.warning("Falling back to simple concatenation")
-            return self._fallback_writer_rewrite(base_prompt)
+            raise Exception(f"Writer prompt rewriting failed: {e}")
     
     def rewrite_title_generator_prompt(self, base_prompt: str) -> str:
         """
@@ -219,43 +310,11 @@ STYLE_TYPE: speaker
 Please rewrite the base prompt to deeply integrate the speaker style guidelines throughout the instructions. This is for a title generator, so focus on how the style affects title creation."""
         
         try:
-            from google.genai import types
-            
-            runner = InMemoryRunner(agent=self.rewriter_agent, app_name="agents")
-            
-            # Create proper Content object
-            content = types.Content(
-                role='user', 
-                parts=[types.Part.from_text(text=rewrite_request)]
-            )
-            
-            # Create session for the runner
-            user_id = "prompt_rewriter_user"
-            session_id = "title_rewriter_session"
-            
-            # Run the agent and collect response
-            response_text = ""
-            for event in runner.run(
-                user_id=user_id,
-                session_id=session_id,
-                new_message=content,
-            ):
-                if getattr(event, "content", None) and event.content.parts:
-                    for part in event.content.parts:
-                        txt = getattr(part, "text", "") or ""
-                        response_text += txt
-            
-            rewritten = response_text.strip()
+            rewritten = self._run_rewriter_with_retry(rewrite_request, "title_rewriter")
             
             logger.info(f"Original prompt length: {len(base_prompt)} chars")
             logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
             logger.info(f"Style integration: {len(self.speaker_style)} chars of style content")
-            
-            # Check if rewriting actually produced content
-            if not rewritten:
-                logger.warning("LLM returned empty rewritten prompt, falling back to concatenation")
-                return self._fallback_title_generator_rewrite(base_prompt)
-            
             logger.info("✓ Title generator prompt rewritten successfully")
             logger.info("=" * 80 + "\n")
             
@@ -268,8 +327,7 @@ Please rewrite the base prompt to deeply integrate the speaker style guidelines 
             
         except Exception as e:
             logger.error(f"Failed to rewrite title generator prompt with LLM: {e}")
-            logger.warning("Falling back to simple concatenation")
-            return self._fallback_title_generator_rewrite(base_prompt)
+            raise Exception(f"Title generator prompt rewriting failed: {e}")
     
     def rewrite_translator_prompt(self, base_prompt: str) -> str:
         """
@@ -302,43 +360,11 @@ CRITICAL REQUIREMENT: This translator must not only translate language but also 
 Please rewrite the base prompt to deeply integrate these style-aware translation capabilities."""
         
         try:
-            from google.genai import types
-            
-            runner = InMemoryRunner(agent=self.rewriter_agent, app_name="agents")
-            
-            # Create proper Content object
-            content = types.Content(
-                role='user', 
-                parts=[types.Part.from_text(text=rewrite_request)]
-            )
-            
-            # Create session for the runner
-            user_id = "prompt_rewriter_user"
-            session_id = "translator_rewriter_session"
-            
-            # Run the agent and collect response
-            response_text = ""
-            for event in runner.run(
-                user_id=user_id,
-                session_id=session_id,
-                new_message=content,
-            ):
-                if getattr(event, "content", None) and event.content.parts:
-                    for part in event.content.parts:
-                        txt = getattr(part, "text", "") or ""
-                        response_text += txt
-            
-            rewritten = response_text.strip()
+            rewritten = self._run_rewriter_with_retry(rewrite_request, "translator_rewriter")
             
             logger.info(f"Original prompt length: {len(base_prompt)} chars")
             logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
             logger.info(f"Style integration: {len(self.speaker_style)} chars of style content")
-            
-            # Check if rewriting actually produced content
-            if not rewritten:
-                logger.warning("LLM returned empty rewritten prompt, falling back to concatenation")
-                return self._fallback_translator_rewrite(base_prompt)
-            
             logger.info("✓ Translator prompt rewritten successfully")
             logger.info("=" * 80 + "\n")
             
@@ -351,129 +377,7 @@ Please rewrite the base prompt to deeply integrate these style-aware translation
             
         except Exception as e:
             logger.error(f"Failed to rewrite translator prompt with LLM: {e}")
-            logger.warning("Falling back to simple concatenation")
-            return self._fallback_translator_rewrite(base_prompt)
-    
-    def _fallback_designer_rewrite(self, base_prompt: str) -> str:
-        """Fallback method for designer prompt rewriting."""
-        return f"""{base_prompt}
-
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                          MANDATORY VISUAL STYLE                              ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-{self.visual_style}
-
-🎨 STYLE APPLICATION RULES:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-1. EVERY slide MUST embody this visual style completely
-2. Color schemes, typography, and layouts MUST match the style description
-3. Visual elements (icons, shapes, backgrounds) MUST align with the style
-4. If the style specifies particular aesthetics, they are MANDATORY
-5. Consistency across all slides is CRITICAL - maintain the style throughout
-
-⚠️  CRITICAL: This is not a suggestion - this is the REQUIRED visual language.
-    Deviation from this style is considered a failure to follow instructions.
-"""
-    
-    def _fallback_writer_rewrite(self, base_prompt: str) -> str:
-        """Fallback method for writer prompt rewriting."""
-        return f"""{base_prompt}
-
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                          MANDATORY SPEAKER STYLE                             ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-{self.speaker_style}
-
-🎤 STYLE APPLICATION RULES:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-1. EVERY speaker note MUST be written in this exact speaking style
-2. Vocabulary, tone, and phrasing MUST match the style description precisely
-3. Sentence structure and rhythm MUST reflect the speaker's personality
-4. If the style includes specific terminology or expressions, USE THEM
-5. The speaker's voice should be unmistakable in every sentence
-
-⚠️  CRITICAL: You are not writing generic notes - you are channeling THIS speaker.
-    Every word should sound like it comes from their mouth, not yours.
-
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                        LANGUAGE ENFORCEMENT OVERRIDE                         ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-🌍 LANGUAGE PRIORITY RULES:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-1. The target language specified in the user request ALWAYS takes precedence
-2. If English is requested, write 100% in English regardless of style examples
-3. If Chinese is requested, write 100% in Chinese regardless of style examples
-4. Do NOT mix languages - use only the requested target language
-5. Translate style concepts to the target language while maintaining the persona
-
-⚠️  CRITICAL: Language compliance overrides all style considerations.
-    The user's language choice is non-negotiable.
-"""
-    
-    def _fallback_title_generator_rewrite(self, base_prompt: str) -> str:
-        """Fallback method for title generator prompt rewriting."""
-        return f"""{base_prompt}
-
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    MANDATORY SPEAKER STYLE FOR TITLES                        ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-{self.speaker_style}
-
-🏷️  TITLE STYLE RULES:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-1. Titles MUST reflect the speaker's vocabulary and terminology
-2. Tone and energy level MUST match the speaker style
-3. If the style uses specific jargon or expressions, incorporate them
-4. Title phrasing should feel natural coming from this speaker
-5. Maintain consistency with the speaker notes' voice
-
-⚠️  CRITICAL: Titles are the first thing audiences see - they must immediately
-    establish the speaker's unique voice and perspective.
-"""
-    
-    def _fallback_translator_rewrite(self, base_prompt: str) -> str:
-        """Fallback method for translator prompt rewriting."""
-        return f"""{base_prompt}
-
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    MANDATORY STYLE-AWARE TRANSLATION                         ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-{self.speaker_style}
-
-🌍 STYLE-AWARE TRANSLATION RULES:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-1. TRANSLATE the content to the target language accurately
-2. REWRITE the translated content to match the speaker style above
-3. Apply the speaker's tone, vocabulary, and personality to the target language
-4. Ensure the result sounds natural and authentic in the target language
-5. Maintain informational accuracy while adapting stylistic elements
-6. The speaker's voice should be unmistakable in the translated content
-
-⚠️  CRITICAL: This is not simple translation - this is style-aware localization.
-    The result should sound like THIS speaker talking in the target language.
-
-🎤 TRANSLATION + STYLE APPLICATION PROCESS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Step 1: Translate the English content to the target language
-Step 2: Analyze the speaker style characteristics above
-Step 3: Rewrite the translation to embody the speaker's personality
-Step 4: Ensure natural flow and cultural appropriateness in target language
-Step 5: Verify the speaker's voice comes through clearly
-
-The final result should be what THIS speaker would say if they were naturally
-speaking in the target language, not a generic translation of their words.
-"""
+            raise Exception(f"Translator prompt rewriting failed: {e}")
     
     def get_rewrite_summary(self) -> Dict[str, Any]:
         """

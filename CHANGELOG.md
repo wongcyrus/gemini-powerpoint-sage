@@ -3,6 +3,13 @@
 ## [Unreleased] - 2025-12-12
 
 ### Fixed
+- **Language Enforcement Strengthening**: Fixed issue where styles with foreign language examples override target language
+  - HK Comic style was generating Chinese notes even when English was requested
+  - Strengthened language enforcement in fallback prompt rewriter with absolute priority rules
+  - Added explicit instructions to translate style concepts rather than copy foreign examples
+  - Ensures target language always takes precedence over style language examples
+  - See `LANGUAGE_ENFORCEMENT_STRENGTHENING_FIX.md` for technical details
+
 - **Prompt Rewriter Content Object Bug**: Fixed critical coding bug where styles weren't being applied
   - InMemoryRunner was receiving raw strings instead of proper Content objects, causing silent failures
   - Fixed all 4 rewrite methods to create proper `types.Content` objects with `types.Part.from_text()`
