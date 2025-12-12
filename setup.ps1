@@ -69,7 +69,10 @@ Write-Host "========================================"  -ForegroundColor Green
 Write-Host ""
 Write-Host "To use the tool:" -ForegroundColor Cyan
 Write-Host "  1. Run: .\.venv\Scripts\Activate.ps1" -ForegroundColor White
-Write-Host "  2. Run: .\run.ps1 --pptx <file.pptx> --pdf <file.pdf>" -ForegroundColor White
+Write-Host "  2. Choose a processing mode:" -ForegroundColor White
+Write-Host "     • All styles:    .\run.ps1 --styles" -ForegroundColor White
+Write-Host "     • Single style:  .\run.ps1 --style-config cyberpunk" -ForegroundColor White
+Write-Host "     • Single file:   .\run.ps1 --pptx file.pptx --language en --style Professional" -ForegroundColor White
 Write-Host ""
-Write-Host "Or simply use .\run.ps1 which will auto-activate the venv" -ForegroundColor Cyan
+Write-Host "Or simply use .\run.ps1 (defaults to --styles) which will auto-activate the venv" -ForegroundColor Cyan
 Write-Host ""

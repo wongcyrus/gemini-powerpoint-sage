@@ -1,25 +1,34 @@
 #!/bin/bash
 
 # Helper script to run the Gemini Powerpoint Sage
+# Updated for the new three-mode system
 
 # Ensure we are in the script's directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR" || exit 1
 
-# Basic presence check for --pptx, --folder, --refine, or --config
-if ! printf '%s\n' "$@" | grep -qE -- '--(pptx|folder|refine|config)'; then
-    echo "Usage: ./run.sh --pptx <path_to_pptx> [--pdf <path_to_pdf>] [other flags]" >&2
-    echo "   or: ./run.sh --folder <path_to_folder> [--language <locale>]" >&2
-    echo "   or: ./run.sh --config <config_file.yaml>" >&2
-    echo "   or: ./run.sh --refine <progress_file.json>" >&2
+# Show usage if no arguments or help requested
+if [ $# -eq 0 ] || [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+    echo "Gemini PowerPoint Sage - Three Processing Modes" >&2
     echo "" >&2
-    echo "If --pdf omitted, main.py auto-detects a PDF with the same basename in the PPTX folder." >&2
+    echo "🌟 All Styles Processing (recommended):" >&2
+    echo "  ./run.sh --styles" >&2
+    echo "  ./run.sh                    # defaults to --styles" >&2
     echo "" >&2
-    echo "Examples:" >&2
-    echo "  ./run.sh --pptx ../data/deck.pptx" >&2
-    echo "  ./run.sh --folder ../data --language zh-CN" >&2
-    echo "  ./run.sh --config config.gundam.yaml" >&2
+    echo "🎨 Single Style Processing:" >&2
+    echo "  ./run.sh --style-config cyberpunk" >&2
+    echo "  ./run.sh --style-config professional" >&2
+    echo "  ./run.sh --style-config gundam" >&2
+    echo "" >&2
+    echo "📄 Single File Processing:" >&2
+    echo "  ./run.sh --pptx file.pptx --language en --style Professional" >&2
+    echo "  ./run.sh --pptx file.pptx --language 'en,zh-CN' --style Cyberpunk" >&2
+    echo "" >&2
+    echo "🔧 Other Options:" >&2
     echo "  ./run.sh --refine progress.json" >&2
+    echo "" >&2
+    echo "ℹ️  All configuration is now handled through YAML files in styles/ directory" >&2
+    echo "   Use --styles or --style-config for organized processing" >&2
     exit 1
 fi
 
@@ -45,8 +54,13 @@ else
     echo "Project: (will be loaded from .env file)"
 fi
 
+# If no arguments provided, default to --styles
+if [ $# -eq 0 ]; then
+    echo "No arguments provided, defaulting to --styles mode"
+    set -- --styles
+fi
+
 # Run the python script
-# Arguments are passed directly, so if user provides --region, python argparse handles it.
 python3 main.py "$@"
 
 EXIT_CODE=$?
