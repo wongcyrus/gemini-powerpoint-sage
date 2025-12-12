@@ -4,7 +4,7 @@ This directory contains YAML configuration files that define visual and speaker 
 
 ## Available Styles
 
-### config.sample.yaml
+### sample.config.yaml
 Basic example configuration showing the structure.
 
 ### config.cyberpunk.yaml
@@ -32,7 +32,7 @@ python main.py --pptx presentation.pptx --pdf presentation.pdf --style Gundam
 
 ## Creating Custom Styles
 
-Copy `config.sample.yaml` and modify the `visual_style` and `speaker_style` sections to create your own custom style.
+Copy `sample.config.yaml` and modify the `visual_style` and `speaker_style` sections to create your own custom style.
 
 ### Structure
 

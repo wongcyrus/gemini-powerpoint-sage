@@ -1,14 +1,24 @@
 # Cyberpunk Style Configuration Example
 # Dystopian tech aesthetic with neon colors and edgy tone
 
-# Input files
-pptx: "sample_data/cloudtech.pptm"
-pdf: "sample_data/cloudtech.pdf"
+# Input folder containing PDF and PPTX files
+# The system will automatically find matching PDF/PPTX pairs in this folder
+# 
+# Validation Rules:
+# - Both PDF and PPTX files with the same base name must exist
+# - Example: "Module 2b Data Center Operations.pdf" and "Module 2b Data Center Operations.pptx"
+# - Files without matching pairs will be skipped with a warning
+# - Supported extensions: .pdf, .pptx (case-insensitive)
+input_folder: "notes"
 
 # Output directory (optional)
-# If not specified, outputs go to: {style}/generate/ next to input file
-# Example: cyberpunk/generate/cloudtech_with_notes.pptx
-output_dir: "output/cyberpunk/generate"
+# Recommended pattern: {style}/generate/
+# Examples:
+#   - "professional/generate" for Professional style
+#   - "cyberpunk/generate" for Cyberpunk style
+#   - "custom/output" for any custom location
+# If not specified, uses default: generate/ next to input folder
+output_dir: "notes/cyberpunk/generate"
 
 # Google Cloud settings
 region: "global"

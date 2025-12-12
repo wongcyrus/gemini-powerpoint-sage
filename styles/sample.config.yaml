@@ -1,0 +1,105 @@
+# Sample Configuration Template
+# Copy this file and modify to create your own custom style
+
+# Input folder containing PDF and PPTX files
+# The system will automatically find matching PDF/PPTX pairs in this folder
+# 
+# Validation Rules:
+# - Both PDF and PPTX files with the same base name must exist
+# - Example: "Module 2b Data Center Operations.pdf" and "Module 2b Data Center Operations.pptx"
+# - Files without matching pairs will be skipped with a warning
+# - Supported extensions: .pdf, .pptx (case-insensitive)
+input_folder: "notes"
+
+# Output directory (optional)
+# Recommended pattern: {style}/generate/
+# Examples:
+#   - "professional/generate" for Professional style
+#   - "cyberpunk/generate" for Cyberpunk style
+#   - "custom/output" for any custom location
+# If not specified, uses default: generate/ next to input folder
+output_dir: "notes/sample/generate"
+
+# Google Cloud settings
+region: "global"
+
+# Language - comma-separated for multiple languages
+# English is always processed first, then other languages use translation mode
+language: "en,yue-HK,zh-CN"
+
+# Sample Style with separate visual and speaker styles
+style:
+  visual_style: |
+    Sample Visual Style Description
+    
+    **Art Style:**
+    - Describe your overall aesthetic approach
+    - Color palette preferences
+    - Typography choices
+    - Layout principles
+    
+    **Visual Elements:**
+    - What types of imagery to use
+    - Icon styles
+    - Chart and graph preferences
+    - Background treatments
+    
+    **Color Palette:**
+    - Primary Color (#000000): Description and usage
+    - Secondary Color (#FFFFFF): Description and usage
+    - Accent Colors: Additional colors for highlights
+    
+    **Typography:**
+    - Font families to use
+    - Hierarchy (titles, subtitles, body text)
+    - Text treatments and effects
+    
+    **Mood & Atmosphere:**
+    - Overall feeling you want to convey
+    - Target audience considerations
+    - Brand personality traits
+
+  speaker_style: |
+    Sample Speaker Style Description
+    
+    **Core Persona:**
+    Describe who you are when presenting - your role, expertise level,
+    and relationship to the audience.
+    
+    **Tone & Voice:**
+    - Professional level (formal, casual, etc.)
+    - Energy level (calm, energetic, passionate)
+    - Personality traits to emphasize
+    
+    **Key Themes:**
+    1. **Theme 1:**
+       - Key messages to emphasize
+       - Vocabulary to use
+       - Metaphors or analogies
+    
+    2. **Theme 2:**
+       - Additional messaging pillars
+       - Specific terminology
+       - Emotional appeals
+    
+    **Vocabulary & Phrasing:**
+    - Opening phrases you typically use
+    - Transition words and phrases
+    - Ways to emphasize important points
+    - Technical terms in your style
+    
+    **Example Phrases:**
+    - "Opening example..."
+    - "Transition example..."
+    - "Emphasis example..."
+    - "Closing example..."
+    
+    **Rules:**
+    - What to always do
+    - What to never do
+    - How to maintain consistency
+
+# Generation options
+skip_visuals: false
+generate_videos: false
+retry_errors: false

@@ -46,7 +46,12 @@ class CLI:
         parser.add_argument(
             "--folder",
             required=False,
-            help="Path to folder containing PPTX files to process"
+            help="Path to folder containing PPTX files to process (legacy)"
+        )
+        parser.add_argument(
+            "--input-folder",
+            required=False,
+            help="Path to folder containing PDF/PPTX pairs (auto-detects matching files)"
         )
         parser.add_argument(
             "--pdf",
@@ -89,7 +94,7 @@ class CLI:
                  "Comma-separated for multiple languages. "
                  "English (en) is always processed first. "
                  "Examples: en, 'en,zh-CN', 'en,yue-HK,zh-CN'",
-            default="en"
+            default=None
         )
         parser.add_argument(
             "--style",
@@ -166,18 +171,89 @@ class CLI:
     
     async def _handle_batch(self, args: argparse.Namespace) -> None:
         """Handle batch processing mode."""
-        cmd = BatchCommand(
-            folder_path=args.folder,
-            course_id=args.course_id,
-            retry_errors=args.retry_errors,
-            region=args.region,
-            skip_visuals=args.skip_visuals,
-            generate_videos=args.generate_videos,
-            languages=args.language,
-            style=args.style,
-            output_dir=args.output_dir,
-        )
-        await cmd.execute()
+        # Determine folder path (support both folder and input_folder)
+        folder_path = args.folder or getattr(args, 'input_folder', None)
+        
+        # Check if using new input_folder mode with validation
+        use_input_folder = getattr(args, 'input_folder', None) is not None
+        
+        if use_input_folder:
+            # Use new input_folder mode with PDF/PPTX pair validation
+            await self._handle_input_folder_batch(args, folder_path)
+        else:
+            # Use legacy folder mode
+            cmd = BatchCommand(
+                folder_path=folder_path,
+                course_id=args.course_id,
+                retry_errors=args.retry_errors,
+                region=args.region,
+                skip_visuals=args.skip_visuals,
+                generate_videos=args.generate_videos,
+                languages=args.language,
+                style=args.style,
+                output_dir=args.output_dir,
+            )
+            await cmd.execute()
+    
+    async def _handle_input_folder_batch(self, args: argparse.Namespace, folder_path: str) -> None:
+        """Handle input_folder batch processing with PDF/PPTX pair validation."""
+        from config.config_loader import ConfigFileLoader
+        from .commands import ProcessCommand
+        from utils.cli_utils import parse_languages
+        
+        # Get valid file pairs
+        try:
+            file_pairs = ConfigFileLoader.get_file_pairs(folder_path)
+        except Exception as e:
+            print(f"Error processing input folder: {e}")
+            sys.exit(1)
+        
+        if not file_pairs:
+            print(f"No valid PDF/PPTX pairs found in folder: {folder_path}")
+            return
+        
+        # Parse languages
+        lang_list = parse_languages(args.language)
+        logger.info(f"Found {len(file_pairs)} PDF/PPTX pairs to process")
+        logger.info(f"Languages to process: {', '.join(lang_list)}")
+        
+        # Process each pair
+        for idx, (pptx_path, pdf_path) in enumerate(file_pairs, 1):
+            logger.info(f"\n{'='*60}")
+            logger.info(f"Processing pair {idx}/{len(file_pairs)}: "
+                       f"{os.path.basename(pptx_path)}")
+            logger.info(f"{'='*60}")
+            
+            # Process each language
+            for lang in lang_list:
+                logger.info(f"\n--- Processing language: {lang} ---")
+                
+                try:
+                    cmd = ProcessCommand(
+                        pptx_path=pptx_path,
+                        pdf_path=pdf_path,
+                        course_id=args.course_id,
+                        skip_visuals=args.skip_visuals,
+                        generate_videos=args.generate_videos,
+                        language=lang,
+                        style=args.style,
+                        output_dir=args.output_dir,
+                    )
+                    await cmd.execute()
+                    
+                    logger.info(
+                        f"Successfully processed {os.path.basename(pptx_path)} ({lang})"
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Error processing {os.path.basename(pptx_path)} ({lang}): {e}",
+                        exc_info=True
+                    )
+                    continue
+        
+        logger.info(f"\n{'='*60}")
+        logger.info(f"Input folder processing complete: {len(file_pairs)} pairs processed")
+        logger.info(f"{'='*60}")
     
     async def _handle_single(self, args: argparse.Namespace) -> None:
         """Handle single file processing mode."""
@@ -256,14 +332,20 @@ class CLI:
             asyncio.run(self._handle_refine(args))
             return 0
         
-        # Validate input
-        if not args.pptx and not args.folder:
-            print("Error: Either --pptx or --folder must be provided.")
+        # Validate input (argparse converts dashes to underscores)
+        input_methods = sum([
+            bool(args.pptx),
+            bool(args.folder),
+            bool(getattr(args, 'input_folder', None))
+        ])
+        
+        if input_methods == 0:
+            print("Error: Either --pptx, --folder, or --input-folder must be provided.")
             self.parser.print_help()
             return 1
         
-        if args.pptx and args.folder:
-            print("Error: Cannot use both --pptx and --folder at the same time.")
+        if input_methods > 1:
+            print("Error: Cannot use multiple input methods at the same time.")
             return 1
         
         # Setup environment
@@ -271,7 +353,7 @@ class CLI:
         
         # Handle batch or single mode
         try:
-            if args.folder:
+            if args.folder or getattr(args, 'input_folder', None):
                 asyncio.run(self._handle_batch(args))
             else:
                 asyncio.run(self._handle_single(args))
