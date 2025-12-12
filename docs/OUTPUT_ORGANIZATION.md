@@ -28,7 +28,7 @@ project/
     │   ├── presentation_en_progress.json
     │   └── presentation_en_visuals/
     └── star_wars/
-        ├── presentation_en_notes.pptx      # Star Wars style
+        ├── presentation_en_notes.pptx      # starwars style
         ├── presentation_en_visuals.pptx
         └── presentation_en_progress.json
 ```
@@ -108,7 +108,7 @@ generate/
 ```bash
 python main.py --pptx deck.pptx --pdf deck.pdf --style Cyberpunk --language en
 python main.py --pptx deck.pptx --pdf deck.pdf --style Gundam --language en
-python main.py --pptx deck.pptx --pdf deck.pdf --style "Star Wars" --language en
+python main.py --pptx deck.pptx --pdf deck.pdf --style starwars --language en
 ```
 **Output:**
 ```
@@ -149,7 +149,7 @@ python main.py --pptx deck.pptx --pdf deck.pdf \
   --style Gundam --output-dir ./output/gundam --language en
 
 python main.py --pptx deck.pptx --pdf deck.pdf \
-  --style "Star Wars" --output-dir ./output/starwars --language en
+  --style starwars --output-dir ./output/starwars --language en
 ```
 
 **Output:**
@@ -260,7 +260,7 @@ generate/
 ├── gundam/
 │   └── deck_en_notes.pptx          # Gundam
 └── star_wars/
-    └── deck_en_notes.pptx          # Star Wars
+    └── deck_en_notes.pptx          # starwars
 ```
 
 ## Complete Output Structure

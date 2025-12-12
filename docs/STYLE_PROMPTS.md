@@ -33,13 +33,13 @@ style: |
   - [Example phrases]
 ```
 
-## 🤖 Example: Gundam Style
+## 🤖 Example: gundam Style
 
 ### Detailed Multi-Line Version
 
 ```yaml
 style: |
-  Gundam Style - Mecha-inspired futuristic design
+  gundam Style - Mecha-inspired futuristic design
   
   Visual Design:
   - Towering mecha aesthetics with gleaming metallic armor
@@ -61,7 +61,7 @@ style: |
 ### Simple Single-Line Version
 
 ```yaml
-style: "Gundam - Mecha-inspired, tactical language, futuristic visuals"
+style: "gundam - Mecha-inspired, tactical language, futuristic visuals"
 ```
 
 ## 🌃 Example: Cyberpunk Style

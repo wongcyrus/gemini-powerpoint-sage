@@ -16,13 +16,13 @@ if [ $# -eq 0 ] || [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
     echo "  ./run.sh                    # defaults to --styles" >&2
     echo "" >&2
     echo "🎨 Single Style Processing:" >&2
-    echo "  ./run.sh --style-config cyberpunk" >&2
-    echo "  ./run.sh --style-config professional" >&2
-    echo "  ./run.sh --style-config gundam" >&2
+    echo "  ./run.sh --style-config cyberpunk      # case-insensitive" >&2
+    echo "  ./run.sh --style-config professional   # case-insensitive" >&2
+    echo "  ./run.sh --style-config gundam         # case-insensitive" >&2
     echo "" >&2
     echo "📄 Single File Processing:" >&2
-    echo "  ./run.sh --pptx file.pptx --language en --style Professional" >&2
-    echo "  ./run.sh --pptx file.pptx --language 'en,zh-CN' --style Cyberpunk" >&2
+    echo "  ./run.sh --pptx file.pptx --language en --style professional" >&2
+    echo "  ./run.sh --pptx file.pptx --language 'en,zh-CN' --style cyberpunk" >&2
     echo "" >&2
     echo "🔧 Other Options:" >&2
     echo "  ./run.sh --refine progress.json" >&2

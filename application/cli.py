@@ -100,8 +100,8 @@ class CLI:
         parser.add_argument(
             "--style",
             help="Style/theme for single-file processing. "
-                 "Examples: 'Gundam', 'Cyberpunk', 'Professional'",
-            default="Professional"
+                 "Examples: 'gundam', 'cyberpunk', 'professional'",
+            default="professional"
         )
         parser.add_argument(
             "--output-dir",

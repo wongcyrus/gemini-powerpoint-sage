@@ -43,13 +43,13 @@ if ($args.Count -eq 0 -or $args[0] -eq "--help" -or $args[0] -eq "-h") {
     Write-Host "  ./run.ps1                    # defaults to --styles" -ForegroundColor White
     Write-Host ""
     Write-Host "🎨 Single Style Processing:" -ForegroundColor Yellow
-    Write-Host "  ./run.ps1 --style-config cyberpunk" -ForegroundColor White
-    Write-Host "  ./run.ps1 --style-config professional" -ForegroundColor White
-    Write-Host "  ./run.ps1 --style-config gundam" -ForegroundColor White
+    Write-Host "  ./run.ps1 --style-config cyberpunk      # case-insensitive" -ForegroundColor White
+    Write-Host "  ./run.ps1 --style-config professional   # case-insensitive" -ForegroundColor White
+    Write-Host "  ./run.ps1 --style-config gundam         # case-insensitive" -ForegroundColor White
     Write-Host ""
     Write-Host "📄 Single File Processing:" -ForegroundColor Magenta
-    Write-Host "  ./run.ps1 --pptx file.pptx --language en --style Professional" -ForegroundColor White
-    Write-Host "  ./run.ps1 --pptx file.pptx --language 'en,zh-CN' --style Cyberpunk" -ForegroundColor White
+    Write-Host "  ./run.ps1 --pptx file.pptx --language en --style professional" -ForegroundColor White
+    Write-Host "  ./run.ps1 --pptx file.pptx --language 'en,zh-CN' --style cyberpunk" -ForegroundColor White
     Write-Host ""
     Write-Host "🔧 Other Options:" -ForegroundColor Blue
     Write-Host "  ./run.ps1 --refine progress.json" -ForegroundColor White

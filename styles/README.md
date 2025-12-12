@@ -14,7 +14,7 @@ Cyberpunk-themed style with neon colors and futuristic aesthetics.
 Gundam/mecha-themed style with military and technical terminology.
 
 ### config.starwars.yaml
-Star Wars-themed style with galactic and sci-fi elements.
+starwars-themed style with galactic and sci-fi elements.
 
 ## Usage
 
@@ -78,7 +78,7 @@ output_dir: "cyberpunk/generate"
 # Gundam style
 output_dir: "gundam/generate"
 
-# Star Wars style
+# starwars style
 output_dir: "star_wars/generate"
 ```
 

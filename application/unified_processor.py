@@ -69,7 +69,7 @@ class UnifiedProcessor:
         pptx_path: str, 
         pdf_path: Optional[str] = None,
         language: str = "en",
-        style: str = "Professional",
+        style: str = "professional",
         output_dir: Optional[str] = None
     ) -> Tuple[str, Optional[str]]:
         """

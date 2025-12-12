@@ -52,10 +52,10 @@ Both scripts now support **four execution modes**:
 ### Using Config Files (Recommended for Styled Presentations)
 
 ```bash
-# Use Gundam style configuration
+# Use gundam style configuration
 ./run.sh --config config.gundam.yaml
 
-# Use Cyberpunk style configuration
+# Use cyberpunk style configuration
 ./run.sh --config config.cyberpunk.yaml
 
 # Use custom configuration
@@ -156,7 +156,7 @@ style:
     Generous white space for breathing room.
     
   speaker_style: |
-    Professional and approachable tone.
+    professional and approachable tone.
     Clear, concise explanations.
     Uses analogies to simplify complex topics.
     Conversational but authoritative.

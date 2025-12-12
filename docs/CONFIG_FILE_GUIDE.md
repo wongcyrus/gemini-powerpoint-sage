@@ -24,7 +24,7 @@ pdf: "path/to/your/presentation.pdf"
 # Settings
 region: "us-central1"
 language: "en"
-style: "Gundam"
+style: "gundam"
 skip_visuals: false
 ```
 
@@ -36,7 +36,7 @@ python main.py --config config.yaml
 
 That's it! Much simpler than:
 ```bash
-python main.py --pptx path/to/your/presentation.pptx --pdf path/to/your/presentation.pdf --region us-central1 --language en --style Gundam
+python main.py --pptx path/to/your/presentation.pptx --pdf path/to/your/presentation.pdf --region us-central1 --language en --style gundam
 ```
 
 ## Configuration File Format
@@ -48,7 +48,7 @@ Configuration files use **YAML format** for readability and comments support.
 # My presentation config
 pptx: "slides.pptx"
 pdf: "slides.pdf"
-style: "Cyberpunk"  # Use cyberpunk theme
+style: "cyberpunk"  # Use cyberpunk theme
 language: "en,zh-CN"  # English and Chinese
 ```
 
@@ -90,9 +90,9 @@ language: "en,zh-CN,yue-HK"
 ### Style/Theme
 
 ```yaml
-style: "Professional"  # Default
-# style: "Gundam"
-# style: "Cyberpunk"
+style: "professional"  # Default
+# style: "gundam"
+# style: "cyberpunk"
 # style: "Minimalist"
 # style: "Custom description here"
 ```
@@ -117,9 +117,9 @@ progress_file: "custom.json"      # Custom progress file
 Command-line arguments always override config file settings:
 
 ```bash
-# Config file has style: "Professional"
-# This will use "Gundam" instead
-python main.py --config config.yaml --style "Gundam"
+# Config file has style: "professional"
+# This will use "gundam" instead
+python main.py --config config.yaml --style "gundam"
 ```
 
 ## Multiple Configurations
@@ -133,7 +133,7 @@ config.dev.yaml
 # Production config
 config.prod.yaml
 
-# Gundam-themed presentations
+# gundam-themed presentations
 config.gundam.yaml
 
 # Minimalist presentations
@@ -155,7 +155,7 @@ python main.py --config config.minimalist.yaml
 pptx: "presentation.pptx"
 region: "global"
 language: "en"
-style: "Professional"
+style: "professional"
 ```
 
 **Usage:**
@@ -171,7 +171,7 @@ pptx: "slides.pptx"
 pdf: "slides.pdf"
 region: "us-central1"
 language: "en,zh-CN,yue-HK"
-style: "Gundam - futuristic mecha-inspired design"
+style: "gundam - futuristic mecha-inspired design"
 skip_visuals: false
 ```
 

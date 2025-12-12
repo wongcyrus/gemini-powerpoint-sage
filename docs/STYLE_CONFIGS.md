@@ -6,7 +6,7 @@ The project includes several pre-configured style templates that demonstrate the
 
 ---
 
-## 🤖 Gundam Style (`config.gundam.yaml`)
+## 🤖 gundam Style (`config.gundam.yaml`)
 
 **Visual Aesthetic:** Mecha anime with high-quality cel-shaded art, detailed mechanical designs, and dramatic space colony backgrounds.
 
@@ -34,7 +34,7 @@ The project includes several pre-configured style templates that demonstrate the
 
 ---
 
-## 🌌 Star Wars Style (`config.starwars.yaml`)
+## 🌌 starwars Style (`config.starwars.yaml`)
 
 **Visual Aesthetic:** Epic space opera with Ralph McQuarrie-inspired concept art, deep space backgrounds, and cinematic lighting.
 
@@ -74,7 +74,7 @@ The project includes several pre-configured style templates that demonstrate the
 
 ---
 
-## 🌃 Cyberpunk Style (`config.cyberpunk.yaml`)
+## 🌃 cyberpunk Style (`config.cyberpunk.yaml`)
 
 **Visual Aesthetic:** Neon-soaked dystopian future with electric colors, dark backgrounds, and glitch effects.
 
@@ -228,12 +228,12 @@ style:
 
 | Style | Visual Intensity | Speaker Energy | Best Use Case | Formality |
 |-------|-----------------|----------------|---------------|-----------|
-| **Gundam** | ⚡⚡⚡⚡⚡ | 🔥🔥🔥🔥🔥 | Dramatic tech reveals | Low |
-| **Star Wars** | ⚡⚡⚡⚡ | 🔥🔥🔥🔥 | Strategic briefings | Medium |
-| **Cyberpunk** | ⚡⚡⚡⚡⚡ | 🔥🔥🔥🔥 | Disruptive innovation | Low |
-| **Sample** | ⚡⚡ | 🔥🔥 | Standard business | High |
-| **Minimalist** | ⚡ | 🔥🔥 | Data-focused | High |
-| **Academic** | ⚡⚡ | 🔥 | Research presentations | Very High |
+| **gundam** | ⚡⚡⚡⚡⚡ | 🔥🔥🔥🔥🔥 | Dramatic tech reveals | Low |
+| **starwars** | ⚡⚡⚡⚡ | 🔥🔥🔥🔥 | Strategic briefings | Medium |
+| **cyberpunk** | ⚡⚡⚡⚡⚡ | 🔥🔥🔥🔥 | Disruptive innovation | Low |
+| **professional** | ⚡⚡ | 🔥🔥 | Standard business | High |
+| **minimalist** | ⚡ | 🔥🔥 | Data-focused | High |
+| **academic** | ⚡⚡ | 🔥 | Research presentations | Very High |
 
 ---
 
@@ -273,7 +273,7 @@ You can create different configs for different sections:
 # Technical deep-dive with cyberpunk style
 ./run.sh --config config.cyberpunk.yaml
 
-# Vision/future section with Star Wars style
+# Vision/future section with starwars style
 ./run.sh --config config.starwars.yaml
 ```
 

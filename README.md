@@ -32,7 +32,7 @@ See the extended design rationale, sequence flows, and agent interface contracts
 - 💾 **Organized Output**: Language-specific file naming with self-contained folders
 - ⚡ **Translation Mode**: Faster processing by translating from English baseline
 - 📊 **Progress Tracking**: Resume interrupted processing automatically
-- 🎭 **Custom Styles**: Apply themed styles (Gundam, Cyberpunk, Star Wars, etc.)
+- 🎭 **Custom Styles**: Apply themed styles (gundam, cyberpunk, starwars, etc.)
 
 ## Quick Start
 
@@ -48,7 +48,7 @@ python main.py --style-config cyberpunk
 python main.py --style-config professional
 
 # 📄 Single File Processing (quick testing)
-python main.py --pptx lecture.pptx --language en --style Professional
+python main.py --pptx lecture.pptx --language en --style professional
 ```
 
 ```powershell
@@ -227,13 +227,13 @@ python main.py --style-config hkcomic
 python main.py --style-config professional
 
 # Single file with style
-python main.py --pptx file.pptx --language en --style "Star Wars"
+python main.py --pptx file.pptx --language en --style starwars
 ```
 
 **Available Styles:**
-- 🌌 **Star Wars** - Jedi briefings with epic space opera visuals
-- 🤖 **Gundam** - Mecha anime aesthetic with philosophical antagonist voice
-- 🌃 **Cyberpunk** - Neon colors with edgy tech-savvy narration
+- 🌌 **starwars** - Jedi briefings with epic space opera visuals
+- 🤖 **gundam** - Mecha anime aesthetic with philosophical antagonist voice
+- 🌃 **cyberpunk** - Neon colors with edgy tech-savvy narration
 - 🎨 **HK Comic** - Vibrant Hong Kong comic book style
 - 📋 **Professional** - Clean and corporate default style
 

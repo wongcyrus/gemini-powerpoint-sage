@@ -49,7 +49,7 @@ Quick processing of one specific file.
 
 ### Basic Usage
 ```bash
-python main.py --pptx presentation.pptx --language en --style Professional
+python main.py --pptx presentation.pptx --language en --style professional
 ```
 
 ### With Multiple Languages
@@ -71,7 +71,7 @@ python main.py --styles
 python main.py --style-config professional
 
 # Test single file
-python main.py --pptx notes/sample.pptx --language en --style Professional
+python main.py --pptx notes/sample.pptx --language en --style professional
 ```
 
 ---
@@ -125,7 +125,7 @@ Each style has its own YAML configuration file:
 - **🌃 Cyberpunk** - Neon colors, edgy, tech-savvy
 - **📋 Professional** - Clean, business-appropriate  
 - **🤖 Gundam** - Mecha-inspired, futuristic, tactical
-- **🌌 Star Wars** - Epic space opera aesthetic
+- **🌌 starwars** - Epic space opera aesthetic
 - **🎨 HK Comic** - Vibrant Hong Kong comic book style
 
 Style configurations are in `styles/config.{style}.yaml` files.

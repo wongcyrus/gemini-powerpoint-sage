@@ -61,7 +61,7 @@ All shell scripts now support the new three-mode system:
 ./run.sh --style-config cyberpunk
 
 # Single file processing
-./run.sh --pptx file.pptx --language en --style Professional
+./run.sh --pptx file.pptx --language en --style professional
 ```
 
 ### ✅ Backward Compatibility

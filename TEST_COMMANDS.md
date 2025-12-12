@@ -2,7 +2,7 @@
 
 ## Test the New Prompt Rewriter with Styles
 
-### Star Wars Style (NEW!)
+### starwars Style (NEW!)
 ```bash
 ./run.sh --config config.starwars.yaml
 ```
@@ -67,7 +67,7 @@ This will:
 ## Test with Different Languages
 
 ```bash
-# Star Wars in Chinese
+# starwars in Chinese
 ./run.sh --config config.starwars.yaml --language zh-CN
 
 # Gundam in Japanese (fitting!)
@@ -137,7 +137,7 @@ grep -A 100 "FULL REWRITTEN" logs/gemini_powerpoint_sage_*.log
 Run the same presentation with different styles to compare:
 
 ```bash
-# Star Wars version
+# starwars version
 ./run.sh --config config.starwars.yaml
 mv tests/sample_data/generate/cloudtech_en_with_notes.pptm \
    tests/sample_data/generate/cloudtech_starwars.pptm

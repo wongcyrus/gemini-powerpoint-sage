@@ -10,18 +10,18 @@ python main.py                       # Same as above (default)
 
 ### 🎨 Single Style Processing (Focused)
 ```bash
-python main.py --style-config starwars      # Star Wars style only
-python main.py --style-config gundam        # Gundam style only
-python main.py --style-config cyberpunk     # Cyberpunk style only
-python main.py --style-config professional  # Professional style only
+python main.py --style-config starwars      # starwars style only
+python main.py --style-config gundam        # gundam style only
+python main.py --style-config cyberpunk     # cyberpunk style only
+python main.py --style-config professional  # professional style only
 python main.py --style-config hkcomic       # Hong Kong Comic style only
 ```
 
 ### 📄 Single File Processing (Quick Testing)
 ```bash
-python main.py --pptx file.pptx --language en --style "Star Wars"
-python main.py --pptx file.pptx --language "en,zh-CN" --style Gundam
-python main.py --pptx file.pptx --language en --style Professional --output-dir output/test
+python main.py --pptx file.pptx --language en --style starwars
+python main.py --pptx file.pptx --language "en,zh-CN" --style gundam
+python main.py --pptx file.pptx --language en --style professional --output-dir output/test
 ```
 
 ## ⚙️ Additional Options (All Modes)
@@ -66,10 +66,10 @@ input/
 
 | Style | Visual | Voice | Best For |
 |-------|--------|-------|----------|
-| **Star Wars** | Space opera, cinematic | Jedi Master | Strategic briefings |
-| **Gundam** | Mecha anime | Char Aznable | Dramatic tech reveals |
-| **Cyberpunk** | Neon dystopia | Street philosopher | Disruptive innovation |
-| **Sample** | Professional | Standard | Business meetings |
+| **starwars** | Space opera, cinematic | Jedi Master | Strategic briefings |
+| **gundam** | Mecha anime | Char Aznable | Dramatic tech reveals |
+| **cyberpunk** | Neon dystopia | Street philosopher | Disruptive innovation |
+| **professional** | professional | Standard | Business meetings |
 
 ## 🔧 Common Tasks
 
@@ -82,7 +82,7 @@ python main.py --style-config mystyle
 
 ### Test Single File
 ```bash
-python main.py --pptx test.pptx --language en --style Professional
+python main.py --pptx test.pptx --language en --style professional
 ```
 
 ### Process Specific Style
@@ -164,7 +164,7 @@ cat tests/sample_data/generate/cloudtech_en_progress.json | jq '.slides_processe
 ### Development Workflow
 ```bash
 # 1. Test single file quickly
-python main.py --pptx test.pptx --language en --style Professional
+python main.py --pptx test.pptx --language en --style professional
 
 # 2. Test specific style configuration
 python main.py --style-config cyberpunk

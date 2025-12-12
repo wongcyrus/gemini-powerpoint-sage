@@ -56,12 +56,12 @@ class Config:
         
         # Handle style - can be a string or dict with visual_style and speaker_style
         if isinstance(style, dict):
-            self.visual_style = style.get("visual_style", "Professional")
-            self.speaker_style = style.get("speaker_style", "Professional")
-            self.style = style.get("visual_style", "Professional")  # For filename generation
+            self.visual_style = style.get("visual_style", "professional")
+            self.speaker_style = style.get("speaker_style", "professional")
+            self.style = style.get("visual_style", "professional")  # For filename generation
         else:
             # Single style applies to both
-            default_style = style or os.getenv("PRESENTATION_STYLE", "Professional")
+            default_style = style or os.getenv("PRESENTATION_STYLE", "professional")
             self.visual_style = default_style
             self.speaker_style = default_style
             self.style = default_style
@@ -89,9 +89,9 @@ class Config:
         
         If output_dir is specified, use it directly.
         Otherwise, create a style-specific subfolder in generate/:
-        - generate/cyberpunk/ for Cyberpunk style
-        - generate/gundam/ for Gundam style
-        - generate/ for Professional style (default)
+        - generate/cyberpunk/ for cyberpunk style
+        - generate/gundam/ for gundam style
+        - generate/ for professional style (default)
         """
         pptx_dir = os.path.dirname(self.pptx_path)
         
@@ -102,12 +102,12 @@ class Config:
             # Default behavior: organize by style in generate/ folder
             base_dir = os.path.join(pptx_dir, "generate")
             
-            # Create style-specific subfolder if not Professional
+            # Create style-specific subfolder if not professional
             if self.style and self.style.lower() != "professional":
                 style_folder = self.style.replace(" ", "_").lower()
                 output_dir = os.path.join(base_dir, style_folder)
             else:
-                # Professional style goes directly in generate/
+                # professional style goes directly in generate/
                 output_dir = base_dir
         
         os.makedirs(output_dir, exist_ok=True)
