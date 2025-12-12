@@ -242,7 +242,7 @@ class PresentationProcessor:
                 slide_idx, image_id, existing_notes,
                 previous_slide_summary, presentation_theme,
                 global_context, entry, supervisor_runner,
-                user_id, session_id
+                user_id, session_id, total_slides=limit
             )
 
             # Update slide notes in both presentations
@@ -645,7 +645,6 @@ class PresentationProcessor:
     ) -> None:
         """Configure the supervisor agent's tools."""
         self.supervisor_agent.tools = [
-            AgentTool(agent=self.auditor_agent),
             self.tool_factory.create_analyst_tool(),
             self.tool_factory.create_writer_tool(
                 presentation_theme,
@@ -654,6 +653,7 @@ class PresentationProcessor:
                 english_notes,
                 self.config.speaker_style
             ),
+            self.tool_factory.create_auditor_tool(self.config.language),
         ]
 
     async def _initialize_supervisor(self) -> InMemoryRunner:
@@ -691,6 +691,7 @@ class PresentationProcessor:
         supervisor_runner: InMemoryRunner,
         user_id: str,
         session_id: str,
+        total_slides: int = None,
     ) -> tuple[str, str]:
         """
         Process notes for a single slide.
@@ -752,7 +753,7 @@ class PresentationProcessor:
         supervisor_prompt = self._build_supervisor_prompt(
             slide_idx, image_id, existing_notes,
             previous_slide_summary, presentation_theme,
-            global_context
+            global_context, total_slides
         )
 
         content = types.Content(
@@ -846,15 +847,26 @@ class PresentationProcessor:
         previous_slide_summary: str,
         presentation_theme: str,
         global_context: str,
+        total_slides: int = None,
     ) -> str:
         """Build the prompt for the supervisor agent."""
+        slide_position_info = ""
+        if total_slides:
+            if slide_idx == 1:
+                slide_position_info = f"SLIDE POSITION: This is the FIRST slide (slide {slide_idx} of {total_slides}). Include appropriate greeting.\n"
+            elif slide_idx == total_slides:
+                slide_position_info = f"SLIDE POSITION: This is the LAST slide (slide {slide_idx} of {total_slides}). Include appropriate closing.\n"
+            else:
+                slide_position_info = f"SLIDE POSITION: This is a MIDDLE slide (slide {slide_idx} of {total_slides}). NO greetings or farewells.\n"
+        
         return (
             f"Here is Slide {slide_idx}.\n"
             f"Existing Notes: \"{existing_notes}\"\n"
             f"Image ID: \"{image_id}\"\n"
             f"Previous Slide Summary: \"{previous_slide_summary}\"\n"
             f"Theme: \"{presentation_theme}\"\n"
-            f"Global Context: \"{global_context}\"\n\n"
+            f"Global Context: \"{global_context}\"\n"
+            f"{slide_position_info}\n"
             f"Please proceed with the workflow."
         )
 

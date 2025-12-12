@@ -30,6 +30,7 @@ For developers and contributors:
 
 - **[Architecture](ARCHITECTURE.md)** - Original system architecture
 - **[Refactored Architecture](REFACTORED_ARCHITECTURE.md)** - Improved architecture design
+- **[Agent Flow Review](AGENT_FLOW_REVIEW.md)** - Code review of agent interactions and data flow
 - **[Refactoring Notes](REFACTORING.md)** - Refactoring process and decisions
 - **[Agent Design Review](AGENT_DESIGN_REVIEW.md)** - Agent system design
 
@@ -91,6 +92,7 @@ docs/
 ├── QUICK_REFERENCE.md             # Command-line reference
 ├── ARCHITECTURE.md                # Original architecture
 ├── REFACTORED_ARCHITECTURE.md     # Improved architecture
+├── AGENT_FLOW_REVIEW.md           # Agent flow code review
 ├── REFACTORING.md                 # Refactoring notes
 ├── AGENT_DESIGN_REVIEW.md         # Agent design
 ├── CODELAB_NOTES.md               # Development notes

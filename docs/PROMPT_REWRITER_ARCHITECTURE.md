@@ -240,9 +240,14 @@
 ┌─────────────────────────────────────────────────────────────┐
 │ Try: LLM-powered rewriting                                  │
 │                                                              │
-│  runner = Runner(agent=self.rewriter_agent)                 │
-│  result = runner.run(rewrite_request)                       │
-│  rewritten = result.text.strip()                            │
+│  runner = InMemoryRunner(agent=self.rewriter_agent, app_name="agents") │
+│  response_text = ""                                         │
+│  for event in runner.run(user_id="user", session_id="session", │
+│                          new_message=rewrite_request):     │
+│      if event.content and event.content.parts:             │
+│          for part in event.content.parts:                  │
+│              response_text += getattr(part, "text", "")     │
+│  rewritten = response_text.strip()                          │
 └──────┬───────────────────────────────────────┬──────────────┘
        │                                       │
        │ Success                               │ Exception

@@ -251,8 +251,8 @@ See [docs/STYLE_CONFIGS.md](docs/STYLE_CONFIGS.md) for details and how to create
 
 ### How It Works
 
-1. **English Baseline** - Always processed first from slide analysis
-2. **Speaker Note Translation** - Other languages translate from English notes using Translator agent (faster)
+1. **English Baseline** - Always processed first from slide analysis with configured speaker style
+2. **Style-Aware Translation** - Other languages translate AND restyle from English notes, applying the target language's speaker style configuration
 3. **Visual Translation** - Image Translator analyzes English visuals, Designer regenerates with translated text
 4. **Organized Output** - All files include language suffix: `filename_{locale}_*`
 
@@ -291,6 +291,7 @@ lecture_yue-HK_visuals/
 - 🌍 **Localized**: Text in visuals translated to target language
 - 📐 **Design Consistency**: Layout and style maintained across languages
 - 🎯 **Consistent**: All versions based on same English baseline
+- 🎭 **Style-Aware**: Each language applies its configured speaker style during translation
 - ✅ **Quality**: English serves as reviewed baseline
 
 ## Output Files
@@ -476,6 +477,7 @@ Comprehensive documentation is available in the `docs/` folder:
 ### Architecture
 - [Architecture](docs/ARCHITECTURE.md) - System architecture overview
 - [Refactored Architecture](docs/REFACTORED_ARCHITECTURE.md) - Improved design
+- [Agent Flow Review](docs/AGENT_FLOW_REVIEW.md) - Code review of agent interactions and data flow
 
 **Full documentation index:** [docs/README.md](docs/README.md)
 

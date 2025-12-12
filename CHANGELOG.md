@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased] - 2025-12-12
+
+### Fixed
+- **Prompt Rewriter Content Object Bug**: Fixed critical coding bug where styles weren't being applied
+  - InMemoryRunner was receiving raw strings instead of proper Content objects, causing silent failures
+  - Fixed all 4 rewrite methods to create proper `types.Content` objects with `types.Part.from_text()`
+  - Added validation to detect empty responses and fall back to concatenation method
+  - Ensures all style configurations (HK Comic, Cyberpunk, Gundam, etc.) are properly applied
+  - Fixes issue where `--style-config hkcomic` was producing professional style instead of martial arts master style
+  - See `PROMPT_REWRITER_EMPTY_RESPONSE_FIX.md` for technical details
+
+- **Translation with Style Application**: Enhanced translator agent to apply speaker styles
+  - Created styled translator agent using prompt rewriter system
+  - Translator agent now applies configured speaker styles during translation (Cyberpunk, Gundam, etc.)
+  - Maintains informational accuracy while adapting tone, vocabulary, and phrasing patterns
+  - Ensures consistent style application across all languages
+  - Integrates with existing agent factory and prompt rewriter architecture
+  - See `TRANSLATION_STYLE_FIX.md` for technical details
+
 ## [Unreleased] - 2025-11-27
 
 ### Added

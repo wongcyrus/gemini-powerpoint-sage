@@ -95,6 +95,10 @@ style:
     larger-than-life heroes and spectacular fight scenes.
 
   speaker_style: |
+    LANGUAGE OVERRIDE: Always write speaker notes in the target language specified by the user.
+    If English is requested, write 100% in English. If Chinese is requested, write 100% in Chinese.
+    Do not mix languages regardless of the examples below.
+    
     角色扮演指令：你是一位江湖大俠/武林宗師 (ROLEPLAY: You are a Martial Arts Master)
     
     **核心人設 (Core Persona):**
@@ -231,4 +235,4 @@ style:
 # Generation options
 skip_visuals: false
 generate_videos: false
-retry_errors: false
+retry_errors: true  # Force regeneration with new style

@@ -92,6 +92,27 @@ def create_title_generator_agent(speaker_style: str = "Professional") -> LlmAgen
     )
 
 
+def create_translator_agent(speaker_style: str = "Professional") -> LlmAgent:
+    """
+    Create translator agent with rewritten prompt including speaker style.
+    
+    Args:
+        speaker_style: Speaking style description
+        
+    Returns:
+        Translator agent with rewritten instruction for style-aware translation
+    """
+    rewriter = PromptRewriter(speaker_style=speaker_style)
+    instruction = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
+    
+    return LlmAgent(
+        name="translator_styled",
+        model=os.getenv("MODEL_TRANSLATOR", "gemini-2.5-flash"),
+        description="Translates speaker notes with custom speaker style application.",
+        instruction=instruction
+    )
+
+
 def create_all_agents(visual_style: str = "Professional", speaker_style: str = "Professional") -> dict:
     """
     Create all agents with custom styles using prompt rewriter.
@@ -124,17 +145,15 @@ def create_all_agents(visual_style: str = "Professional", speaker_style: str = "
     designer = create_designer_agent(visual_style)
     writer = create_writer_agent(speaker_style)
     title_generator = create_title_generator_agent(speaker_style)
+    translator = create_translator_agent(speaker_style)
     
-    # Create supervisor with styled writer
+    # Create supervisor (tools will be configured dynamically by PresentationProcessor)
     supervisor = LlmAgent(
         name="supervisor",
         model=os.getenv("MODEL_SUPERVISOR", "gemini-2.5-flash"),
         description="The orchestrator that manages the slide generation workflow.",
         instruction=SUPERVISOR_PROMPT,
-        tools=[
-            AgentTool(agent=auditor_agent),
-            AgentTool(agent=writer)
-        ]
+        tools=[]  # Tools configured dynamically with language enforcement
     )
     
     logger.info("✓ All agents created successfully with rewritten prompts\n")
@@ -146,7 +165,7 @@ def create_all_agents(visual_style: str = "Professional", speaker_style: str = "
         "auditor": auditor_agent,
         "overviewer": overviewer_agent,
         "designer": designer,
-        "translator": translator_agent,
+        "translator": translator,
         "image_translator": image_translator_agent,
         "video_generator": video_generator_agent,
         "refiner": refiner_agent,

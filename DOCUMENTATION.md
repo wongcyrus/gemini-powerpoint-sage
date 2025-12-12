@@ -28,6 +28,7 @@ All detailed documentation is in the `docs/` folder:
 ### Developer Documentation
 - **[Architecture](docs/ARCHITECTURE.md)** - System architecture
 - **[Refactored Architecture](docs/REFACTORED_ARCHITECTURE.md)** - Improved design
+- **[Agent Flow Review](docs/AGENT_FLOW_REVIEW.md)** - Code review of agent interactions and data flow
 - **[Refactoring Notes](docs/REFACTORING.md)** - Refactoring process
 - **[Agent Design Review](docs/AGENT_DESIGN_REVIEW.md)** - Agent system
 - **[Codelab Notes](docs/CODELAB_NOTES.md)** - Development notes

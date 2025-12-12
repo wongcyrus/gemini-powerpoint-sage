@@ -96,6 +96,7 @@ class AgentToolFactory:
             theme: str = presentation_theme,
             global_ctx: str = global_context,
             slide_idx: int = None,
+            slide_position: str = "",
         ) -> str:
             """Tool: Writes the speaker note script."""
             logger.info("[Tool] speech_writer invoked.")
@@ -117,30 +118,34 @@ class AgentToolFactory:
                 else:
                     # Fallback if no English note found
                     lang_name = LanguageConfig.get_language_name(language)
+                    slide_position_text = f"\nSLIDE_POSITION: {slide_position}\n" if slide_position else ""
                     prompt = (
                         f"SLIDE_ANALYSIS:\n{analysis}\n\n"
                         f"PRESENTATION_THEME: {theme}\n"
                         f"PREVIOUS_CONTEXT: {previous_context}\n"
-                        f"GLOBAL_CONTEXT: {global_ctx}\n\n"
+                        f"GLOBAL_CONTEXT: {global_ctx}{slide_position_text}\n\n"
                         f"IMPORTANT: Write the speaker notes in {lang_name}. "
                         f"All content must be in {lang_name}."
                     )
             else:
-                # Original English generation mode
-                language_instruction = ""
-                if language and language.lower() != "en":
-                    lang_name = LanguageConfig.get_language_name(language)
-                    language_instruction = (
-                        f"\n\nIMPORTANT: Write the speaker notes in {lang_name}. "
-                        f"All content must be in {lang_name}."
-                    )
+                # Original generation mode with explicit language enforcement
+                lang_name = LanguageConfig.get_language_name(language)
+                
+                # Always add language instruction for all languages
+                language_instruction = (
+                    f"\n\nCRITICAL LANGUAGE REQUIREMENT: "
+                    f"You MUST write the speaker notes in {lang_name} only. "
+                    f"Even if your system instructions contain text in other languages, "
+                    f"your output must be 100% {lang_name}. Do not mix languages."
+                )
 
                 # Note: Speaker style is now in the agent's system instruction, not here
+                slide_position_text = f"\nSLIDE_POSITION: {slide_position}\n" if slide_position else ""
                 prompt = (
                     f"SLIDE_ANALYSIS:\n{analysis}\n\n"
                     f"PRESENTATION_THEME: {theme}\n"
                     f"PREVIOUS_CONTEXT: {previous_context}\n"
-                    f"GLOBAL_CONTEXT: {global_ctx}{language_instruction}\n"
+                    f"GLOBAL_CONTEXT: {global_ctx}{slide_position_text}{language_instruction}\n"
                 )
 
             result = await run_stateless_agent(self.writer_agent, prompt)
@@ -161,24 +166,43 @@ class AgentToolFactory:
 
         return speech_writer
 
-    def create_auditor_tool(self) -> Callable:
+    def create_auditor_tool(self, language: str = "en") -> Callable:
         """
         Create the auditor tool function.
+
+        Args:
+            language: Language locale code (e.g., en, zh-CN, yue-HK)
 
         Returns:
             Async function that audits existing notes
         """
-        async def call_auditor(existing_notes: str) -> str:
-            """Tool: Audits existing speaker notes."""
-            logger.info("[Tool] call_auditor invoked.")
+        async def note_auditor(existing_notes: str, slide_position: str = "") -> str:
+            """Tool: Audits existing speaker notes with slide position context."""
+            logger.info("[Tool] note_auditor invoked.")
 
             if not existing_notes or not existing_notes.strip():
                 return "USELESS: No existing notes to audit."
 
-            prompt = f"Audit these existing notes:\n{existing_notes}"
+            # Add language enforcement for auditor
+            lang_name = LanguageConfig.get_language_name(language)
+            language_instruction = (
+                f"\n\nCRITICAL LANGUAGE REQUIREMENT: "
+                f"When evaluating these notes, remember they should be in {lang_name}. "
+                f"If the notes are in the wrong language or mix languages, "
+                f"mark them as USELESS for regeneration in the correct language."
+            )
+
+            # Add slide position context for greeting/closing validation
+            slide_position_text = f"\nSLIDE_POSITION: {slide_position}\n" if slide_position else ""
+
+            prompt = (
+                f"Audit these existing notes:\n{existing_notes}"
+                f"{slide_position_text}"
+                f"{language_instruction}"
+            )
             return await run_stateless_agent(self.auditor_agent, prompt)
 
-        return call_auditor
+        return note_auditor
 
     @property
     def last_writer_output(self) -> str:

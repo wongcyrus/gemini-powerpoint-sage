@@ -200,7 +200,8 @@ class UnifiedProcessor:
             raise ValueError(f"Configuration file {config_path} must specify 'input_folder'")
         
         # Scan for files in the specified input folder
-        file_sets = self.scanner.scan_directory(input_folder)
+        from pathlib import Path
+        file_sets = self.scanner.scan_directory(Path(input_folder))
         
         if not file_sets:
             logger.warning(f"No PPTX/PDF pairs found in input folder: {input_folder}")
