@@ -29,7 +29,10 @@ Start here if you're new to the project:
 For developers and contributors:
 
 - **[Architecture](ARCHITECTURE.md)** - System architecture overview
-- **[Prompt Rewriter](PROMPT_REWRITER.md)** - Prompt rewriter system
+- **[Agent Flow Detailed](AGENT_FLOW_DETAILED.md)** - Complete agent logic flow and relationships
+- **[Agent Relationships](AGENT_RELATIONSHIPS.md)** - Agent interactions and dependencies
+- **[Prompt Rewriter](PROMPT_REWRITER.md)** - Prompt rewriter system overview
+- **[Prompt Rewriter Agent Details](PROMPT_REWRITER_AGENT_DETAILS.md)** - Detailed meta-agent analysis
 
 ## 🎯 Quick Links by Task
 
@@ -69,8 +72,11 @@ docs/
 ├── DEVELOPER_REFERENCE.md         # Developer reference
 ├── TESTING_GUIDE.md               # Testing guide
 ├── CHINESE_LOCALE_SUPPORT.md      # Chinese locale support
-├── ARCHITECTURE.md                # System architecture
-└── PROMPT_REWRITER.md             # Prompt rewriter system
+├── ARCHITECTURE.md                # System architecture overview
+├── AGENT_FLOW_DETAILED.md         # Complete agent logic flow trace
+├── AGENT_RELATIONSHIPS.md         # Agent interactions and dependencies
+├── PROMPT_REWRITER.md             # Prompt rewriter system overview
+└── PROMPT_REWRITER_AGENT_DETAILS.md # Detailed meta-agent analysis
 ```
 
 ## 🔄 Documentation Updates

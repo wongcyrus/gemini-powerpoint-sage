@@ -260,6 +260,7 @@ TRANSLATOR = "gemini-2.5-flash"
 IMAGE_TRANSLATOR = "gemini-3-pro-image-preview"
 VIDEO_GENERATOR = "gemini-2.5-flash"
 REFINER = "gemini-2.5-flash"
+PROMPT_REWRITER = "gemini-2.5-flash"
 FALLBACK_IMAGEN = "imagen-4.0-generate-001"
 ```
 

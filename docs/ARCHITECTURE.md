@@ -170,41 +170,126 @@
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-## Data Flow
+## Agent Interaction Flow
 
 ```
-┌─────────────┐
-│ User Input  │ --pptx, --pdf, --course-id--> ┌──────────┐
-│ (CLI Args)  │                                │  Config  │
-└─────────────┘                                └────┬─────┘
-                                                    │
-                                                    ▼
-                                          ┌──────────────────┐
-                                          │ Presentation     │
-                                          │ Processor        │
-                                          └────┬─────────┬───┘
-                                               │         │
-                ┌──────────────────────────────┘         └───────────────┐
-                │                                                        │
-                ▼                                                        ▼
-     ┌──────────────────┐                                    ┌──────────────────┐
-     │ Agent Tools      │                                    │ Visual Generator │
-     │ (via Factory)    │                                    │                  │
-     └────┬─────────────┘                                    └────┬─────────────┘
-          │                                                       │
-          ▼                                                       ▼
-     ┌─────────────────────┐                           ┌─────────────────────┐
-     │ Agent Execution     │                           │ Enhanced Visuals    │
-     │ (via agent_utils)   │                           │ (PNG files)         │
-     └─────────────────────┘                           └─────────────────────┘
-               │                                                     │
-               └──────────────────┬──────────────────────────────────┘
-                                  │
-                                  ▼
-                        ┌──────────────────┐
-                        │ Enhanced PPTX    │
-                        │ with Notes       │
-                        └──────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           PRESENTATION PROCESSOR                             │
+│                              (3 Phases)                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                    ┌─────────────────┼─────────────────┐
+                    │                 │                 │
+                    ▼                 ▼                 ▼
+         ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+         │   PHASE 1:      │ │   PHASE 2:      │ │   PHASE 3:      │
+         │ Generate Notes  │ │Generate Visuals │ │Generate Videos  │
+         └─────────────────┘ └─────────────────┘ └─────────────────┘
+                    │                 │                 │
+                    ▼                 ▼                 ▼
+         ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+         │  OVERVIEWER     │ │    DESIGNER     │ │ VIDEO GENERATOR │
+         │ (Global Context)│ │ (Visual Gen.)   │ │ (Video Prompts) │
+         └─────────────────┘ └─────────────────┘ └─────────────────┘
+                    │
+                    ▼
+         ┌─────────────────────────────────────────────────────────┐
+         │              SUPERVISOR WORKFLOW                        │
+         │                 (Per Slide)                            │
+         │                                                         │
+         │  1. AUDITOR ──→ 2. ANALYST ──→ 3. WRITER               │
+         │     │              │              │                    │
+         │     ▼              ▼              ▼                    │
+         │  Quality       Content        Speaker                  │
+         │  Check         Analysis       Notes                    │
+         │                                                         │
+         │  Alternative Path: TRANSLATOR (Translation Mode)       │
+         └─────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+         ┌─────────────────────────────────────────────────────────┐
+         │              PROMPT REWRITER (META-AGENT)               │
+         │                 (Agent Creation Time)                   │
+         │                                                         │
+         │  Base Prompts + Style Guidelines → Rewritten Prompts   │
+         │                                                         │
+         │  • Designer: Visual style integration                   │
+         │  • Writer: Speaker style integration                    │
+         │  • Translator: Speaker style integration                │
+         │  • Title Generator: Speaker style integration           │
+         └─────────────────────────────────────────────────────────┘
+```
+
+## Detailed Agent Relationships
+
+```
+                    ┌─────────────────────────────────────────┐
+                    │           AGENT ECOSYSTEM               │
+                    └─────────────────────────────────────────┘
+                                      │
+        ┌─────────────────────────────┼─────────────────────────────┐
+        │                             │                             │
+        ▼                             ▼                             ▼
+┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
+│  OVERVIEWER     │         │   SUPERVISOR    │         │  PROMPT         │
+│                 │         │                 │         │  REWRITER       │
+│ • Analyzes ALL  │         │ • Orchestrates  │         │  (META-AGENT)   │
+│   slides at once│         │   workflow      │         │                 │
+│ • Creates global│         │ • Makes         │         │ • Rewrites      │
+│   context       │         │   decisions     │         │   prompts with  │
+│ • Defines       │         │ • Coordinates   │         │   style         │
+│   narrative arc │         │   other agents  │         │ • LLM-powered   │
+└─────────────────┘         └─────────────────┘         │ • Creation time │
+        │                             │                 │ • Fallback safe │
+        │                             ▼                 └─────────────────┘
+        │                   ┌─────────────────┐                     │
+        │                   │    AUDITOR      │                     │
+        │                   │                 │                     │
+        │                   │ • Quality check │                     │
+        │                   │ • Language      │                     │
+        │                   │   validation    │                     │
+        │                   │ • USEFUL/       │                     │
+        │                   │   USELESS       │                     │
+        │                   └─────────────────┘                     │
+        │                             │                             │
+        │                             ▼                             │
+        │                   ┌─────────────────┐                     │
+        │                   │    ANALYST      │                     │
+        │                   │                 │                     │
+        │                   │ • Slide vision  │                     │
+        │                   │ • Content       │                     │
+        │                   │   extraction    │                     │
+        │                   │ • Visual        │                     │
+        │                   │   analysis      │                     │
+        │                   └─────────────────┘                     │
+        │                             │                             │
+        │                             ▼                             │
+        └─────────────────────────────┼─────────────────────────────┘
+                                      ▼                             │
+                            ┌─────────────────┐                     │
+                            │     WRITER      │◄────────────────────┘
+                            │                 │    Style Integration
+                            │ • Speaker notes │    (at creation time)
+                            │ • Language      │
+                            │   enforcement   │
+                            │ • Style         │
+                            │   application   │
+                            └─────────────────┘
+                                      │
+                    ┌─────────────────┼─────────────────┐
+                    │                 │                 │
+                    ▼                 ▼                 ▼
+         ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+         │   TRANSLATOR    │ │    DESIGNER     │ │ IMAGE           │
+         │                 │ │                 │ │ TRANSLATOR      │
+         │ • Style-aware   │ │ • Visual        │ │                 │
+         │   translation   │ │   generation    │ │ • Visual        │
+         │ • Cultural      │ │ • Style         │ │   analysis      │
+         │   adaptation    │ │   integration   │ │ • Translation   │
+         │ • Bypasses      │ │ • Layout        │ │   specs         │
+         │   supervisor    │ │   optimization  │ │ • Works with    │
+         │   in trans mode │ │                 │ │   Designer      │
+         └─────────────────┘ └─────────────────┘ └─────────────────┘
 ```
 
 ## Module Dependencies
@@ -235,6 +320,136 @@ main.py
        │    └── pptx
        └── application.logging_setup
 ```
+
+## Agent Workflow Details
+
+### Phase 1: Speaker Notes Generation
+
+**Per-Slide Supervisor Workflow (Strict 5-Step Process):**
+
+```
+1. AUDIT EXISTING NOTES
+   ├─ Supervisor calls: note_auditor(existing_notes, slide_position)
+   ├─ Auditor evaluates quality and language correctness
+   └─ Returns: "USEFUL" or "USELESS" with reasoning
+
+2. DECISION POINT
+   ├─ If "USEFUL" → Return existing notes immediately (END)
+   └─ If "USELESS" → Continue to step 3
+
+3. ANALYZE SLIDE CONTENT  
+   ├─ Supervisor calls: call_analyst(image_id)
+   ├─ Analyst examines slide image for content
+   └─ Returns: Structured analysis (topic, details, visuals, intent)
+
+4. GENERATE SPEAKER NOTES
+   ├─ Supervisor calls: speech_writer(analysis, context, theme, global_context)
+   ├─ Writer creates notes using all context + style
+   └─ Returns: Natural speaker script
+
+5. RETURN FINAL RESPONSE
+   ├─ Supervisor outputs exact text from writer
+   └─ No modification or commentary added
+```
+
+**Translation Mode Alternative:**
+```
+Non-English + English Notes Available:
+├─ Bypass supervisor workflow entirely
+├─ Use styled Translator agent directly
+├─ Apply speaker style during translation
+└─ 2-3x faster than full generation
+```
+
+### Phase 2: Visual Generation
+
+**Visual Processing Decision Tree:**
+
+```
+English Language:
+├─ Designer generates visuals directly
+├─ Uses slide image + speaker notes + visual style
+└─ Outputs enhanced slide image (PNG)
+
+Non-English Language:
+├─ Check for existing English visuals
+├─ If found:
+│   ├─ Image Translator analyzes English visual
+│   ├─ Provides translation specifications
+│   ├─ Designer regenerates with translated content
+│   └─ Maintains layout and style consistency
+└─ If not found:
+    ├─ Generate directly in target language
+    └─ Designer uses language-specific prompts
+```
+
+### Phase 3: Video Generation (Optional)
+
+**Video Processing Flow:**
+
+```
+For Each Successful Slide:
+├─ Extract video prompt from speaker notes
+├─ Video Generator creates professional video concept
+├─ MCP integration with Veo 3.1 (if available)
+├─ Generate 8-10 second promotional video
+└─ Save video prompts and artifacts
+```
+
+## Agent Communication Patterns
+
+### Tool Factory Pattern
+```python
+# Supervisor uses tools created by AgentToolFactory
+tools = [
+    factory.create_analyst_tool(),    # Wraps analyst agent
+    factory.create_writer_tool(),     # Wraps writer agent  
+    factory.create_auditor_tool(),    # Wraps auditor agent
+]
+supervisor_agent.tools = tools
+```
+
+### Fallback Mechanisms
+```python
+# Writer output capture for supervisor fallback
+self._last_writer_output = result  # Captured in tool factory
+if supervisor_returns_empty:
+    return self.tool_factory.last_writer_output  # Fallback
+```
+
+### Style Integration Points
+```python
+# Prompt Rewriter integrates styles at agent creation
+rewriter = PromptRewriter(visual_style, speaker_style)
+designer_prompt = rewriter.rewrite_designer_prompt(base_prompt)
+writer_prompt = rewriter.rewrite_writer_prompt(base_prompt)
+translator_prompt = rewriter.rewrite_translator_prompt(base_prompt)
+title_gen_prompt = rewriter.rewrite_title_generator_prompt(base_prompt)
+```
+
+### Prompt Rewriter Execution Timeline
+```
+System Startup
+    ↓
+YAML Config Loading (visual_style + speaker_style)
+    ↓
+Agent Factory Initialization
+    ↓
+Prompt Rewriter Agent Creation
+    ↓
+For Each Styled Agent:
+    ├─ Load Base Prompt
+    ├─ Call Prompt Rewriter Agent (LLM)
+    ├─ Receive Rewritten Prompt
+    ├─ Create Agent with Styled Prompt
+    └─ Agent Ready for Content Processing
+    ↓
+All Agents Created and Style-Integrated
+    ↓
+Begin Presentation Processing (Phases 1-3)
+```
+
+**Key Insight**: The Prompt Rewriter operates **before** any content processing begins, ensuring all agents are style-aware from the start.
 
 ## Key Design Principles
 
