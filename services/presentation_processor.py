@@ -580,23 +580,33 @@ class PresentationProcessor:
                         "--- Pass 1: Translating Global Context from English ---"
                     )
                     
-                    locale_map = {
-                        "zh-CN": "Simplified Chinese (简体中文)",
-                        "zh-TW": "Traditional Chinese (繁體中文)",
-                        "yue-HK": "Cantonese (廣東話)",
-                        "es": "Spanish (Español)",
-                        "fr": "French (Français)",
-                        "ja": "Japanese (日本語)",
-                        "ko": "Korean (한국어)",
-                    }
-                    lang_name = locale_map.get(
-                        self.config.language,
-                        self.config.language
-                    )
+                    from config.constants import LanguageConfig
+                    lang_name = LanguageConfig.get_language_name(self.config.language)
                     
+                    # Add Chinese locale specific instructions
+                    chinese_instruction = ""
+                    if self.config.language == "zh-CN":
+                        chinese_instruction = (
+                            f"\n\nCHINESE LOCALE REQUIREMENT: "
+                            f"You MUST use ONLY Simplified Chinese characters (简体中文). "
+                            f"Examples: Use 网络 (not 網絡), 数据 (not 數據), 计算机 (not 計算機)."
+                        )
+                    elif self.config.language in ["zh-TW", "zh-HK", "yue-HK"]:
+                        chinese_instruction = (
+                            f"\n\nCHINESE LOCALE REQUIREMENT: "
+                            f"You MUST use ONLY Traditional Chinese characters (繁體中文). "
+                            f"Examples: Use 網絡 (not 网络), 數據 (not 数据), 計算機 (not 计算机)."
+                        )
+                    
+                    # Use styled translation for global context
                     translate_prompt = (
-                        f"Translate the following presentation overview "
-                        f"to {lang_name}:\n\n{en_global_context}"
+                        f"Translate the following presentation overview to {lang_name}. "
+                        f"Apply the configured speaker style and adapt cultural references appropriately. "
+                        f"Maintain the narrative structure and key vocabulary while ensuring the content "
+                        f"sounds natural and engaging in {lang_name}.\n\n"
+                        f"PRESENTATION OVERVIEW:\n{en_global_context}\n\n"
+                        f"IMPORTANT: Provide ONLY the translated overview in {lang_name}. "
+                        f"Do not include explanations or metadata.{chinese_instruction}"
                     )
                     
                     global_context = await run_stateless_agent(
