@@ -7,46 +7,29 @@ Welcome to the Gemini Powerpoint Sage documentation!
 Start here if you're new to the project:
 
 1. **[Quick Start Guide](QUICK_START.md)** - Get up and running in 3 steps
-2. **[Three Processing Modes](../FINAL_SYSTEM_SUMMARY.md)** - Understand the new system
-3. **[Migration Guide](../MIGRATION_GUIDE.md)** - Migrate from old system
-4. **[Chinese Locale Support](CHINESE_LOCALE_SUPPORT.md)** - Traditional vs Simplified Chinese
-4. **[Configuration File Guide](CONFIG_FILE_GUIDE.md)** - Learn to use YAML configs
-5. **[Style Examples](STYLE_EXAMPLES.md)** - Customize your presentation style
+2. **[Configuration File Guide](CONFIG_FILE_GUIDE.md)** - Learn to use YAML configs
+3. **[Style Examples](STYLE_EXAMPLES.md)** - Customize your presentation style
 
 ## 📖 User Guides
 
 ### Core Features
 - **[Configuration File Guide](CONFIG_FILE_GUIDE.md)** - Manage settings with YAML files
-- **[Style Examples](STYLE_EXAMPLES.md)** - Apply themes like Gundam, Cyberpunk, Minimalist
+- **[Style Examples](STYLE_EXAMPLES.md)** - Apply themes like Gundam, Cyberpunk, etc.
 - **[Style Prompts Guide](STYLE_PROMPTS.md)** - Create detailed multi-line style prompts
 - **[Folder Structure](FOLDER_STRUCTURE.md)** - Understand output organization
+- **[Chinese Locale Support](CHINESE_LOCALE_SUPPORT.md)** - Traditional vs Simplified Chinese
 
-### Advanced Topics
+### Reference
 - **[User Quick Reference](../QUICK_REFERENCE.md)** - Command-line reference and tips
 - **[Developer Reference](DEVELOPER_REFERENCE.md)** - Code patterns and APIs
 - **[Testing Guide](TESTING_GUIDE.md)** - Test commands and validation
-- **[Usage Examples](../examples/usage_examples.py)** - Code examples for all three modes
 
 ## 🏗️ Architecture & Development
 
 For developers and contributors:
 
-- **[Architecture](ARCHITECTURE.md)** - Original system architecture
-- **[Refactored Architecture](REFACTORED_ARCHITECTURE.md)** - Improved architecture design
-- **[Agent Flow Review](AGENT_FLOW_REVIEW.md)** - Code review of agent interactions and data flow
-- **[Refactoring Notes](REFACTORING.md)** - Refactoring process and decisions
-- **[Agent Design Review](AGENT_DESIGN_REVIEW.md)** - Agent system design
-
-## 📝 Additional Resources
-
-### System Documentation
-- **[Final System Summary](../FINAL_SYSTEM_SUMMARY.md)** - Complete three-mode system overview
-- **[Pure YAML Summary](../PURE_YAML_SUMMARY.md)** - YAML-driven approach details
-- **[Refactoring Summary](../REFACTORING_SUMMARY.md)** - What was changed and why
-
-### Development Resources
-- **[Codelab Notes](CODELAB_NOTES.md)** - Development notes and examples
-- **[README (Refactored)](README_REFACTORED.md)** - Alternative README version
+- **[Architecture](ARCHITECTURE.md)** - System architecture overview
+- **[Prompt Rewriter](PROMPT_REWRITER.md)** - Prompt rewriter system
 
 ## 🎯 Quick Links by Task
 
@@ -54,12 +37,6 @@ For developers and contributors:
 
 **Get started quickly**
 → [Quick Start Guide](QUICK_START.md)
-
-**Understand the new three-mode system**
-→ [Final System Summary](../FINAL_SYSTEM_SUMMARY.md)
-
-**Migrate from the old system**
-→ [Migration Guide](../MIGRATION_GUIDE.md)
 
 **Use YAML configuration files**
 → [Configuration File Guide](CONFIG_FILE_GUIDE.md)
@@ -77,10 +54,7 @@ For developers and contributors:
 → [Folder Structure](FOLDER_STRUCTURE.md)
 
 **Learn about the system architecture**
-→ [Refactored Architecture](REFACTORED_ARCHITECTURE.md)
-
-**Contribute to the project**
-→ [Architecture](ARCHITECTURE.md) + [Refactoring Notes](REFACTORING.md)
+→ [Architecture](ARCHITECTURE.md)
 
 ## 📂 Documentation Structure
 
@@ -89,17 +63,14 @@ docs/
 ├── README.md                      # This file - documentation index
 ├── QUICK_START.md                 # Quick start guide
 ├── CONFIG_FILE_GUIDE.md           # Configuration file guide
-├── STYLE_EXAMPLES.md              # Style/theme examples
+├── STYLE_EXAMPLES.md              # Style gallery and customization
 ├── STYLE_PROMPTS.md               # Detailed style prompt guide
 ├── FOLDER_STRUCTURE.md            # Output folder structure
-├── QUICK_REFERENCE.md             # Command-line reference
-├── ARCHITECTURE.md                # Original architecture
-├── REFACTORED_ARCHITECTURE.md     # Improved architecture
-├── AGENT_FLOW_REVIEW.md           # Agent flow code review
-├── REFACTORING.md                 # Refactoring notes
-├── AGENT_DESIGN_REVIEW.md         # Agent design
-├── CODELAB_NOTES.md               # Development notes
-└── README_REFACTORED.md           # Alternative README
+├── DEVELOPER_REFERENCE.md         # Developer reference
+├── TESTING_GUIDE.md               # Testing guide
+├── CHINESE_LOCALE_SUPPORT.md      # Chinese locale support
+├── ARCHITECTURE.md                # System architecture
+└── PROMPT_REWRITER.md             # Prompt rewriter system
 ```
 
 ## 🔄 Documentation Updates

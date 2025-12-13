@@ -8,9 +8,6 @@ Takes a PowerPoint (`.pptx`) and its corresponding PDF export (`.pdf`) as input.
 
 - **[Quick Start](docs/QUICK_START.md)** - Get running in 3 steps
 - **[User Guide](QUICK_REFERENCE.md)** - Commands, styles, and workflows  
-- **[Developer Reference](docs/DEVELOPER_REFERENCE.md)** - Code patterns and APIs
-- **[Architecture](docs/ARCHITECTURE.md)** - System design and components
-- **[Chinese Locale Support](docs/CHINESE_LOCALE_SUPPORT.md)** - Traditional vs Simplified Chinese
 - **[All Documentation](docs/README.md)** - Complete documentation index
 
 ## Architecture
@@ -28,9 +25,7 @@ The system employs a sophisticated multi-agent approach, orchestrated in a two-p
 7. **Translator Agent** (`gemini-2.0-flash-exp`): Translates speaker notes while maintaining technical accuracy and cultural appropriateness
 8. **Image Translator Agent** (`gemini-exp-1206`): Analyzes English visuals and provides translations with culturally adapted descriptions
 
-### Additional Documentation
 
-See the extended design rationale, sequence flows, and agent interface contracts in: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## Key Features
 
@@ -469,26 +464,7 @@ This ensures robustness against model unpredictability.
 - **Presentation Theme**: Overall theme derived from generic default or `--course-id` (if provided)
 - **Global Context**: Overviewer Agent analyzes all slides first to create comprehensive context guide ensuring consistency
 
-## 📚 Documentation
 
-Comprehensive documentation is available in the `docs/` folder:
-
-### Quick Start
-- [Quick Start Guide](docs/QUICK_START.md) - Get started in 3 easy steps
-- [Configuration File Guide](docs/CONFIG_FILE_GUIDE.md) - Use YAML config files
-- [Style Examples](docs/STYLE_EXAMPLES.md) - Apply custom themes
-
-### Reference
-- [Folder Structure](docs/FOLDER_STRUCTURE.md) - Understand output organization
-- [Quick Reference](docs/QUICK_REFERENCE.md) - Command-line reference
-- [Run All Styles](docs/RUN_ALL_STYLES.md) - Batch style processing
-
-### Architecture
-- [Architecture](docs/ARCHITECTURE.md) - System architecture overview
-- [Refactored Architecture](docs/REFACTORED_ARCHITECTURE.md) - Improved design
-- [Agent Flow Review](docs/AGENT_FLOW_REVIEW.md) - Code review of agent interactions and data flow
-
-**Full documentation index:** [docs/README.md](docs/README.md)
 
 ## Environment Variables (Optional)
 
@@ -510,6 +486,6 @@ $env:GOOGLE_CLOUD_LOCATION = 'us-central1'
 
 See [LICENSE](LICENSE) file for details.
 
-## Changelog
+## Version History
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and feature updates.

@@ -1,151 +1,254 @@
-# Style/Theme Examples for Gemini Powerpoint Sage
+# Style Configuration Gallery
 
-The `--style` parameter allows you to customize the visual and narrative style of your presentation. This affects both the speaker notes tone and the slide visual design.
+This guide shows you how to customize presentation styles using YAML configuration files.
 
-> 💡 **New!** For detailed, multi-line style prompts, see [Style Prompts Guide](STYLE_PROMPTS.md)
+## Available Style Configurations
 
-## Usage
+The project includes several pre-configured style templates that demonstrate the power of the prompt rewriter agent. Each config combines visual aesthetics with matching speaker personas for cohesive presentations.
 
-### Command Line
+---
+
+## 🤖 gundam Style (`config.gundam.yaml`)
+
+**Visual Aesthetic:** Mecha anime with high-quality cel-shaded art, detailed mechanical designs, and dramatic space colony backgrounds.
+
+**Speaker Persona:** Char Aznable-style antagonist - aristocratic, philosophical, and melodramatic. Speaks about "gravity" (legacy systems) vs. "evolution" (innovation).
+
+**Best For:**
+- Tech presentations with a dramatic flair
+- Product launches that need epic energy
+- Presentations about transformation and evolution
+
+**Key Phrases:**
+- "Their souls are weighed down by gravity!"
+- "Behold, the power of the Cloud..."
+- "I came here to laugh at you, but instead, I will save you!"
+
+**Color Palette:**
+- Tricolor: Blue, White, Red, Yellow
+- Military schemes: OD Green, Desert Sand, Titans Blue
+- Minovsky particle effects: Pink/Green glitter
+
+**Usage:**
 ```bash
-# Gundam/Mecha style
-python main.py --pptx presentation.pptx --pdf presentation.pdf --style "Gundam"
-
-# Cyberpunk style
-python main.py --pptx presentation.pptx --pdf presentation.pdf --style "Cyberpunk"
-
-# Minimalist style
-python main.py --pptx presentation.pptx --pdf presentation.pdf --style "Minimalist"
-
-# Corporate/Professional (default)
-python main.py --pptx presentation.pptx --pdf presentation.pdf --style "Corporate"
+python main.py --style-config gundam
 ```
 
-### Environment Variable
-```bash
-# Set in .env file
-PRESENTATION_STYLE=Gundam
+---
 
-# Then run without --style flag
-python main.py --pptx presentation.pptx --pdf presentation.pdf
+## 🌌 starwars Style (`config.starwars.yaml`)
+
+**Visual Aesthetic:** Epic space opera with Ralph McQuarrie-inspired concept art, deep space backgrounds, and cinematic lighting.
+
+**Speaker Persona:** Jedi Master addressing the Rebel Alliance - wise, inspirational, strategic with philosophical undertones about the Force and destiny.
+
+**Best For:**
+- Strategic presentations
+- Mission-critical briefings
+- Inspirational talks about innovation and change
+- Technical presentations that need gravitas
+
+**Key Phrases:**
+- "There is a disturbance in the Force..."
+- "The fate of the galaxy hangs in the balance..."
+- "This is the way"
+- "May the Force be with us"
+
+**Color Palette:**
+- Deep Space Black (#000000)
+- Imperial Gray (#4A4A4A)
+- Rebel Orange (#FF6B35)
+- Lightsaber colors: Blue, Green, Red
+- Hyperspace Blue (#0077B6)
+- Gold/Yellow (#FFD60A)
+
+**Usage:**
+```bash
+python main.py --style-config starwars
 ```
 
-## Style Examples
+---
 
-### 🤖 Gundam Style
-**Visual Design:**
-- Futuristic, mecha-inspired aesthetics
-- Bold angular shapes and tech elements
-- Military/tactical color schemes
-- Technical diagrams and schematics
+## 🌃 cyberpunk Style (`config.cyberpunk.yaml`)
 
-**Speaker Notes Tone:**
-- Strategic and tactical language
-- Military precision terminology
-- Technical mecha/engineering references
-- Example: "Deploy this solution across all sectors..." instead of "Use this solution..."
+**Visual Aesthetic:** Neon-soaked dystopian future with electric colors, dark backgrounds, and glitch effects.
 
-### 🌃 Cyberpunk Style
-**Visual Design:**
-- Neon colors (cyan, magenta, purple)
-- Glitch effects and digital aesthetics
-- Dystopian tech vibes
-- High contrast, dark backgrounds
+**Speaker Persona:** Tech-savvy street philosopher - edgy, direct, and cutting through corporate BS with raw truth.
 
-**Speaker Notes Tone:**
-- Edgy, tech-savvy language
-- Slightly rebellious or disruptive tone
-- Hacker/tech culture references
-- Example: "Hack the system by..." instead of "Improve the system by..."
+**Best For:**
+- Disruptive tech presentations
+- Startup pitches
+- Presentations challenging the status quo
+- Cybersecurity and hacking topics
 
-### ⚪ Minimalist Style
-**Visual Design:**
-- Clean lines and simple shapes
-- Lots of whitespace
-- Monochromatic or limited color palette
-- Sans-serif typography
+**Key Phrases:**
+- "Wake up, samurai..."
+- "The system is rigged..."
+- "Time to jack in..."
 
-**Speaker Notes Tone:**
-- Clear, concise, no fluff
-- Direct communication
-- Short sentences
-- Example: "Three key points. First..." instead of "Let me walk you through three important considerations..."
+**Color Palette:**
+- Electric Blue (#00FFFF)
+- Hot Pink (#FF1493)
+- Purple (#9D00FF)
+- Dark backgrounds (#0A0E27)
+- Neon accents and glows
 
-### 💼 Corporate/Professional Style (Default)
-**Visual Design:**
-- Conservative, business-appropriate
-- Professional color schemes (blues, grays)
-- Traditional layouts
-- Charts and data visualizations
-
-**Speaker Notes Tone:**
-- Formal, professional terminology
-- Business-appropriate language
-- Structured and organized
-- Example: "Our analysis indicates..." instead of "We found..."
-
-## Custom Styles
-
-You can create your own custom styles by providing descriptive names:
-
+**Usage:**
 ```bash
-# Anime style
-python main.py --pptx presentation.pptx --style "Anime - vibrant colors, dynamic compositions"
-
-# Retro 80s style
-python main.py --pptx presentation.pptx --style "Retro 80s - neon colors, geometric patterns"
-
-# Nature/Organic style
-python main.py --pptx presentation.pptx --style "Nature - organic shapes, earth tones, natural imagery"
-
-# Sci-Fi style
-python main.py --pptx presentation.pptx --style "Sci-Fi - futuristic, space themes, holographic effects"
+python main.py --style-config cyberpunk
 ```
 
-### Multi-Line Detailed Styles
+---
 
-For maximum control, use multi-line YAML style definitions in your config file:
+## 📋 professional Style (`config.professional.yaml`)
+
+**Visual Aesthetic:** Professional and clean with modern design principles.
+
+**Speaker Persona:** Standard professional presenter - clear, concise, and authoritative.
+
+**Best For:**
+- Corporate presentations
+- Standard business meetings
+- When you want quality without dramatic theming
+
+**Usage:**
+```bash
+python main.py --style-config professional
+```
+
+---
+
+## 🎨 Creating Your Own Style Config
+
+### Basic Template
 
 ```yaml
-style: |
-  Gundam Style - Mecha-inspired futuristic design
-  
-  Visual Design:
-  - Metallic armor aesthetics with glowing energy effects
-  - Angular, geometric shapes and technical diagrams
-  - Military/tactical color schemes
-  
-  Speaker Notes Tone:
-  - Strategic and tactical language
-  - Military precision terminology
-  - Example: "Deploy this solution" instead of "Use this solution"
+# styles/config.my-custom-style.yaml
+input_folder: "notes"
+output_dir: "notes/my-custom-style/generate"
+language: "en"
+
+style:
+  visual_style: |
+    [Describe your visual aesthetic here]
+    - Art style and influences
+    - Color palette with hex codes
+    - Typography preferences
+    - Visual elements and motifs
+    - Composition principles
+    - Mood and atmosphere
+    
+  speaker_style: |
+    [Describe your speaker persona here]
+    - Core persona and archetype
+    - Tone and voice characteristics
+    - Key themes to emphasize
+    - Vocabulary and phrasing patterns
+    - Example phrases
+    - Technical terminology mappings
+
+skip_visuals: false
+generate_videos: false
 ```
 
-**See [Style Prompts Guide](STYLE_PROMPTS.md) for detailed examples and templates.**
+### Style Design Tips
 
-## Tips
+**For Visual Style:**
+1. **Be Specific:** Include hex codes for colors, font names, specific visual references
+2. **Show Examples:** Reference known aesthetics (e.g., "like Blade Runner 2049")
+3. **Define Mood:** Describe the emotional impact you want
+4. **Technical Details:** Specify composition rules, lighting, effects
+5. **Consistency:** Ensure all elements work together cohesively
 
-1. **Be Descriptive**: The more descriptive your style name, the better the AI can interpret it
-2. **Consistency**: Use the same style for all slides in a presentation for visual consistency
-3. **Audience**: Choose a style appropriate for your audience (e.g., Corporate for business meetings, Minimalist for academic presentations)
-4. **Experiment**: Try different styles to see which works best for your content
+**For Speaker Style:**
+1. **Define Persona:** Who is speaking? What's their background?
+2. **Core Themes:** What concepts should they emphasize?
+3. **Vocabulary:** Provide specific phrases and terminology
+4. **Examples:** Show how they would say things
+5. **Boundaries:** What should they avoid?
 
-## Examples in Action
+### Example: Minimalist Style
 
-### Technical Presentation with Gundam Style
+```yaml
+style:
+  visual_style: |
+    Swiss Design / Minimalist Aesthetic
+    - Clean, grid-based layouts with generous white space
+    - Limited color palette: Black (#000000), White (#FFFFFF), 
+      Accent Red (#FF0000)
+    - Helvetica or similar sans-serif typography
+    - High contrast, maximum readability
+    - Geometric shapes and precise alignment
+    - No decorative elements - form follows function
+    
+  speaker_style: |
+    Minimalist Communicator - Less is More
+    - Extremely concise and direct
+    - No fluff, no filler words
+    - Short sentences. Clear points.
+    - Data-driven and factual
+    - Confident through simplicity
+    - Example: "Three points. First: speed. Second: cost. Third: scale. Done."
+```
+
+---
+
+## Style Comparison Matrix
+
+| Style | Visual Intensity | Speaker Energy | Best Use Case | Formality |
+|-------|-----------------|----------------|---------------|-----------|
+| **gundam** | ⚡⚡⚡⚡⚡ | 🔥🔥🔥🔥🔥 | Dramatic tech reveals | Low |
+| **starwars** | ⚡⚡⚡⚡ | 🔥🔥🔥🔥 | Strategic briefings | Medium |
+| **cyberpunk** | ⚡⚡⚡⚡⚡ | 🔥🔥🔥🔥 | Disruptive innovation | Low |
+| **professional** | ⚡⚡ | 🔥🔥 | Standard business | High |
+
+---
+
+## Testing Your Style
+
+1. **Create your config file:**
+   ```bash
+   cp styles/config.professional.yaml styles/config.mystyle.yaml
+   # Edit styles/config.mystyle.yaml with your styles
+   ```
+
+2. **Test with your data:**
+   ```bash
+   python main.py --style-config mystyle
+   ```
+
+3. **Review the output:**
+   - Check output directory for results
+   - Review speaker notes for tone and vocabulary
+   - Check visuals for aesthetic consistency
+
+4. **Iterate:**
+   - Adjust style descriptions based on results
+   - The prompt rewriter agent will integrate your changes
+   - More specific descriptions = better results
+
+---
+
+## Quick Reference Commands
+
 ```bash
-python main.py --pptx cloud_architecture.pptx --pdf cloud_architecture.pdf --style "Gundam"
-```
-Result: Technical diagrams with mecha-inspired aesthetics, speaker notes using tactical/strategic language
+# List all available configs
+ls styles/config.*.yaml
 
-### Marketing Pitch with Cyberpunk Style
-```bash
-python main.py --pptx product_launch.pptx --pdf product_launch.pdf --style "Cyberpunk"
-```
-Result: Neon-colored slides with glitch effects, edgy and disruptive speaker notes
+# Use a specific style
+python main.py --style-config starwars
 
-### Academic Presentation with Minimalist Style
-```bash
-python main.py --pptx research_findings.pptx --pdf research_findings.pdf --style "Minimalist"
+# Process all styles
+python main.py --styles
+
+# Single file with style
+python main.py --pptx file.pptx --language en --style professional
 ```
-Result: Clean, simple slides with lots of whitespace, concise and direct speaker notes
+
+---
+
+## Need Help?
+
+- See [Style Prompts Guide](STYLE_PROMPTS.md) for detailed multi-line style examples
+- See [Configuration File Guide](CONFIG_FILE_GUIDE.md) for config file format
+- Check existing configs in `styles/` for inspiration
