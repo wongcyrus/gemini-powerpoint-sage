@@ -4,6 +4,15 @@ Automatically generates or enhances speaker notes for PowerPoint presentations u
 
 Takes a PowerPoint (`.pptx`) and its corresponding PDF export (`.pdf`) as input. The PDF provides visual context for AI analysis, while the PPTX is updated with generated speaker notes in one or multiple languages.
 
+## 📚 Documentation
+
+- **[Quick Start](docs/QUICK_START.md)** - Get running in 3 steps
+- **[User Guide](QUICK_REFERENCE.md)** - Commands, styles, and workflows  
+- **[Developer Reference](docs/DEVELOPER_REFERENCE.md)** - Code patterns and APIs
+- **[Architecture](docs/ARCHITECTURE.md)** - System design and components
+- **[Chinese Locale Support](docs/CHINESE_LOCALE_SUPPORT.md)** - Traditional vs Simplified Chinese
+- **[All Documentation](docs/README.md)** - Complete documentation index
+
 ## Architecture
 
 The system employs a sophisticated multi-agent approach, orchestrated in a two-pass system:

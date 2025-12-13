@@ -9,6 +9,7 @@ Start here if you're new to the project:
 1. **[Quick Start Guide](QUICK_START.md)** - Get up and running in 3 steps
 2. **[Three Processing Modes](../FINAL_SYSTEM_SUMMARY.md)** - Understand the new system
 3. **[Migration Guide](../MIGRATION_GUIDE.md)** - Migrate from old system
+4. **[Chinese Locale Support](CHINESE_LOCALE_SUPPORT.md)** - Traditional vs Simplified Chinese
 4. **[Configuration File Guide](CONFIG_FILE_GUIDE.md)** - Learn to use YAML configs
 5. **[Style Examples](STYLE_EXAMPLES.md)** - Customize your presentation style
 
@@ -21,7 +22,9 @@ Start here if you're new to the project:
 - **[Folder Structure](FOLDER_STRUCTURE.md)** - Understand output organization
 
 ### Advanced Topics
-- **[Quick Reference](../QUICK_REFERENCE.md)** - Command-line reference and tips
+- **[User Quick Reference](../QUICK_REFERENCE.md)** - Command-line reference and tips
+- **[Developer Reference](DEVELOPER_REFERENCE.md)** - Code patterns and APIs
+- **[Testing Guide](TESTING_GUIDE.md)** - Test commands and validation
 - **[Usage Examples](../examples/usage_examples.py)** - Code examples for all three modes
 
 ## 🏗️ Architecture & Development

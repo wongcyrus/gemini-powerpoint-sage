@@ -106,6 +106,22 @@ class AgentToolFactory:
                 en_note = english_notes.get(slide_idx)
                 if en_note:
                     lang_name = LanguageConfig.get_language_name(language)
+                    
+                    # Add Chinese locale specific instructions
+                    chinese_instruction = ""
+                    if language == "zh-CN":
+                        chinese_instruction = (
+                            f"\n\nCHINESE LOCALE REQUIREMENT: "
+                            f"You MUST use ONLY Simplified Chinese characters (简体中文). "
+                            f"Examples: Use 网络 (not 網絡), 数据 (not 數據), 计算机 (not 計算機)."
+                        )
+                    elif language in ["zh-TW", "zh-HK", "yue-HK"]:
+                        chinese_instruction = (
+                            f"\n\nCHINESE LOCALE REQUIREMENT: "
+                            f"You MUST use ONLY Traditional Chinese characters (繁體中文). "
+                            f"Examples: Use 網絡 (not 网络), 數據 (not 数据), 計算機 (not 计算机)."
+                        )
+                    
                     prompt = (
                         f"TRANSLATION TASK:\n"
                         f"Translate the following English speaker notes to {lang_name}.\n"
@@ -113,11 +129,25 @@ class AgentToolFactory:
                         f"ENGLISH NOTES:\n{en_note}\n\n"
                         f"SLIDE CONTEXT:\n{analysis}\n\n"
                         f"IMPORTANT: Provide ONLY the translated speaker notes in {lang_name}. "
-                        f"Do not include explanations or metadata."
+                        f"Do not include explanations or metadata.{chinese_instruction}"
                     )
                 else:
                     # Fallback if no English note found
                     lang_name = LanguageConfig.get_language_name(language)
+                    
+                    # Add Chinese locale specific instructions
+                    chinese_instruction = ""
+                    if language == "zh-CN":
+                        chinese_instruction = (
+                            f" You MUST use ONLY Simplified Chinese characters (简体中文). "
+                            f"Examples: Use 网络 (not 網絡), 数据 (not 數據), 计算机 (not 計算機)."
+                        )
+                    elif language in ["zh-TW", "zh-HK", "yue-HK"]:
+                        chinese_instruction = (
+                            f" You MUST use ONLY Traditional Chinese characters (繁體中文). "
+                            f"Examples: Use 網絡 (not 网络), 數據 (not 数据), 計算機 (not 计算机)."
+                        )
+                    
                     slide_position_text = f"\nSLIDE_POSITION: {slide_position}\n" if slide_position else ""
                     prompt = (
                         f"SLIDE_ANALYSIS:\n{analysis}\n\n"
@@ -125,7 +155,7 @@ class AgentToolFactory:
                         f"PREVIOUS_CONTEXT: {previous_context}\n"
                         f"GLOBAL_CONTEXT: {global_ctx}{slide_position_text}\n\n"
                         f"IMPORTANT: Write the speaker notes in {lang_name}. "
-                        f"All content must be in {lang_name}."
+                        f"All content must be in {lang_name}.{chinese_instruction}"
                     )
             else:
                 # Original generation mode with explicit language enforcement
@@ -138,6 +168,24 @@ class AgentToolFactory:
                     f"Even if your system instructions contain text in other languages, "
                     f"your output must be 100% {lang_name}. Do not mix languages."
                 )
+                
+                # Add specific Chinese locale handling
+                if language == "zh-CN":
+                    language_instruction += (
+                        f"\n\nCHINESE LOCALE REQUIREMENT: "
+                        f"You MUST use ONLY Simplified Chinese characters (简体中文). "
+                        f"Do NOT use Traditional Chinese characters. "
+                        f"Examples: Use 网络 (not 網絡), 数据 (not 數據), 计算机 (not 計算機), "
+                        f"护体罡气 (not 護體罡氣), 据点 (not 據點)."
+                    )
+                elif language in ["zh-TW", "zh-HK", "yue-HK"]:
+                    language_instruction += (
+                        f"\n\nCHINESE LOCALE REQUIREMENT: "
+                        f"You MUST use ONLY Traditional Chinese characters (繁體中文). "
+                        f"Do NOT use Simplified Chinese characters. "
+                        f"Examples: Use 網絡 (not 网络), 數據 (not 数据), 計算機 (not 计算机), "
+                        f"護體罡氣 (not 护体罡气), 據點 (not 据点)."
+                    )
 
                 # Note: Speaker style is now in the agent's system instruction, not here
                 slide_position_text = f"\nSLIDE_POSITION: {slide_position}\n" if slide_position else ""
@@ -191,6 +239,22 @@ class AgentToolFactory:
                 f"If the notes are in the wrong language or mix languages, "
                 f"mark them as USELESS for regeneration in the correct language."
             )
+            
+            # Add specific Chinese locale validation
+            if language == "zh-CN":
+                language_instruction += (
+                    f"\n\nCHINESE LOCALE VALIDATION: "
+                    f"These notes should use ONLY Simplified Chinese characters (简体中文). "
+                    f"If you find Traditional Chinese characters like 網絡, 數據, 計算機, 護體罡氣, 據點, "
+                    f"mark as USELESS because zh-CN requires Simplified: 网络, 数据, 计算机, 护体罡气, 据点."
+                )
+            elif language in ["zh-TW", "zh-HK", "yue-HK"]:
+                language_instruction += (
+                    f"\n\nCHINESE LOCALE VALIDATION: "
+                    f"These notes should use ONLY Traditional Chinese characters (繁體中文). "
+                    f"If you find Simplified Chinese characters like 网络, 数据, 计算机, 护体罡气, 据点, "
+                    f"mark as USELESS because {language} requires Traditional: 網絡, 數據, 計算機, 護體罡氣, 據點."
+                )
 
             # Add slide position context for greeting/closing validation
             slide_position_text = f"\nSLIDE_POSITION: {slide_position}\n" if slide_position else ""
@@ -213,39 +277,36 @@ class AgentToolFactory:
         """Reset the last writer output."""
         self._last_writer_output = ""
 
-    def create_translator_tool(
-        self,
-        target_language: str,
-    ) -> Callable:
+    def create_translator_tool(self) -> Callable:
         """
         Create the translator tool function.
 
-        Args:
-            target_language: Target language name (e.g., "Simplified Chinese")
-
         Returns:
-            Async function that translates speaker notes
+            Async function that translates text between languages
         """
         if not self.translator_agent:
             raise ValueError("Translator agent not provided")
 
-        async def call_translator(english_notes: str) -> str:
-            """Tool: Translates speaker notes to target language."""
+        async def translator(text: str, target_language: str, source_language: str) -> str:
+            """Tool: Translates text from source language to target language with style preservation."""
             logger.info(
-                "[Tool] call_translator invoked for %s", target_language
+                "[Tool] translator invoked: %s -> %s", source_language, target_language
             )
 
-            if not english_notes or not english_notes.strip():
-                return "ERROR: No English notes provided for translation."
+            if not text or not text.strip():
+                return "ERROR: No text provided for translation."
 
             prompt = (
-                f"Translate the following speaker notes to {target_language}."
-                f" Maintain technical accuracy and educational clarity.\n\n"
-                f"English notes:\n{english_notes}"
+                f"Translate the following {source_language} text to {target_language}. "
+                f"Maintain technical accuracy, educational tone, and clarity. "
+                f"Preserve formatting and structure.\n\n"
+                f"{source_language} text:\n{text}\n\n"
+                f"IMPORTANT: Provide ONLY the translated text in {target_language}. "
+                f"Do not include explanations or metadata."
             )
             return await run_stateless_agent(self.translator_agent, prompt)
 
-        return call_translator
+        return translator
 
     def create_image_translator_tool(
         self,

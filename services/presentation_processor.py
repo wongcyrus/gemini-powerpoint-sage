@@ -644,7 +644,7 @@ class PresentationProcessor:
         english_notes: dict = None,
     ) -> None:
         """Configure the supervisor agent's tools."""
-        self.supervisor_agent.tools = [
+        tools = [
             self.tool_factory.create_analyst_tool(),
             self.tool_factory.create_writer_tool(
                 presentation_theme,
@@ -655,6 +655,12 @@ class PresentationProcessor:
             ),
             self.tool_factory.create_auditor_tool(self.config.language),
         ]
+        
+        # Add translator tool if available (used for language correction when auditor fails)
+        if self.translator_agent:
+            tools.append(self.tool_factory.create_translator_tool())
+        
+        self.supervisor_agent.tools = tools
 
     async def _initialize_supervisor(self) -> InMemoryRunner:
         """Initialize and create supervisor session."""
@@ -859,6 +865,9 @@ class PresentationProcessor:
             else:
                 slide_position_info = f"SLIDE POSITION: This is a MIDDLE slide (slide {slide_idx} of {total_slides}). NO greetings or farewells.\n"
         
+        # Add target language information
+        target_language_info = f"TARGET_LANGUAGE: {self.config.language}\n"
+        
         return (
             f"Here is Slide {slide_idx}.\n"
             f"Existing Notes: \"{existing_notes}\"\n"
@@ -866,7 +875,8 @@ class PresentationProcessor:
             f"Previous Slide Summary: \"{previous_slide_summary}\"\n"
             f"Theme: \"{presentation_theme}\"\n"
             f"Global Context: \"{global_context}\"\n"
-            f"{slide_position_info}\n"
+            f"{slide_position_info}"
+            f"{target_language_info}\n"
             f"Please proceed with the workflow."
         )
 

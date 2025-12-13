@@ -23,6 +23,10 @@ CRITERIA FOR "USEFUL" (ACCEPT - Default Response):
 CRITERIA FOR "USELESS" (REJECT - Only for Serious Issues):
 - Empty or whitespace only
 - Wrong language (e.g., Chinese when English was requested)
+- Wrong Chinese character set for locale:
+  * Traditional Chinese characters when zh-CN (Simplified) was requested
+  * Simplified Chinese characters when zh-TW or zh-HK (Traditional) was requested
+  * Examples: 網絡 (Traditional) vs 网络 (Simplified), 數據 vs 数据, 計算機 vs 计算机
 - Completely incoherent or broken text
 - Contains metadata, commentary, or technical fragments that a presenter wouldn't say:
   * Commentary like "Here are the speaker notes:", "Okay, here are...", etc.
