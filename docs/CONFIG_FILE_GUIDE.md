@@ -1,42 +1,48 @@
 # Configuration File Guide
 
-Using configuration files makes it easier to manage multiple parameters and share settings with your team.
+The system uses YAML configuration files in the `styles/` directory to manage processing settings and style definitions.
 
 ## Quick Start
 
-### 1. Create Your Config File
-
-Copy the example file:
+### 1. Choose an Existing Style Config
 
 ```bash
-cp config.example.yaml config.yaml
+ls styles/config.*.yaml
+# styles/config.cyberpunk.yaml
+# styles/config.gundam.yaml  
+# styles/config.professional.yaml
+# styles/config.starwars.yaml
 ```
 
-### 2. Edit Your Config File
+### 2. Run with Style Config
 
-Open `config.yaml` and customize:
+```bash
+python main.py --style-config cyberpunk
+```
+
+### 3. Or Create Your Own
+
+Copy an existing config:
+
+```bash
+cp styles/config.professional.yaml styles/config.mystyle.yaml
+```
+
+Edit `styles/config.mystyle.yaml`:
 
 ```yaml
-# Input files
-pptx: "path/to/your/presentation.pptx"
-pdf: "path/to/your/presentation.pdf"
-
-# Settings
-region: "us-central1"
+input_folder: "notes"
+output_dir: "notes/mystyle/generate"
 language: "en"
-style: "gundam"
-skip_visuals: false
+style:
+  visual_style: "Your visual description here..."
+  speaker_style: "Your speaker persona here..."
 ```
 
-### 3. Run with Config File
+Run it:
 
 ```bash
-python main.py --config config.yaml
-```
-
-That's it! Much simpler than:
-```bash
-python main.py --pptx path/to/your/presentation.pptx --pdf path/to/your/presentation.pdf --region us-central1 --language en --style gundam
+python main.py --style-config mystyle
 ```
 
 ## Configuration File Format
@@ -60,160 +66,147 @@ language: "en,zh-CN"  # English and Chinese
 
 ## Configuration Options
 
-### Required (choose one)
+### Required Settings
 
 ```yaml
-# Single file
-pptx: "presentation.pptx"
-pdf: "presentation.pdf"  # Optional if same name
-
-# OR folder processing
-folder: "path/to/folder"
+input_folder: "notes"                    # Where to find PPTX/PDF pairs
+output_dir: "notes/mystyle/generate"     # Where to save results
+language: "en"                           # Language(s) to process
 ```
 
-### Google Cloud Settings
+### Style Definition (Required)
 
 ```yaml
-region: "global"  # or us-central1, europe-west1, etc.
+style:
+  visual_style: |
+    Detailed visual aesthetic description:
+    - Color palette with hex codes
+    - Typography and layout preferences
+    - Visual elements and mood
+    
+  speaker_style: |
+    Detailed speaker persona description:
+    - Tone and voice characteristics
+    - Key vocabulary and phrases
+    - Example speaking patterns
 ```
 
-### Language Settings
+### Optional Settings
 
 ```yaml
-# Single language
-language: "en"
-
-# Multiple languages
-language: "en,zh-CN,yue-HK"
-```
-
-### Style/Theme
-
-```yaml
-style: "professional"  # Default
-# style: "gundam"
-# style: "cyberpunk"
-# style: "Minimalist"
-# style: "Custom description here"
-```
-
-### Generation Options
-
-```yaml
-skip_visuals: false      # Only generate speaker notes
-generate_videos: false   # Generate videos with Veo
+skip_visuals: false      # Skip visual generation (notes only)
+generate_videos: false   # Generate video prompts
 retry_errors: false      # Retry failed slides
 ```
 
-### Advanced Options
+## Global Options
 
-```yaml
-course_id: "course-123"           # Optional context
-progress_file: "custom.json"      # Custom progress file
-```
-
-## Command-Line Override
-
-Command-line arguments always override config file settings:
+You can add global options to any style config:
 
 ```bash
-# Config file has style: "professional"
-# This will use "gundam" instead
-python main.py --config config.yaml --style "gundam"
+# Skip visuals for any style
+python main.py --style-config cyberpunk --skip-visuals
+
+# Generate videos for any style  
+python main.py --style-config gundam --generate-videos
 ```
 
-## Multiple Configurations
+## Multiple Style Configurations
 
-Create different config files for different scenarios:
+The `styles/` directory contains different style configurations:
 
 ```bash
-# Development config
-config.dev.yaml
-
-# Production config
-config.prod.yaml
-
-# gundam-themed presentations
-config.gundam.yaml
-
-# Minimalist presentations
-config.minimalist.yaml
+styles/
+├── config.cyberpunk.yaml      # Neon dystopian aesthetic
+├── config.gundam.yaml         # Mecha anime style
+├── config.professional.yaml   # Clean business style
+└── config.starwars.yaml       # Epic space opera style
 ```
 
 Use them like:
 ```bash
-python main.py --config config.gundam.yaml
-python main.py --config config.minimalist.yaml
+python main.py --style-config cyberpunk
+python main.py --style-config gundam
+python main.py --styles  # Process all styles
 ```
 
 ## Example Configurations
 
-### Example 1: Simple Single File
+### Example 1: Professional Style
 
-**config.simple.yaml:**
+**styles/config.professional.yaml:**
 ```yaml
-pptx: "presentation.pptx"
-region: "global"
+input_folder: "notes"
+output_dir: "notes/professional/generate"
 language: "en"
-style: "professional"
+style:
+  visual_style: |
+    Clean, modern business aesthetic
+    - Conservative color palette: Navy (#003366), Gray (#666666), White
+    - Sans-serif typography (Arial, Helvetica)
+    - Minimal decorative elements
+    
+  speaker_style: |
+    Professional business presenter
+    - Formal, authoritative tone
+    - Clear, structured communication
+    - Uses business terminology appropriately
 ```
 
 **Usage:**
 ```bash
-python main.py --config config.simple.yaml
+python main.py --style-config professional
 ```
 
-### Example 2: Multi-Language with Custom Style
+### Example 2: Multi-Language Cyberpunk
 
-**config.multilang.yaml:**
+**styles/config.cyberpunk.yaml:**
 ```yaml
-pptx: "slides.pptx"
-pdf: "slides.pdf"
-region: "us-central1"
-language: "en,zh-CN,yue-HK"
-style: "gundam - futuristic mecha-inspired design"
-skip_visuals: false
+input_folder: "notes"
+output_dir: "notes/cyberpunk/generate"
+language: "en,zh-CN,ja"
+style:
+  visual_style: |
+    Cyberpunk aesthetic with neon colors
+    - Electric Blue (#00FFFF), Hot Pink (#FF1493), Purple (#9D00FF)
+    - Dark backgrounds (#0A0E27) with glowing elements
+    - Futuristic typography with sharp angles
+    
+  speaker_style: |
+    Tech-savvy street philosopher
+    - Edgy, direct communication style
+    - Uses tech slang and cutting-edge terminology
+    - Challenges conventional thinking
 ```
 
 **Usage:**
 ```bash
-python main.py --config config.multilang.yaml
+python main.py --style-config cyberpunk
 ```
 
-### Example 3: Folder Processing
+### Example 3: Notes Only (No Visuals)
 
-**config.batch.yaml:**
+**styles/config.notes-only.yaml:**
 ```yaml
-folder: "presentations/"
-region: "global"
-language: "en"
-style: "Corporate"
-retry_errors: true
-```
-
-**Usage:**
-```bash
-python main.py --config config.batch.yaml
-```
-
-### Example 4: Notes Only (No Visuals)
-
-**config.notes-only.yaml:**
-```yaml
-pptx: "presentation.pptx"
-region: "global"
+input_folder: "notes"
+output_dir: "notes/notes-only/generate"
 language: "en"
 skip_visuals: true  # Skip visual generation
+style:
+  speaker_style: |
+    Clear, concise presenter
+    - Direct communication
+    - Focuses on key points
 ```
 
 **Usage:**
 ```bash
-python main.py --config config.notes-only.yaml
+python main.py --style-config notes-only
 ```
 
 ## Tips
 
-1. **Version Control**: Add `config.yaml` to `.gitignore` and commit `config.example.yaml` instead
+1. **Version Control**: Commit style configs in `styles/` directory for team sharing
 2. **Team Sharing**: Share example configs with your team for consistency
 3. **Documentation**: Add comments in YAML files to explain your choices
 4. **Testing**: Create separate configs for testing vs production
@@ -238,20 +231,18 @@ python main.py --config config.notes-only.yaml
 - Make sure you have either `pptx` or `folder` in your config
 - Don't specify both at the same time
 
-## Generate Example Config
+## Create New Style Config
 
-To create a new example config file:
+To create a new style configuration:
 
-```python
-from config.config_loader import create_example_config
-
-# Create YAML example
-create_example_config("my-config.yaml")
-```
-
-Or simply copy the existing example:
 ```bash
-cp config.example.yaml my-config.yaml
+# Copy existing config as template
+cp styles/config.professional.yaml styles/config.mystyle.yaml
+
+# Edit the new config
+# - Change output_dir to "notes/mystyle/generate"
+# - Customize visual_style and speaker_style sections
+# - Adjust language and other settings as needed
 ```
 
 ## See Also

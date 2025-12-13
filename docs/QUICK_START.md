@@ -134,9 +134,8 @@ Style configurations are in `styles/config.{style}.yaml` files.
 
 ## Need Help?
 
-- **Three Modes**: See [FINAL_SYSTEM_SUMMARY.md](../FINAL_SYSTEM_SUMMARY.md)
-- **Migration**: See [MIGRATION_GUIDE.md](../MIGRATION_GUIDE.md)
 - **Styles**: See [STYLE_EXAMPLES.md](STYLE_EXAMPLES.md)
+- **Configuration**: See [CONFIG_FILE_GUIDE.md](CONFIG_FILE_GUIDE.md)
 - **Full Docs**: See [README.md](../README.md)
 
 ---
@@ -164,5 +163,5 @@ Check that your input folder (from YAML config) contains matching PPTX and PDF f
 2. Or run: `gcloud auth application-default login`
 
 ### Need more help?
-- Check [MIGRATION_GUIDE.md](../MIGRATION_GUIDE.md) if migrating from old system
 - See full documentation in [README.md](../README.md)
+- Check [TESTING_GUIDE.md](TESTING_GUIDE.md) for testing commands

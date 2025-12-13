@@ -86,7 +86,7 @@ presentations/
 └── module2.pdf
 ```
 
-After running: `.\run.ps1 --folder presentations --language zh-CN`
+After running: `python main.py --style-config professional` (with input_folder: "presentations" in YAML)
 
 ```
 presentations/
@@ -156,8 +156,11 @@ presentations/
 ```
 
 ### Process entire folder in multiple languages
-```powershell
-.\run.ps1 --folder "presentations" --language "en,zh-CN,yue-HK"
+```bash
+python main.py --style-config multilang
+# Where styles/config.multilang.yaml contains:
+# input_folder: "presentations"
+# language: "en,zh-CN,yue-HK"
 ```
 
 ### Clean up specific language outputs

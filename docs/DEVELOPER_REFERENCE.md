@@ -236,7 +236,7 @@ utils/
 └── image_utils.py        # Image handling
 
 docs/
-├── REFACTORED_ARCHITECTURE.md  # Architecture diagrams
+├── ARCHITECTURE.md             # Architecture diagrams
 └── FOLDER_STRUCTURE.md         # File organization
 
 REFACTORING.md            # Comprehensive guide
@@ -320,25 +320,23 @@ FALLBACK_IMAGEN_MODEL = "FALLBACK_IMAGEN_MODEL"
 
 ```bash
 # Single file, English
-./run.sh --pptx lecture.pptx
+python main.py --pptx lecture.pptx --language en --style professional
 
-# Multiple languages
-./run.sh --pptx lecture.pptx --language "en,zh-CN,yue-HK"
+# Multiple languages (configure in YAML)
+python main.py --style-config multilang
 
-# Batch processing
-./run.sh --folder presentations --language "en,zh-CN"
+# Batch processing (YAML-driven)
+python main.py --style-config professional
+python main.py --styles  # All styles
 
 # Skip visuals
-./run.sh --pptx lecture.pptx --skip-visuals
+python main.py --style-config professional --skip-visuals
 
 # Generate videos
-./run.sh --pptx lecture.pptx --generate-videos
+python main.py --style-config professional --generate-videos
 
 # Retry errors
-./run.sh --pptx lecture.pptx --retry-errors
-
-# Refine for TTS
-./run.sh --refine progress.json
+python main.py --style-config professional --retry-errors
 ```
 
 ## Debugging
@@ -416,8 +414,8 @@ async def my_function():
 
 ## Resources
 
-- **Architecture:** `docs/REFACTORED_ARCHITECTURE.md`
-- **Developer Guide:** `DEVELOPER_GUIDE.md`
-- **Refactoring Details:** `REFACTORING.md`
-- **Progress:** `REFACTORING_CHECKLIST.md`
+- **Architecture:** `docs/ARCHITECTURE.md`
+- **Style Examples:** `docs/STYLE_EXAMPLES.md`
+- **Configuration:** `docs/CONFIG_FILE_GUIDE.md`
+- **Testing:** `docs/TESTING_GUIDE.md`
 - **Main README:** `README.md`

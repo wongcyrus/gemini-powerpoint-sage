@@ -4,7 +4,7 @@
 
 ### starwars Style (NEW!)
 ```bash
-./run.sh --config config.starwars.yaml
+python main.py --style-config starwars
 ```
 
 **Expected Output:**
@@ -17,7 +17,7 @@
 
 ### Gundam Style
 ```bash
-./run.sh --config config.gundam.yaml
+python main.py --style-config gundam
 ```
 
 **Expected Output:**
@@ -30,7 +30,7 @@
 
 ### Cyberpunk Style
 ```bash
-./run.sh --config config.cyberpunk.yaml
+python main.py --style-config cyberpunk
 ```
 
 **Expected Output:**
@@ -42,7 +42,7 @@
 
 ### Sample/Professional Style
 ```bash
-./run.sh --config config.sample.yaml
+python main.py --style-config professional
 ```
 
 **Expected Output:**
@@ -67,15 +67,17 @@ This will:
 ## Test with Different Languages
 
 ```bash
-# starwars in Chinese
-./run.sh --config config.starwars.yaml --language zh-CN
+# starwars in Chinese (configure language in YAML)
+python main.py --style-config starwars
 
-# Gundam in Japanese (fitting!)
-./run.sh --config config.gundam.yaml --language ja
+# Gundam in Japanese (configure language in YAML)
+python main.py --style-config gundam
 
-# Multiple languages
-./run.sh --config config.cyberpunk.yaml --language "en,zh-CN,yue-HK"
+# Multiple languages (configure in YAML)
+python main.py --style-config cyberpunk
 ```
+
+**Note:** Language settings are now configured in the YAML files (`styles/config.*.yaml`), not via CLI flags.
 
 ## Test Output Locations
 
@@ -126,7 +128,7 @@ For detailed prompt inspection:
 export LOG_LEVEL=DEBUG
 
 # Run with config
-./run.sh --config config.starwars.yaml
+python main.py --style-config starwars
 
 # Check logs for full rewritten prompts
 grep -A 100 "FULL REWRITTEN" logs/gemini_powerpoint_sage_*.log
@@ -138,31 +140,28 @@ Run the same presentation with different styles to compare:
 
 ```bash
 # starwars version
-./run.sh --config config.starwars.yaml
-mv tests/sample_data/generate/cloudtech_en_with_notes.pptm \
-   tests/sample_data/generate/cloudtech_starwars.pptm
+python main.py --style-config starwars
+# Output goes to notes/starwars/generate/
 
-# Gundam version
-./run.sh --config config.gundam.yaml
-mv tests/sample_data/generate/cloudtech_en_with_notes.pptm \
-   tests/sample_data/generate/cloudtech_gundam.pptm
+# Gundam version  
+python main.py --style-config gundam
+# Output goes to notes/gundam/generate/
 
 # Cyberpunk version
-./run.sh --config config.cyberpunk.yaml
-mv tests/sample_data/generate/cloudtech_en_with_notes.pptm \
-   tests/sample_data/generate/cloudtech_cyberpunk.pptm
+python main.py --style-config cyberpunk
+# Output goes to notes/cyberpunk/generate/
 
-# Now compare the three versions!
+# Now compare the three versions in their respective directories!
 ```
 
 ## Performance Testing
 
 ```bash
 # Time the execution
-time ./run.sh --config config.starwars.yaml
+time python main.py --style-config starwars
 
 # Skip visuals for faster testing (notes only)
-time ./run.sh --config config.starwars.yaml --skip-visuals
+python main.py --style-config starwars --skip-visuals
 ```
 
 ## Troubleshooting Tests
@@ -212,7 +211,7 @@ rm -rf tests/sample_data/generate/*
 rm -rf logs/*
 
 # Start fresh
-./run.sh --config config.starwars.yaml
+python main.py --style-config starwars
 ```
 
 ## Quick Validation Checklist
