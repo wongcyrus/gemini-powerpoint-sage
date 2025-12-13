@@ -1,8 +1,8 @@
 # Gemini PowerPoint Sage
 
-Automatically generates or enhances speaker notes for PowerPoint presentations using a **Supervisor-led Multi-Agent System** powered by Google Gemini. Supports multi-language translation workflows with English as baseline.
+🤖 **AI-powered presentation enhancement system using 10 specialized Gemini agents** to generate speaker notes, enhance visuals, and apply custom styles. Supports 16+ languages with batch processing and themed styling (Cyberpunk, Gundam, Star Wars, etc.).
 
-Takes a PowerPoint (`.pptx`) and its corresponding PDF export (`.pdf`) as input. The PDF provides visual context for AI analysis, while the PPTX is updated with generated speaker notes in one or multiple languages.
+Transforms static PowerPoint presentations into engaging experiences with AI-generated speaker scripts, enhanced visuals, and professional styling. Uses a sophisticated **Supervisor-led Multi-Agent Architecture** with Google Gemini models for intelligent content generation and style integration.
 
 ## 📚 Documentation
 
@@ -10,56 +10,79 @@ Takes a PowerPoint (`.pptx`) and its corresponding PDF export (`.pdf`) as input.
 - **[User Guide](QUICK_REFERENCE.md)** - Commands, styles, and workflows  
 - **[All Documentation](docs/README.md)** - Complete documentation index
 
-## Architecture
+## 🏗️ Architecture
 
-The system employs a sophisticated multi-agent approach, orchestrated in a two-pass system:
+The system uses a sophisticated **10-Agent Multi-Agent Architecture** with three processing phases:
 
-### Agents
+### 🤖 The Agent Ecosystem
 
-1. **Overviewer Agent** (`gemini-exp-1206`, Pass 1): Analyzes all PDF slide images to generate a comprehensive Global Context Guide capturing overall narrative, key themes, vocabulary, and desired speaker persona
-2. **Supervisor Agent** (`gemini-2.0-flash-exp`, Pass 2 Orchestrator): Directs the workflow for each slide, consulting the Auditor, triggering the Analyst, and requesting the Writer to generate notes
-3. **Auditor Agent** (`gemini-2.0-flash-exp`): Evaluates quality and usefulness of existing speaker notes
-4. **Analyst Agent** (`gemini-exp-1206`): Analyzes visual and textual content of slide images to extract key topics, information, and intent
-5. **Writer Agent** (`gemini-2.0-flash-exp`): Crafts coherent, first-person speaker notes using Analyst insights, Global Context, and Previous Slide Summary
-6. **Designer Agent** (`gemini-2.0-flash-exp`): Generates high-fidelity slide images with consistent styling, converting notes to concise on-slide text
-7. **Translator Agent** (`gemini-2.0-flash-exp`): Translates speaker notes while maintaining technical accuracy and cultural appropriateness
-8. **Image Translator Agent** (`gemini-exp-1206`): Analyzes English visuals and provides translations with culturally adapted descriptions
+1. **Overviewer Agent** (`gemini-3-pro-preview`): Analyzes entire presentation for global context and narrative consistency
+2. **Supervisor Agent** (`gemini-2.5-flash`): Orchestrates 5-step workflow for each slide, coordinating other agents
+3. **Auditor Agent** (`gemini-2.5-flash`): Quality control - evaluates existing content and determines if regeneration is needed
+4. **Analyst Agent** (`gemini-3-pro-preview`): Visual content analysis - extracts insights from slide images
+5. **Writer Agent** (`gemini-2.5-flash`): Generates natural, engaging speaker scripts with style integration
+6. **Designer Agent** (`gemini-3-pro-image-preview`): Creates enhanced slide visuals with consistent styling
+7. **Translator Agent** (`gemini-2.5-flash`): Style-aware translation maintaining persona and technical accuracy
+8. **Image Translator Agent** (`gemini-3-pro-image-preview`): Analyzes and translates visual content for different languages
+9. **Video Generator Agent** (`gemini-2.5-flash`): Creates video prompts ready for Veo 3.1 integration
+10. **Prompt Rewriter Agent** (`gemini-2.5-flash`): Meta-agent that integrates styles into other agents' prompts at creation time
+
+### 📋 Three-Phase Processing
+
+**Phase 1: Speaker Notes Generation**
+- Global context analysis by Overviewer
+- Per-slide supervisor workflow (Audit → Analyze → Write)
+- Translation mode for non-English languages
+
+**Phase 2: Visual Enhancement** 
+- AI-generated slide designs with style consistency
+- Visual translation for multilingual presentations
+- Layout optimization and professional styling
+
+**Phase 3: Video Content** (Optional)
+- Video prompt generation for promotional content
+- MCP integration with Veo 3.1
+- Slide-appropriate timing and concepts
 
 
 
-## Key Features
+## ✨ Key Features
 
-- 🌍 **Multi-Language Support**: Process presentations in multiple languages (en, zh-CN, yue-HK, es, fr, ja, ko, etc.)
-- 📁 **Batch Processing**: Process entire folders of PPTX files
-- 🎨 **AI Visual Generation**: Create professional slide designs with consistent styling
-- 🎬 **Video Prompt Generation**: Generate video prompts ready for Veo 3.1
-- 💾 **Organized Output**: Language-specific file naming with self-contained folders
-- ⚡ **Translation Mode**: Faster processing by translating from English baseline
-- 📊 **Progress Tracking**: Resume interrupted processing automatically
-- 🎭 **Custom Styles**: Apply themed styles (gundam, cyberpunk, starwars, etc.)
+- 🤖 **10 Specialized AI Agents** working in harmony for comprehensive presentation enhancement
+- 🌍 **16+ Languages** with cultural adaptation (en, zh-CN, zh-TW, yue-HK, es, fr, ja, ko, de, it, pt, ru, ar, hi, th, vi)
+- 🎨 **Custom Themed Styles** (Cyberpunk, Gundam, Star Wars, Professional, HK Comic) affecting both visuals and speaker persona
+- 📁 **Batch Processing** for entire presentation libraries with YAML-driven configuration
+- ⚡ **Translation Mode** 2-3x faster than full generation by translating from English baseline
+- 🎬 **Video Integration** ready for Veo 3.1 with professional video concepts
+- 📊 **Progress Tracking** with resume capability and error retry
+- 🛠️ **Production Ready** with robust error handling and fallback mechanisms
+- 🎯 **Style Integration** via Prompt Rewriter agent that deeply integrates themes into all agents
+- 💾 **Self-Contained Output** with organized language-specific folders
 
-## Quick Start
+## 🚀 Quick Start
 
-The system offers three processing modes for different use cases:
+Choose from three processing modes based on your needs:
 
 ```bash
-# 🌟 All Styles Processing (recommended for production)
+# 🌟 All Styles Processing (Production - Process all files with all style configurations)
 python main.py --styles
 python main.py  # defaults to --styles
 
-# 🎨 Single Style Processing (focused processing)
+# 🎨 Single Style Processing (Focused - Process all files with one specific style)
 python main.py --style-config cyberpunk
 python main.py --style-config professional
+python main.py --style-config gundam
 
-# 📄 Single File Processing (quick testing)
+# 📄 Single File Processing (Testing - Process one file with CLI parameters)
 python main.py --pptx lecture.pptx --language en --style professional
+python main.py --pptx presentation.pptx --language "en,zh-CN,yue-HK" --style cyberpunk
 ```
 
 ```powershell
-# Windows
+# Windows PowerShell
 python main.py --styles
-python main.py --style-config cyberpunk
-python main.py --pptx "lecture.pptx" --language en --style Professional
+python main.py --style-config starwars
+python main.py --pptx "lecture.pptx" --language "en,zh-CN" --style gundam
 ```
 
 ## Setup
@@ -178,11 +201,11 @@ generate_videos: false
 ```
 
 **Available Style Configurations:**
-- `styles/config.cyberpunk.yaml` - Neon-soaked dystopian aesthetic
-- `styles/config.professional.yaml` - Clean and corporate
-- `styles/config.gundam.yaml` - Mecha anime with dramatic speeches
-- `styles/config.starwars.yaml` - Epic space opera with Jedi narration
-- `styles/config.hkcomic.yaml` - Vibrant Hong Kong comic book style
+- `styles/config.cyberpunk.yaml` - 🌃 Neon-soaked Night City edgerunner aesthetic with anti-corpo attitude
+- `styles/config.professional.yaml` - 📋 Clean, corporate design with authoritative tone
+- `styles/config.gundam.yaml` - 🤖 Mecha anime aesthetic with philosophical antagonist voice
+- `styles/config.starwars.yaml` - 🌌 Epic space opera with Jedi Master narration
+- `styles/config.hkcomic.yaml` - 🎨 Vibrant Hong Kong comic book style with dynamic energy
 
 ## Command-Line Arguments
 
@@ -202,8 +225,9 @@ generate_videos: false
 - `--language <locale(s)>` - Language codes, comma-separated (default: `en`)
   - Examples: `en`, `zh-CN`, `"en,zh-CN,yue-HK"`
   - English always processed first as translation baseline
-  - Supported: en, zh-CN, zh-TW, yue-HK, es, fr, ja, ko, de, it, pt, ru, ar, hi, th, vi
-- `--style <name>` - Style/theme for content generation (e.g., "Gundam", "Cyberpunk")
+  - **Supported Languages**: en, zh-CN, zh-TW, yue-HK, es, fr, ja, ko, de, it, pt, ru, ar, hi, th, vi
+- `--style <name>` - Style/theme for content generation
+  - **Available**: `professional`, `cyberpunk`, `gundam`, `starwars`, `hkcomic`
 - `--output-dir <path>` - Output directory for processed files
 
 ### Global Options (all modes)
@@ -215,41 +239,56 @@ generate_videos: false
 - `--region <region>` - GCP region (default: global)
 - `--refine <path>` - Refine existing progress JSON for TTS (removes markdown)
 
-## 🎭 Custom Styles
+## 🎭 Custom Themed Styles
 
-Apply themed styles using the three processing modes:
+Transform your presentations with AI-powered themed styles that affect both visuals and speaker persona:
 
 ```bash
-# Process all styles at once
+# Process all styles at once (recommended for production)
 python main.py --styles
 
-# Process one specific style
+# Process one specific style configuration
 python main.py --style-config starwars
 python main.py --style-config gundam
 python main.py --style-config cyberpunk
 python main.py --style-config hkcomic
 python main.py --style-config professional
 
-# Single file with style
+# Single file with specific style
 python main.py --pptx file.pptx --language en --style starwars
+python main.py --pptx presentation.pptx --language "en,zh-CN" --style cyberpunk
 ```
 
-**Available Styles:**
-- 🌌 **starwars** - Jedi briefings with epic space opera visuals
-- 🤖 **gundam** - Mecha anime aesthetic with philosophical antagonist voice
-- 🌃 **cyberpunk** - Neon colors with edgy tech-savvy narration
-- 🎨 **HK Comic** - Vibrant Hong Kong comic book style
-- 📋 **Professional** - Clean and corporate default style
+### 🎨 Available Themed Styles
 
-**Style Configuration Files:**
-Each style has a complete YAML configuration in `styles/config.{style}.yaml` containing:
-- Input folder specification
-- Output directory structure
-- Language settings
-- Detailed visual and speaker style definitions
-- Processing options
+- 🌌 **Star Wars** - Epic space opera with Jedi Master narration and galactic visuals
+- 🤖 **Gundam** - Mecha anime aesthetic with philosophical antagonist voice and dramatic speeches  
+- 🌃 **Cyberpunk** - Night City edgerunner persona with neon-soaked dystopian visuals and anti-corpo attitude
+- 🎨 **HK Comic** - Vibrant Hong Kong comic book style with dynamic energy and bold colors
+- 📋 **Professional** - Clean, corporate design with authoritative tone and business-focused approach
 
-See [docs/STYLE_CONFIGS.md](docs/STYLE_CONFIGS.md) for details and how to create your own.
+### 🔧 Style Integration System
+
+Each style deeply integrates into the AI agents through the **Prompt Rewriter Agent**:
+
+- **Visual Style**: Affects Designer agent for consistent slide aesthetics, color palettes, typography, and layout
+- **Speaker Style**: Affects Writer and Translator agents for persona, vocabulary, tone, and cultural references
+- **Deep Integration**: Styles are woven throughout prompts, not just appended, for natural and cohesive results
+
+**Style Configuration Structure:**
+```yaml
+# styles/config.{style}.yaml
+input_folder: "notes"                    # Source PPTX/PDF location
+output_dir: "notes/{style}/generate"     # Organized output by style
+language: "en,zh-CN,yue-HK"             # Languages to process
+style:
+  visual_style: |                       # Detailed visual aesthetic guide
+    Color palettes, typography, layout principles...
+  speaker_style: |                      # Detailed speaker persona guide
+    Tone, vocabulary, cultural references, roleplay instructions...
+```
+
+See the `styles/` directory for complete configuration examples and create your own custom styles.
 
 ## Multi-Language Translation Workflow
 
@@ -432,60 +471,94 @@ This process:
 
 Output: Creates `_refined.json` suffix files (e.g., `progress_refined.json`)
 
-## Technical Implementation Details
+## 🔧 Technical Implementation
 
-### Supervisor "Silent Finish" Fallback
+### Multi-Agent Workflow
 
-Implements a **Last Tool Output Fallback** pattern to handle cases where the Supervisor agent calls a tool but terminates without returning the output:
+**Supervisor 5-Step Process** (per slide):
+1. **Audit** - Quality check of existing notes
+2. **Decision** - Determine if regeneration needed  
+3. **Analyze** - Visual content extraction from slide
+4. **Generate** - Create speaker notes with style integration
+5. **Return** - Final polished speaker script
 
-1. The `speech_writer` tool captures generated text into `last_writer_output`
-2. If Supervisor produces empty final text, system checks `last_writer_output`
-3. If data exists, uses captured text as final speaker note
+**Translation Mode Optimization**:
+- English processed first as baseline
+- Non-English languages use style-aware translation (2-3x faster)
+- Maintains consistency across all language versions
 
-This ensures robustness against model unpredictability.
+### Robust Error Handling
 
-### Image Generation Skip Logic
+- **Supervisor Fallback**: "Last Tool Output" pattern captures writer output if supervisor terminates unexpectedly
+- **Retry Strategy**: Exponential backoff with 3 attempts for all agent calls
+- **Progress Tracking**: Resume interrupted processing automatically
+- **Image Caching**: Skip existing visuals unless `--retry-errors` specified
 
-- **Stable Caching**: Generated images named `slide_{index}_reimagined.png`
-- **Skip Check**: Checks if image exists before calling Image Generation API
-- **Forced Retry**: `--retry-errors` flag bypasses cache to force regeneration
-- **Language-Specific**: Each language has its own visuals directory
+### Style Integration Architecture
 
-### Translation Mode
+**Prompt Rewriter Agent** operates at agent creation time:
+1. Takes base agent prompts + style guidelines
+2. Uses LLM to deeply integrate style throughout prompts
+3. Creates style-aware agents before content processing begins
+4. Fallback to simple concatenation if LLM rewriting fails
 
-- **English First**: Always generates English from scratch as baseline
-- **Translation**: Non-English languages translate from English notes
-- **Consistency**: Ensures all language versions convey same content
-- **Performance**: Translation 2-3x faster than full generation
+### Context Management
 
-## Context Handling
-
-- **Rolling Context**: Supervisor Agent maintains awareness of previous slide's generated note for smooth transitions
-- **Presentation Theme**: Overall theme derived from generic default or `--course-id` (if provided)
-- **Global Context**: Overviewer Agent analyzes all slides first to create comprehensive context guide ensuring consistency
+- **Global Context**: Overviewer analyzes entire presentation for narrative consistency
+- **Rolling Context**: Previous slide summary informs next slide generation
+- **Language Isolation**: Independent progress tracking per language
+- **Session Management**: Reused supervisor sessions for efficiency
 
 
 
-## Environment Variables (Optional)
+## 🛠️ Technology Stack
+
+- **AI Models**: Google Gemini (2.5-flash, 3-pro-preview, 3-pro-image-preview)
+- **Language**: Python 3.10+
+- **Frameworks**: Google ADK (Agent Development Kit), FastMCP
+- **Document Processing**: python-pptx, PyMuPDF, Pillow
+- **Configuration**: YAML-driven with environment variable support
+
+## 🌐 Environment Variables (Optional)
 
 ```bash
 # Linux/macOS - Use alternate GCP project
 export GOOGLE_CLOUD_PROJECT='your-project-id'
 export GOOGLE_CLOUD_LOCATION='us-central1'
-./run.sh --pptx file.pptx
+python main.py --pptx file.pptx
 ```
 
 ```powershell
 # Windows - Use alternate GCP project
 $env:GOOGLE_CLOUD_PROJECT = 'your-project-id'
 $env:GOOGLE_CLOUD_LOCATION = 'us-central1'
-.\run.ps1 --pptx "file.pptx"
+python main.py --pptx "file.pptx"
 ```
 
-## License
+## 📚 Documentation
+
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get running in 3 steps
+- **[User Guide](QUICK_REFERENCE.md)** - Commands, styles, and workflows  
+- **[Architecture Overview](docs/ARCHITECTURE.md)** - System design and agent relationships
+- **[Agent Flow Details](docs/AGENT_FLOW_DETAILED.md)** - Complete workflow trace
+- **[All Documentation](docs/README.md)** - Complete documentation index
+
+## 🤝 Contributing
+
+We welcome contributions! The multi-agent architecture makes it easy to:
+- Add new AI agents for specialized tasks
+- Create custom presentation styles  
+- Extend language support
+- Improve processing capabilities
+
+## 📄 License
 
 See [LICENSE](LICENSE) file for details.
 
-## Version History
+## 📈 Version History
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and feature updates.
+
+---
+
+**Transform your presentations from static slides to engaging experiences with AI-powered enhancement.**
