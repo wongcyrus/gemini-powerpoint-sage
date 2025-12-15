@@ -20,3 +20,7 @@ pydantic>=2.0.0
 
 # Type hints and validation
 typing-extensions>=4.8.0
+
+# Text processing for TTS
+markdown>=3.5.0
+beautifulsoup4>=4.12.0

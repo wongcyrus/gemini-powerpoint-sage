@@ -12,6 +12,7 @@ from core.domain.tts import (
     TTSEngineType, VoiceConfig, StyleContext, TTSResult, TTSEngineError
 )
 from config.tts_config import TraditionalTTSConfig
+from utils.text_processing import strip_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +62,11 @@ class TraditionalTTSEngine:
             TTSEngineError: If synthesis fails
         """
         try:
+            # Strip markdown from text first
+            clean_text = strip_markdown(text)
+            
             # Enhance text with SSML if style context is provided
-            enhanced_text = self._enhance_text_with_ssml(text, style_context) if style_context else text
+            enhanced_text = self._enhance_text_with_ssml(clean_text, style_context) if style_context else clean_text
             
             # Build the synthesis request
             request = self._build_synthesis_request(
@@ -85,7 +89,7 @@ class TraditionalTTSEngine:
                 raise TTSEngineError("Generated audio is not valid MP3 format", TTSEngineType.TRADITIONAL)
             
             # Extract audio duration
-            duration = self._extract_audio_duration(response.audio_content, text)
+            duration = self._extract_audio_duration(response.audio_content, clean_text)
             
             return TTSResult(
                 audio_data=response.audio_content,

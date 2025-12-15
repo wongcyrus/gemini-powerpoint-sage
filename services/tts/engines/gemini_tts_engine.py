@@ -15,6 +15,7 @@ from core.domain.tts import (
     TTSEngineType, VoiceConfig, StyleContext, TTSResult, TTSEngineError
 )
 from config.tts_config import GeminiTTSConfig
+from utils.text_processing import prepare_text_for_tts
 
 logger = logging.getLogger(__name__)
 
@@ -71,22 +72,28 @@ class GeminiTTSEngine:
             TTSEngineError: If synthesis fails
         """
         try:
-            # Select appropriate model based on style complexity
-            model = self._select_model(style_prompt)
+            # Prepare text and style prompt for TTS (strip markdown and handle size limits)
+            processed_text, processed_prompt, was_truncated = prepare_text_for_tts(text, style_prompt)
             
-            # Build the synthesis request
+            if was_truncated:
+                logger.warning(f"Text/prompt was truncated for Gemini TTS size limits")
+            
+            # Select appropriate model based on style complexity
+            model = self._select_model(processed_prompt)
+            
+            # Build the synthesis request with processed text
             request = self._build_synthesis_request(
-                text, style_prompt, voice_config, language_code, model
+                processed_text, processed_prompt, voice_config, language_code, model
             )
             
             logger.info(f"Synthesizing speech with Gemini TTS model {model} for language {language_code}")
-            logger.debug(f"Text length: {len(text)} chars, Style prompt length: {len(style_prompt)} chars")
+            logger.debug(f"Processed text length: {len(processed_text)} chars, Style prompt length: {len(processed_prompt)} chars")
             logger.debug(f"Voice: {voice_config.voice_name}, Model: {model}")
-            logger.debug(f"Style prompt: {style_prompt[:100]}...")
+            logger.debug(f"Style prompt: {processed_prompt[:100]}...")
             
-            # Log first 100 chars of text for debugging
-            text_preview = text[:100] + "..." if len(text) > 100 else text
-            logger.debug(f"Text preview: {text_preview}")
+            # Log first 100 chars of processed text for debugging
+            text_preview = processed_text[:100] + "..." if len(processed_text) > 100 else processed_text
+            logger.debug(f"Processed text preview: {text_preview}")
             
             # Call Gemini TTS API with retry logic
             response = await self._call_tts_api_with_retry(request)
@@ -106,7 +113,8 @@ class GeminiTTSEngine:
                 audio_data=response.audio_content,
                 duration_seconds=duration,
                 engine_used=TTSEngineType.GEMINI,
-                style_prompt=style_prompt
+                style_prompt=processed_prompt,
+                metadata={"text_truncated": was_truncated, "original_text_length": len(text)}
             )
             
         except Exception as e:
