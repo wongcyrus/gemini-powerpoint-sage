@@ -18,8 +18,7 @@ class ModelConfig:
     REFINER: Final[str] = "gemini-2.5-flash"
     PROMPT_REWRITER: Final[str] = "gemini-2.5-flash"
     FALLBACK_IMAGEN: Final[str] = "imagen-4.0-generate-001"
-    TTS_GEMINI_FLASH: Final[str] = "gemini-2.5-flash-tts"
-    TTS_GEMINI_PRO: Final[str] = "gemini-2.5-pro-tts"
+    TTS: Final[str] = "gemini-2.5-flash-tts"
 
 
 class ProcessingConfig:
@@ -102,3 +101,4 @@ class EnvironmentVars:
     TTS_STORAGE_BUCKET: Final[str] = "TTS_STORAGE_BUCKET"
     TTS_PARALLEL_PROCESSING: Final[str] = "TTS_PARALLEL_PROCESSING"
     TTS_MAX_CONCURRENT_SLIDES: Final[str] = "TTS_MAX_CONCURRENT_SLIDES"
+    MODEL_TTS: Final[str] = "MODEL_TTS"

@@ -254,33 +254,18 @@ class GeminiTTSEngine:
             request
         )
     
-    def _select_model(self, style_prompt: str) -> str:
+    def _select_model(self, style_prompt: str = None) -> str:
         """
-        Select appropriate Gemini TTS model based on style complexity.
+        Get the configured Gemini TTS model.
         
         Args:
-            style_prompt: Natural language style instruction
+            style_prompt: Natural language style instruction (unused, kept for compatibility)
             
         Returns:
-            Model ID to use
+            Configured model ID
         """
-        # Use Pro model for complex style requirements
-        complex_indicators = [
-            "emphasis", "emotion", "multiple", "complex", "nuanced", 
-            "storytelling", "dramatic", "varied pace", "expression",
-            "passionate", "enthusiastic", "urgent", "careful"
-        ]
-        
-        style_lower = style_prompt.lower()
-        complexity_score = sum(1 for indicator in complex_indicators if indicator in style_lower)
-        
-        # Use Pro model if multiple complexity indicators are present
-        if complexity_score >= 2:
-            logger.debug(f"Using Pro model due to style complexity (score: {complexity_score})")
-            return self.config.pro_model_id
-        
-        # Default to Flash model for speed
-        logger.debug(f"Using Flash model for standard style (complexity score: {complexity_score})")
+        # Always use the configured model (style_prompt no longer affects model selection)
+        logger.debug(f"Using configured TTS model: {self.config.model_id}")
         return self.config.model_id
     
     def _select_voice(self, available_voices: List[str], preferred_gender: str) -> Optional[str]:

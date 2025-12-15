@@ -13,8 +13,7 @@ logger = logging.getLogger(__name__)
 class GeminiTTSConfig:
     """Configuration for Gemini TTS engine."""
     
-    model_id: str = "gemini-2.5-flash-tts"
-    pro_model_id: str = "gemini-2.5-pro-tts"
+    model_id: str = field(default_factory=lambda: os.getenv("MODEL_TTS", "gemini-2.5-flash-tts"))
     supported_languages: Set[str] = field(default_factory=lambda: {
         "en-US", "en-IN", "ja-JP", "ko-KR", "fr-FR", 
         "de-DE", "es-ES", "it-IT", "pt-BR", "ru-RU",

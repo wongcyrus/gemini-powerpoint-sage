@@ -75,6 +75,11 @@ Think of it as your personal **Educational Dream Team**:
 **Style Integration**
 - 🎭 **Prompt Rewriter Agent** (`gemini-2.5-flash`) - Meta-agent that integrates styles into other agents
 
+**Audio Generation**
+- 🎵 **TTS Orchestrator** - Dual-engine text-to-speech system with intelligent fallback
+- 🔊 **Gemini TTS Engine** (`gemini-2.5-flash-tts`) - Advanced TTS with style prompts for 19+ languages
+- 📢 **Traditional TTS Engine** - Fallback engine for Chinese languages and reliability
+
 **Future Extensions**
 - 🎬 **Video Generator Agent** (`gemini-2.5-flash`) - Ready for Veo integration (MCP-based)
 
@@ -317,6 +322,197 @@ Meanwhile, your Designer agent gets reprogrammed to demand:
 
 ---
 
+## 🎵 The Audio Revolution: Dual-Engine TTS That Speaks Every Style
+
+### Beyond Basic Text-to-Speech: AI-Powered Voice Acting
+
+Most TTS systems sound robotic and monotone. We built something revolutionary—**an AI voice actor** that adapts its delivery style to match your presentation theme.
+
+Choose **"Cyberpunk"** style? Your AI narrator doesn't just read the words—it becomes a tech-savvy edgerunner with attitude:
+> *"Jack into the data stream, edgerunners! Our Q4 learning metrics are spiking—a 15% gain in engagement."*
+
+Switch to **"Star Wars"** style? The same content becomes an epic space opera:
+> *"In a galaxy where quarterly reports determine the fate of empires, our Q4 results shine like twin suns over Tatooine."*
+
+### 🏗️ Dual-Engine Architecture: Best of Both Worlds
+
+We engineered a **dual-engine TTS system** that intelligently selects the best voice synthesis approach for each language and situation:
+
+**🤖 Gemini TTS Engine (Primary)**
+- **Advanced AI voices** with natural intonation and emotion
+- **Style prompt integration** - AI understands and embodies your chosen theme
+- **19+ languages** including English, Japanese, Korean, French, German, Spanish, and more
+- **Intelligent retry logic** with exponential backoff for reliability
+
+**📢 Traditional TTS Engine (Specialized + Fallback)**
+- **Primary for Chinese languages** - Mandarin (Simplified/Traditional) and Cantonese
+- **Chirp 3 HD voices** for premium English fallback
+- **Rock-solid reliability** for mission-critical presentations
+- **Graceful degradation** when advanced features aren't available
+
+### 🎯 The TTS Orchestrator: Workflow Intelligence
+
+Here's the actual Python architecture that makes it all work:
+
+```python
+class TTSOrchestrator:
+    """Main TTS orchestrator for slide processing coordination."""
+    
+    def __init__(self, tts_config, style_adapter, engine_selector):
+        # Dual-engine setup with intelligent selection
+        self.gemini_engine = GeminiTTSEngine(client, config.gemini)
+        self.traditional_engine = TraditionalTTSEngine(client, config.traditional)
+        
+        # Engine-specific concurrency control for stability
+        self.gemini_semaphore = asyncio.Semaphore(1)  # Gemini TTS: 1 concurrent
+        self.traditional_semaphore = asyncio.Semaphore(3)  # Traditional: 3 concurrent
+    
+    async def generate_speech_for_slide(self, slide_data, language_code):
+        # 1. Intelligent engine selection based on language
+        engine_type = self.engine_selector.select_engine(language_code)
+        
+        # 2. Style analysis and prompt generation
+        style_context = self.style_adapter.analyze_speaker_notes(
+            slide_data.speaker_notes, slide_data.text_content
+        )
+        
+        # 3. Smart caching with style-aware keys
+        cache_key = self.cache_manager.generate_cache_key(
+            text_content, style_context, voice_config, language_code
+        )
+        
+        # 4. Engine-specific processing with fallback
+        if engine_type == TTSEngineType.GEMINI:
+            return await self._generate_with_gemini_and_fallback(slide_data)
+        else:
+            return await self._generate_with_traditional(slide_data)
+```
+
+### 🧠 Smart Engine Selection Logic
+
+The system automatically chooses the optimal TTS engine based on sophisticated rules:
+
+```python
+def select_engine_for_language(self, language_code: str) -> TTSEngineType:
+    """Intelligent engine selection with fallback strategy."""
+    
+    # Normalize language (e.g., "zh" -> "cmn-CN" for Gemini compatibility)
+    normalized_code = self.normalize_language_code(language_code)
+    
+    # Priority 1: Gemini TTS for supported languages (better quality + style)
+    if self.gemini.is_language_supported(normalized_code):
+        return TTSEngineType.GEMINI
+    
+    # Priority 2: Traditional TTS for Chinese languages (specialized)
+    if language_code in ["yue-HK", "zh-HK", "zh-CN", "zh-TW"]:
+        return TTSEngineType.TRADITIONAL
+    
+    # Priority 3: Traditional TTS as universal fallback
+    return TTSEngineType.TRADITIONAL
+```
+
+### 🎭 Style-Aware Voice Generation
+
+The magic happens in our **TTS Style Adapter**—an AI system that analyzes your speaker notes and generates voice acting instructions:
+
+**Input (Boring):**
+> "This slide shows our quarterly performance metrics with a 15% revenue increase."
+
+**Style Analysis:**
+- **Content type**: Business metrics
+- **Tone**: Professional but engaging
+- **Theme**: Cyberpunk (from presentation style)
+
+**Generated Voice Prompt:**
+> "Speak like a tech-savvy data analyst in a cyberpunk world. Use confident, slightly edgy tone with technical metaphors. Emphasize the 15% spike like it's breaking through digital barriers."
+
+**Result**: AI voice delivers with appropriate cyberpunk attitude and technical confidence.
+
+### 🚀 Production-Ready Reliability Features
+
+**⚡ Intelligent Caching System**
+- **Style-aware cache keys** - Same text + different style = different cache entry
+- **Presentation-level optimization** - Pre-analyze style once, apply to all slides
+- **Smart cache invalidation** - Automatic cleanup of old audio files
+
+**🛡️ Bulletproof Error Handling**
+```python
+async def _generate_with_gemini_and_fallback(self, slide_data):
+    try:
+        # Attempt Gemini TTS with style prompts
+        return await self.gemini_engine.synthesize_speech(
+            slide_data.text_content, style_prompt, voice_config
+        )
+    except Exception as e:
+        logger.warning(f"Gemini TTS failed, falling back to Traditional: {e}")
+        # Seamless fallback to Traditional TTS
+        return await self.traditional_engine.synthesize_speech(
+            slide_data.text_content, voice_config
+        )
+```
+
+**⏱️ Configurable Timeout Management**
+- **Default**: 90 seconds (3x longer than typical TTS)
+- **Environment override**: `TTS_TIMEOUT_SECONDS=120` for complex styles
+- **Exponential backoff**: 1s, 2s, 4s retry delays
+
+**🔄 Parallel Processing with Engine-Specific Limits**
+- **Gemini TTS**: 1 concurrent call (API stability)
+- **Traditional TTS**: 3 concurrent calls (proven reliability)
+- **Overall**: Process multiple slides simultaneously while respecting engine limits
+
+### 🌍 Language Support Matrix
+
+| Language | Primary Engine | Fallback Engine | Style Support |
+|----------|---------------|-----------------|---------------|
+| **English (US/IN)** | Gemini TTS | Traditional (Chirp 3 HD) | ✅ Full style prompts |
+| **Japanese** | Gemini TTS | Traditional | ✅ Full style prompts |
+| **Korean** | Gemini TTS | Traditional | ✅ Full style prompts |
+| **French/German/Spanish** | Gemini TTS | Traditional | ✅ Full style prompts |
+| **Chinese (Simplified)** | Traditional | Gemini TTS | ⚡ Basic style adaptation |
+| **Chinese (Traditional)** | Traditional | Gemini TTS | ⚡ Basic style adaptation |
+| **Cantonese (Hong Kong)** | Traditional | None | ⚡ Basic style adaptation |
+| **16+ Other Languages** | Gemini TTS | Traditional | ✅ Full style prompts |
+
+### 🎯 Real-World Performance
+
+**Before TTS Integration:**
+- ✅ Great speaker notes
+- ✅ Beautiful visuals
+- ❌ Silent presentations requiring manual narration
+
+**After TTS Integration:**
+- ✅ **Fully voiced presentations** in 19+ languages
+- ✅ **Style-consistent narration** that matches your theme
+- ✅ **Professional audio quality** suitable for education and business
+- ✅ **Batch processing** - generate audio for entire presentation libraries
+- ✅ **Accessibility support** - rich audio descriptions for visually impaired learners
+
+### 📊 TTS Workflow Integration
+
+The TTS system seamlessly integrates with our existing multi-agent workflow:
+
+```bash
+# Complete workflow with TTS
+python main.py --pptx presentation.pptx --style cyberpunk --language "en,ja,fr"
+
+# Output structure
+output/
+├── presentation_en_notes.json      # Speaker notes (English)
+├── presentation_en_speech/         # Audio files (English)
+│   ├── slide_1_a1b2c3d4.mp3
+│   ├── slide_2_e5f6g7h8.mp3
+│   └── ...
+├── presentation_ja_speech/         # Audio files (Japanese)
+│   ├── slide_1_i9j0k1l2.mp3
+│   └── ...
+└── presentation_fr_speech/         # Audio files (French)
+    ├── slide_1_m3n4o5p6.mp3
+    └── ...
+```
+
+---
+
 ## 🔧 Extensible Architecture: Built for the Future
 
 ### The ADK + FastMCP Foundation
@@ -345,10 +541,18 @@ We built our system using **Google's Agent Development Kit (ADK)** for multi-age
 - **Auditor Agent** (`gemini-2.5-flash`) - Quality control and validation
 - **Overviewer Agent** (`gemini-3-pro-preview`) - Global context analysis
 
+**TTS System Components:**
+- **TTS Orchestrator** - Coordinates dual-engine audio generation workflow
+- **Gemini TTS Engine** (`gemini-2.5-flash-tts`) - Advanced style-aware voice synthesis
+- **Traditional TTS Engine** - Specialized Chinese language support + universal fallback
+- **TTS Style Adapter** - Analyzes content and generates voice acting instructions
+- **Engine Selector** - Intelligent engine selection based on language and requirements
+
 **FastMCP Extensions:**
 - **Video Generation Server** - Ready for Veo integration (planned)
 - **Translation Services** - 16 languages with cultural context
 - **Style Integration** - Themed content transformation
+- **Audio Processing** - TTS generation and caching services
 
 ### 🏆 The Architecture Win
 
@@ -469,14 +673,18 @@ async def generate_video_with_image(
 - 🎨 **Visual Enhancement** - Generates new slide designs with consistent styling
 - 🌐 **Multi-language Translation** - Translates both notes and visuals to 16 languages
 - 🎭 **Style Integration** - Applies themed styles (Cyberpunk, Star Wars, etc.) to content and visuals
+- 🎵 **Audio Generation** - Dual-engine TTS system with style-aware voice synthesis
 - 📊 **Batch Processing** - Handles multiple presentations automatically
 - 🔄 **Progress Tracking** - Resume interrupted processing, retry failed slides
 
-**Translation Workflow:**
-1. **English First** - Generates comprehensive speaker notes in English
-2. **Style-Aware Translation** - Translates to target languages while maintaining style
-3. **Visual Translation** - Creates localized slide designs with translated text
-4. **Cultural Adaptation** - Adapts content for cultural context in each language
+**Complete Workflow:**
+1. **Content Analysis** - Overviewer Agent analyzes entire presentation for context
+2. **Slide Processing** - Supervisor orchestrates per-slide workflow (Audit → Analyze → Write)
+3. **Style Integration** - Prompt Rewriter ensures consistent theming across all agents
+4. **Visual Enhancement** - Designer creates styled slide visuals
+5. **Audio Generation** - TTS Orchestrator creates style-aware narration
+6. **Multi-language Export** - Translator Agent adapts content for cultural context
+7. **Quality Assurance** - Auditor validates output quality and consistency
 
 ---
 
@@ -526,10 +734,12 @@ speaker_style:
 ### 🌟 What You Get
 
 - ✅ **Professional speaker notes** generated for every slide
+- ✅ **Style-aware audio narration** with AI voice acting in 19+ languages
 - ✅ **Multilingual translations** (16 languages supported)
 - ✅ **Enhanced slide visuals** with AI-generated designs
-- ✅ **Style-consistent** content across all slides
+- ✅ **Style-consistent** content across all slides and audio
 - ✅ **Intelligent content analysis** with Gemini Vision
+- ✅ **Dual-engine TTS** with automatic fallback for reliability
 - ✅ **Batch processing** for multiple presentations
 - ✅ **Production-ready** reliability and error handling
 
@@ -544,12 +754,13 @@ Instead of one-size-fits-all educational tools, the future lies in **AI systems 
 ### 🚀 What's Next? The Roadmap
 
 **Coming Soon:**
-- 🎬 **Video Agent** → AI-generated video backgrounds and animations
-- 🎵 **Audio Agent** → AI-generated background music and sound effects
+- 🎬 **Video Agent** → AI-generated video backgrounds and animations (Veo 3.1 integration)
+- 🎵 **Audio Enhancement** → AI-generated background music and sound effects
 - 🎨 **3D Designer** → Interactive 3D models and animations  
 - 📱 **Mobile Optimizer** → Presentations optimized for phone viewing
 - 🤝 **Collaboration Agent** → Real-time multi-user editing with AI assistance
 - 🧠 **Learning Agent** → Learns your presentation style over time
+- 🎙️ **Voice Cloning** → Custom voice models for personalized narration
 
 **Community Contributions Welcome:**
 - 🎭 New style templates
