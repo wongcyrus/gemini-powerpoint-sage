@@ -3,5 +3,32 @@
 from .presentation import Presentation
 from .slide import Slide, SlideContent
 from .notes import SpeakerNotes
+from .tts import (
+    TTSEngineType,
+    PresentationType,
+    VoiceConfig,
+    StyleContext,
+    TTSResult,
+    SlideData,
+    AudioResult,
+    TTSEngineError,
+    TTSCacheError,
+    TTSStorageError,
+)
 
-__all__ = ["Presentation", "Slide", "SlideContent", "SpeakerNotes"]
+__all__ = [
+    "Presentation",
+    "Slide", 
+    "SlideContent",
+    "SpeakerNotes",
+    "TTSEngineType",
+    "PresentationType", 
+    "VoiceConfig",
+    "StyleContext",
+    "TTSResult",
+    "SlideData",
+    "AudioResult",
+    "TTSEngineError",
+    "TTSCacheError",
+    "TTSStorageError",
+]

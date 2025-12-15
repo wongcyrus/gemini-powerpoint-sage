@@ -25,6 +25,8 @@ from utils.progress_utils import (
 )
 from tools.agent_tools import AgentToolFactory
 from services.visual_generator import VisualGenerator
+from services.tts.tts_orchestrator import TTSOrchestrator, create_tts_orchestrator
+from config.tts_config import get_tts_config
 import zipfile
 import shutil
 import tempfile
@@ -93,6 +95,19 @@ class PresentationProcessor:
             fallback_imagen_model=fallback_model,
             style=config.visual_style,
         )
+
+        # Initialize TTS orchestrator
+        try:
+            tts_config = get_tts_config()
+            if tts_config.enabled:
+                self.tts_orchestrator = create_tts_orchestrator(tts_config)
+                logger.info("TTS orchestrator initialized successfully")
+            else:
+                self.tts_orchestrator = None
+                logger.info("TTS system is disabled")
+        except Exception as e:
+            logger.warning(f"Failed to initialize TTS orchestrator: {e}")
+            self.tts_orchestrator = None
 
         # Progress tracking
         self.progress_file = get_progress_file_path(
@@ -174,6 +189,9 @@ class PresentationProcessor:
             prs_notes, prs_visuals, pdf_doc, limit, progress,
             supervisor_runner, presentation_theme, global_context
         )
+
+        # PHASE 1.5: Generate TTS audio (if enabled)
+        await self._phase_generate_tts(slide_data, progress)
 
         # PHASE 2: Generate all visuals
         missing_visuals_count = await self._phase_generate_visuals(
@@ -278,6 +296,96 @@ class PresentationProcessor:
             unregister_image(image_id)
             
         return slide_data
+
+    async def _phase_generate_tts(
+        self,
+        slide_data: list,
+        progress: Dict[str, Any]
+    ) -> None:
+        """
+        Phase 1.5: Generate TTS audio for all slides.
+        
+        Args:
+            slide_data: List of slide data from notes generation
+            progress: Progress tracking dictionary
+        """
+        if not self.tts_orchestrator:
+            logger.info("TTS generation skipped (TTS system disabled)")
+            return
+        
+        logger.info("\n" + "="*60)
+        logger.info("PHASE 1.5: Generating TTS audio for all slides")
+        logger.info("="*60)
+        
+        # Extract presentation ID from config
+        presentation_id = os.path.splitext(os.path.basename(self.config.pptx_path))[0]
+        
+        # Prepare slide data for TTS processing
+        from core.domain.tts import SlideData
+        
+        tts_slides = []
+        for slide_info in slide_data:
+            if slide_info["status"] == "success" and slide_info["speaker_notes"]:
+                tts_slide = SlideData(
+                    slide_number=slide_info["slide_idx"],
+                    text_content=slide_info["speaker_notes"],
+                    speaker_notes=slide_info["speaker_notes"],
+                    language_code=self.config.language,
+                    presentation_id=presentation_id
+                )
+                tts_slides.append(tts_slide)
+        
+        if not tts_slides:
+            logger.warning("No slides with successful notes found for TTS generation")
+            return
+        
+        try:
+            # Generate TTS for all slides
+            logger.info(f"Generating TTS for {len(tts_slides)} slides in language {self.config.language}")
+            
+            tts_results = await self.tts_orchestrator.process_single_language_batch(
+                tts_slides, self.config.language, presentation_id
+            )
+            
+            # Update progress with TTS results
+            successful_tts = 0
+            for i, tts_result in enumerate(tts_results):
+                slide_idx = tts_slides[i].slide_number
+                
+                # Find corresponding progress entry
+                for skey, slide_progress in progress["slides"].items():
+                    if slide_progress.get("slide_index") == slide_idx:
+                        # Add TTS information to progress
+                        if tts_result.is_valid():
+                            slide_progress["audio_file_path"] = tts_result.file_path
+                            slide_progress["tts_metadata"] = {
+                                "engine_used": tts_result.engine_used.value,
+                                "duration_seconds": tts_result.duration_seconds,
+                                "cache_key": tts_result.cache_key,
+                                "style_prompt": tts_result.style_prompt
+                            }
+                            successful_tts += 1
+                            logger.debug(f"✓ TTS generated for slide {slide_idx}")
+                        else:
+                            slide_progress["tts_metadata"] = {
+                                "error": tts_result.metadata.get("error", "Unknown TTS error")
+                            }
+                            logger.warning(f"✗ TTS failed for slide {slide_idx}")
+                        break
+            
+            # Save updated progress
+            save_progress(self.progress_file, progress)
+            
+            logger.info(f"TTS generation completed: {successful_tts}/{len(tts_slides)} successful")
+            
+            # Log TTS statistics
+            stats = self.tts_orchestrator.get_orchestrator_stats()
+            logger.info(f"TTS Cache: {stats['cache']['total_entries']} entries, "
+                       f"{stats['cache']['total_size_mb']:.1f} MB")
+            
+        except Exception as e:
+            logger.error(f"TTS generation failed: {e}")
+            # Continue processing even if TTS fails (graceful degradation)
 
     async def _phase_generate_visuals(
         self,

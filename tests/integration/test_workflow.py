@@ -15,16 +15,18 @@ class TestWorkflowIntegration:
     
     @pytest.mark.asyncio
     @patch('services.agent_manager.LlmAgent')
-    @patch('services.agent_manager.prompt')
-    async def test_agent_manager_initialization(self, mock_prompt, mock_llm_agent):
+    @patch('agents.prompts.AUDITOR_PROMPT', 'auditor_prompt')
+    @patch('agents.prompts.ANALYST_PROMPT', 'analyst_prompt')
+    @patch('agents.prompts.WRITER_PROMPT', 'writer_prompt')
+    @patch('agents.prompts.SUPERVISOR_PROMPT', 'supervisor_prompt')
+    @patch('agents.prompts.OVERVIEWER_PROMPT', 'overviewer_prompt')
+    @patch('agents.prompts.DESIGNER_PROMPT', 'designer_prompt')
+    @patch('agents.prompts.TRANSLATOR_PROMPT', 'translator_prompt')
+    @patch('agents.prompts.IMAGE_TRANSLATOR_PROMPT', 'image_translator_prompt')
+    @patch('agents.prompts.VIDEO_GENERATOR_PROMPT', 'video_generator_prompt')
+    @patch('agents.prompts.REFINER_PROMPT', 'refiner_prompt')
+    async def test_agent_manager_initialization(self, mock_llm_agent):
         """Test that AgentManager initializes all agents correctly."""
-        # Mock all prompts
-        for attr in ['AUDITOR_PROMPT', 'ANALYST_PROMPT', 'WRITER_PROMPT',
-                     'SUPERVISOR_PROMPT', 'OVERVIEWER_PROMPT', 'DESIGNER_PROMPT',
-                     'TRANSLATOR_PROMPT', 'IMAGE_TRANSLATOR_PROMPT',
-                     'VIDEO_GENERATOR_PROMPT', 'REFINER_PROMPT']:
-            setattr(mock_prompt, attr, f"{attr.lower()}")
-        
         manager = AgentManager()
         manager.initialize_agents()
         

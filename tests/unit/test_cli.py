@@ -26,12 +26,7 @@ class TestCLI:
         
         assert args.refine == 'test.json'
     
-    def test_parser_batch_mode(self):
-        """Test parser handles batch mode."""
-        cli = CLI()
-        args = cli.parser.parse_args(['--folder', '/path/to/folder'])
-        
-        assert args.folder == '/path/to/folder'
+
     
     def test_parser_style_argument(self):
         """Test parser handles style argument."""

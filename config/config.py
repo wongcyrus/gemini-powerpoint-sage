@@ -6,6 +6,7 @@ import sys
 from typing import Optional
 
 from config.constants import EnvironmentVars, FilePatterns
+from config.tts_config import TTSConfig, get_tts_config
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class Config:
         language: str = "en",
         style: Optional[str] = None,
         output_dir: Optional[str] = None,
+        enable_tts: bool = True,
     ):
         """
         Initialize configuration.
@@ -42,6 +44,7 @@ class Config:
             language: Language locale code (e.g., en, zh-CN, yue-HK)
             style: Optional style/theme for content generation (e.g., "Gundam", "Cyberpunk", "Minimalist")
             output_dir: Optional output directory (defaults to generate/ folder next to input)
+            enable_tts: Whether to enable TTS generation
         """
         self.pptx_path = pptx_path
         self.pdf_path = pdf_path
@@ -53,6 +56,7 @@ class Config:
         self.generate_videos = generate_videos
         self.language = language
         self.output_dir = output_dir
+        self.enable_tts = enable_tts
         
         # Handle style - can be a string or dict with visual_style and speaker_style
         if isinstance(style, dict):
@@ -68,6 +72,9 @@ class Config:
 
         # Apply environment variable overrides
         self._apply_env_overrides()
+        
+        # Initialize TTS configuration
+        self._tts_config = None
 
     def _apply_env_overrides(self) -> None:
         """Apply configuration from environment variables."""
@@ -184,6 +191,27 @@ class Config:
         videos_dir = os.path.join(output_dir, dirname)
         os.makedirs(videos_dir, exist_ok=True)
         return videos_dir
+
+    @property
+    def speech_dir(self) -> str:
+        """Get the directory for storing speech outputs."""
+        pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
+        output_dir = self._get_output_dir()
+        
+        # Build directory name with language (always include language code)
+        dirname = f"{pptx_base}_{self.language}_speech"
+        speech_dir = os.path.join(output_dir, dirname)
+        os.makedirs(speech_dir, exist_ok=True)
+        return speech_dir
+
+    @property
+    def tts_config(self) -> TTSConfig:
+        """Get TTS configuration."""
+        if self._tts_config is None:
+            self._tts_config = get_tts_config()
+            # Override enabled status based on config
+            self._tts_config.enabled = self.enable_tts
+        return self._tts_config
 
     def validate(self) -> bool:
         """

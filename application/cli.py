@@ -90,11 +90,16 @@ class CLI:
             action="store_true",
             help="Generate promotional videos for each slide using Veo 3.1"
         )
+        parser.add_argument(
+            "--tts-only",
+            action="store_true",
+            help="Generate only TTS audio files (skip notes and visuals generation)"
+        )
         # Single-file processing options (only used with --pptx)
         parser.add_argument(
             "--language",
             help="Language locale(s) for single-file processing. "
-                 "Examples: en, 'en,zh-CN', 'en,yue-HK,zh-CN'",
+                 "Examples: en, 'en,ja-JP', 'en,yue-HK,zh-CN'",
             default="en"
         )
         parser.add_argument(
@@ -167,8 +172,43 @@ class CLI:
         cmd = RefineCommand(args.refine)
         await cmd.execute()
     
+    async def _handle_tts_only(self, args: argparse.Namespace) -> None:
+        """Handle TTS-only processing mode."""
+        from utils.tts_cli_utils import TTSCLIUtility
+        import json
+        
+        if not args.pptx:
+            print("Error: --tts-only requires --pptx argument with path to presentation progress JSON file")
+            return
+        
+        # Check if the file is a JSON progress file
+        if not args.pptx.endswith('.json'):
+            print("Error: --tts-only requires a JSON progress file, not a PPTX file")
+            print("First run the normal processing to generate speaker notes, then use --tts-only on the progress JSON file")
+            return
+        
+        try:
+            tts_cli = TTSCLIUtility()
+            result = await tts_cli.generate_tts_for_presentation(
+                args.pptx,
+                args.language,
+                args.output_dir
+            )
+            
+            print("TTS Generation Results:")
+            print(json.dumps(result, indent=2))
+            
+        except Exception as e:
+            logger.error(f"TTS-only processing failed: {e}")
+            print(f"Error: {e}")
+
     async def _handle_processing(self, args: argparse.Namespace) -> None:
         """Handle processing modes."""
+        # Handle TTS-only mode first
+        if args.tts_only:
+            await self._handle_tts_only(args)
+            return
+        
         # Determine processing mode
         if args.pptx:
             # Single file mode - use CLI parameters

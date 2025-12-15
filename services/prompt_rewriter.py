@@ -5,6 +5,7 @@ import uuid
 import time
 from typing import Dict, Any
 from google.adk.runners import InMemoryRunner
+from .prompt_cache import PromptCache
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +29,19 @@ class PromptRewriter:
         self.visual_style = visual_style or "Professional"
         self.speaker_style = speaker_style or "Professional"
         
+        # Initialize cache system
+        self.cache = PromptCache()
+        
         # Import here to avoid circular imports
         from agents.prompt_rewriter import prompt_rewriter_agent
         self.rewriter_agent = prompt_rewriter_agent
         
         logger.info("=" * 80)
-        logger.info("PROMPT REWRITER INITIALIZED (LLM-POWERED)")
+        logger.info("PROMPT REWRITER INITIALIZED (LLM-POWERED WITH CACHING)")
         logger.info("=" * 80)
         logger.info(f"Visual Style: {self.visual_style[:100]}...")
         logger.info(f"Speaker Style: {self.speaker_style[:100]}...")
+        logger.info(f"Cache Status: {self.cache.get_cache_stats()}")
         logger.info("=" * 80)
     
     def _run_rewriter_with_retry(self, rewrite_request: str, session_prefix: str) -> str:
@@ -172,15 +177,15 @@ class PromptRewriter:
             # For speaker-related prompts, add strong language enforcement
             enhanced_prompt = f"""{base_prompt}
 
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 STYLE INTEGRATION ({style_type.upper()})
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 {style_guidelines}
 
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 CRITICAL LANGUAGE ENFORCEMENT
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 **MANDATORY LANGUAGE COMPLIANCE:**
 - ALWAYS write in the target language specified by the user
@@ -200,9 +205,9 @@ Remember: Language compliance is MANDATORY. Style is applied WITHIN the target l
             # For visual prompts, simpler integration
             enhanced_prompt = f"""{base_prompt}
 
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 VISUAL STYLE INTEGRATION
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 {style_guidelines}
 
@@ -210,6 +215,93 @@ Apply these visual style guidelines throughout all design decisions and outputs.
         
         logger.info(f"Fallback concatenation: {len(base_prompt)} + {len(style_guidelines)} chars")
         return enhanced_prompt
+    
+    def _rewrite_with_cache(self, base_prompt: str, style_guidelines: str, prompt_type: str) -> str:
+        """
+        Rewrite a prompt with caching support and comprehensive error handling.
+        
+        Args:
+            base_prompt: The original prompt text
+            style_guidelines: Style guidelines to integrate
+            prompt_type: Type of prompt (designer, writer, title, translator)
+            
+        Returns:
+            Rewritten prompt text
+        """
+        start_time = time.time()
+        
+        try:
+            # Generate cache key
+            cache_key = self.cache.generate_cache_key(base_prompt, style_guidelines, prompt_type)
+            
+            # Try to get cached result
+            cached_result = self.cache.get_cached_prompt(cache_key)
+            if cached_result:
+                elapsed = time.time() - start_time
+                logger.info(f"✓ Cache hit for {prompt_type}: {elapsed:.3f}s")
+                return cached_result
+            
+            # Cache miss - perform LLM rewriting
+            logger.info(f"Cache miss for {prompt_type} - performing LLM rewriting")
+            
+            rewrite_request = f"""BASE_PROMPT:
+{base_prompt}
+
+STYLE_GUIDELINES:
+{style_guidelines}
+
+STYLE_TYPE: {"visual" if prompt_type == "designer" else "speaker"}
+
+Please rewrite the base prompt to deeply integrate the style guidelines throughout the instructions."""
+            
+            try:
+                # Perform LLM rewriting
+                rewritten = self._run_rewriter_with_retry(rewrite_request, f"{prompt_type}_rewriter")
+                
+                # Store in cache (ignore cache failures)
+                try:
+                    self.cache.store_prompt(cache_key, rewritten, prompt_type, base_prompt, style_guidelines)
+                except Exception as cache_error:
+                    logger.warning(f"Failed to cache result for {prompt_type}: {cache_error}")
+                
+                elapsed = time.time() - start_time
+                logger.info(f"✓ LLM rewriting completed for {prompt_type}: {elapsed:.3f}s")
+                return rewritten
+                
+            except Exception as llm_error:
+                logger.warning(f"LLM rewriting failed for {prompt_type}: {llm_error}")
+                # Fall back to simple concatenation
+                fallback_result = self._fallback_to_simple_concatenation(rewrite_request, f"{prompt_type}_rewriter")
+                
+                # Try to cache the fallback result (ignore failures)
+                try:
+                    self.cache.store_prompt(cache_key, fallback_result, prompt_type, base_prompt, style_guidelines)
+                except Exception as cache_error:
+                    logger.debug(f"Failed to cache fallback result for {prompt_type}: {cache_error}")
+                
+                elapsed = time.time() - start_time
+                logger.info(f"✓ Fallback rewriting completed for {prompt_type}: {elapsed:.3f}s")
+                return fallback_result
+                
+        except Exception as critical_error:
+            # Critical error - return basic concatenation without caching
+            logger.error(f"Critical error in prompt rewriting for {prompt_type}: {critical_error}")
+            logger.info(f"Using emergency fallback for {prompt_type}")
+            
+            # Emergency fallback - simple concatenation
+            emergency_result = f"""{base_prompt}
+
+===============================================================================
+STYLE INTEGRATION ({prompt_type.upper()})
+===============================================================================
+
+{style_guidelines}
+
+Apply these style guidelines throughout all operations."""
+            
+            elapsed = time.time() - start_time
+            logger.warning(f"✓ Emergency fallback completed for {prompt_type}: {elapsed:.3f}s")
+            return emergency_result
     
     def rewrite_designer_prompt(self, base_prompt: str) -> str:
         """
@@ -222,39 +314,24 @@ Apply these visual style guidelines throughout all design decisions and outputs.
             Rewritten prompt with visual style woven throughout
         """
         logger.info("\n" + "=" * 80)
-        logger.info("REWRITING DESIGNER PROMPT WITH LLM")
+        logger.info("REWRITING DESIGNER PROMPT")
         logger.info("=" * 80)
         
-        rewrite_request = f"""BASE_PROMPT:
-{base_prompt}
-
-STYLE_GUIDELINES:
-{self.visual_style}
-
-STYLE_TYPE: visual
-
-Please rewrite the base prompt to deeply integrate the visual style guidelines throughout the instructions."""
+        rewritten = self._rewrite_with_cache(base_prompt, self.visual_style, "designer")
         
-        try:
-            rewritten = self._run_rewriter_with_retry(rewrite_request, "designer_rewriter")
-            
-            logger.info(f"Original prompt length: {len(base_prompt)} chars")
-            logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
-            logger.info(f"Style integration: {len(self.visual_style)} chars of style content")
-            logger.info("✓ Designer prompt rewritten successfully")
-            logger.info("=" * 80 + "\n")
-            
-            # Log full rewritten prompt for debugging
-            logger.debug("FULL REWRITTEN DESIGNER PROMPT:")
-            logger.debug("-" * 80)
-            logger.debug(rewritten)
-            logger.debug("-" * 80)
-            
-            return rewritten
-            
-        except Exception as e:
-            logger.error(f"Failed to rewrite designer prompt with LLM: {e}")
-            raise Exception(f"Designer prompt rewriting failed: {e}")
+        logger.info(f"Original prompt length: {len(base_prompt)} chars")
+        logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
+        logger.info(f"Style integration: {len(self.visual_style)} chars of style content")
+        logger.info("✓ Designer prompt rewritten successfully")
+        logger.info("=" * 80 + "\n")
+        
+        # Log full rewritten prompt for debugging
+        logger.debug("FULL REWRITTEN DESIGNER PROMPT:")
+        logger.debug("-" * 80)
+        logger.debug(rewritten)
+        logger.debug("-" * 80)
+        
+        return rewritten
     
     def rewrite_writer_prompt(self, base_prompt: str) -> str:
         """
@@ -267,40 +344,23 @@ Please rewrite the base prompt to deeply integrate the visual style guidelines t
             Rewritten prompt with speaker style woven throughout
         """
         logger.info("\n" + "=" * 80)
-        logger.info("REWRITING WRITER PROMPT WITH LLM")
+        logger.info("REWRITING WRITER PROMPT")
         logger.info("=" * 80)
         
-        rewrite_request = f"""BASE_PROMPT:
-{base_prompt}
-
-STYLE_GUIDELINES:
-{self.speaker_style}
-
-STYLE_TYPE: speaker
-
-CRITICAL REQUIREMENT: When rewriting this prompt, you MUST include explicit language enforcement instructions that ensure the agent will always write in the target language specified by the user, regardless of any language examples in the style guidelines. The target language parameter should always override any language tendencies from the style.
-
-Please rewrite the base prompt to deeply integrate the speaker style guidelines throughout the instructions while ensuring language compliance is enforced."""
+        rewritten = self._rewrite_with_cache(base_prompt, self.speaker_style, "writer")
         
-        try:
-            rewritten = self._run_rewriter_with_retry(rewrite_request, "writer_rewriter")
-            
-            logger.info(f"Original prompt length: {len(base_prompt)} chars")
-            logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
-            logger.info(f"Style integration: {len(self.speaker_style)} chars of style content")
-            logger.info("✓ Writer prompt rewritten successfully")
-            logger.info("=" * 80 + "\n")
-            
-            logger.debug("FULL REWRITTEN WRITER PROMPT:")
-            logger.debug("-" * 80)
-            logger.debug(rewritten)
-            logger.debug("-" * 80)
-            
-            return rewritten
-            
-        except Exception as e:
-            logger.error(f"Failed to rewrite writer prompt with LLM: {e}")
-            raise Exception(f"Writer prompt rewriting failed: {e}")
+        logger.info(f"Original prompt length: {len(base_prompt)} chars")
+        logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
+        logger.info(f"Style integration: {len(self.speaker_style)} chars of style content")
+        logger.info("✓ Writer prompt rewritten successfully")
+        logger.info("=" * 80 + "\n")
+        
+        logger.debug("FULL REWRITTEN WRITER PROMPT:")
+        logger.debug("-" * 80)
+        logger.debug(rewritten)
+        logger.debug("-" * 80)
+        
+        return rewritten
     
     def rewrite_title_generator_prompt(self, base_prompt: str) -> str:
         """
@@ -313,38 +373,23 @@ Please rewrite the base prompt to deeply integrate the speaker style guidelines 
             Rewritten prompt with speaker style for title consistency
         """
         logger.info("\n" + "=" * 80)
-        logger.info("REWRITING TITLE GENERATOR PROMPT WITH LLM")
+        logger.info("REWRITING TITLE GENERATOR PROMPT")
         logger.info("=" * 80)
         
-        rewrite_request = f"""BASE_PROMPT:
-{base_prompt}
-
-STYLE_GUIDELINES:
-{self.speaker_style}
-
-STYLE_TYPE: speaker
-
-Please rewrite the base prompt to deeply integrate the speaker style guidelines throughout the instructions. This is for a title generator, so focus on how the style affects title creation."""
+        rewritten = self._rewrite_with_cache(base_prompt, self.speaker_style, "title")
         
-        try:
-            rewritten = self._run_rewriter_with_retry(rewrite_request, "title_rewriter")
-            
-            logger.info(f"Original prompt length: {len(base_prompt)} chars")
-            logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
-            logger.info(f"Style integration: {len(self.speaker_style)} chars of style content")
-            logger.info("✓ Title generator prompt rewritten successfully")
-            logger.info("=" * 80 + "\n")
-            
-            logger.debug("FULL REWRITTEN TITLE GENERATOR PROMPT:")
-            logger.debug("-" * 80)
-            logger.debug(rewritten)
-            logger.debug("-" * 80)
-            
-            return rewritten
-            
-        except Exception as e:
-            logger.error(f"Failed to rewrite title generator prompt with LLM: {e}")
-            raise Exception(f"Title generator prompt rewriting failed: {e}")
+        logger.info(f"Original prompt length: {len(base_prompt)} chars")
+        logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
+        logger.info(f"Style integration: {len(self.speaker_style)} chars of style content")
+        logger.info("✓ Title generator prompt rewritten successfully")
+        logger.info("=" * 80 + "\n")
+        
+        logger.debug("FULL REWRITTEN TITLE GENERATOR PROMPT:")
+        logger.debug("-" * 80)
+        logger.debug(rewritten)
+        logger.debug("-" * 80)
+        
+        return rewritten
     
     def rewrite_translator_prompt(self, base_prompt: str) -> str:
         """
@@ -357,44 +402,23 @@ Please rewrite the base prompt to deeply integrate the speaker style guidelines 
             Rewritten prompt with speaker style for style-aware translation
         """
         logger.info("\n" + "=" * 80)
-        logger.info("REWRITING TRANSLATOR PROMPT WITH LLM")
+        logger.info("REWRITING TRANSLATOR PROMPT")
         logger.info("=" * 80)
         
-        rewrite_request = f"""BASE_PROMPT:
-{base_prompt}
-
-STYLE_GUIDELINES:
-{self.speaker_style}
-
-STYLE_TYPE: speaker
-
-CRITICAL REQUIREMENT: This translator must not only translate language but also apply the speaker style. When translating speaker notes, the translator should:
-1. Translate the content to the target language
-2. Rewrite the translated content to match the speaker style (tone, vocabulary, personality)
-3. Ensure the result sounds natural in the target language with the speaker's voice
-4. Maintain informational accuracy while adapting stylistic elements
-
-Please rewrite the base prompt to deeply integrate these style-aware translation capabilities."""
+        rewritten = self._rewrite_with_cache(base_prompt, self.speaker_style, "translator")
         
-        try:
-            rewritten = self._run_rewriter_with_retry(rewrite_request, "translator_rewriter")
-            
-            logger.info(f"Original prompt length: {len(base_prompt)} chars")
-            logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
-            logger.info(f"Style integration: {len(self.speaker_style)} chars of style content")
-            logger.info("✓ Translator prompt rewritten successfully")
-            logger.info("=" * 80 + "\n")
-            
-            logger.debug("FULL REWRITTEN TRANSLATOR PROMPT:")
-            logger.debug("-" * 80)
-            logger.debug(rewritten)
-            logger.debug("-" * 80)
-            
-            return rewritten
-            
-        except Exception as e:
-            logger.error(f"Failed to rewrite translator prompt with LLM: {e}")
-            raise Exception(f"Translator prompt rewriting failed: {e}")
+        logger.info(f"Original prompt length: {len(base_prompt)} chars")
+        logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
+        logger.info(f"Style integration: {len(self.speaker_style)} chars of style content")
+        logger.info("✓ Translator prompt rewritten successfully")
+        logger.info("=" * 80 + "\n")
+        
+        logger.debug("FULL REWRITTEN TRANSLATOR PROMPT:")
+        logger.debug("-" * 80)
+        logger.debug(rewritten)
+        logger.debug("-" * 80)
+        
+        return rewritten
     
     def get_rewrite_summary(self) -> Dict[str, Any]:
         """
@@ -403,21 +427,206 @@ Please rewrite the base prompt to deeply integrate these style-aware translation
         Returns:
             Dictionary with rewrite statistics
         """
+        cache_stats = self.cache.get_cache_stats()
         return {
             "visual_style_length": len(self.visual_style),
             "speaker_style_length": len(self.speaker_style),
             "visual_style_preview": self.visual_style[:100] + "...",
             "speaker_style_preview": self.speaker_style[:100] + "...",
+            "cache_stats": cache_stats,
         }
     
+    def rewrite_tts_prompt(self, base_prompt: str, style_guidelines: str) -> str:
+        """
+        Rewrite TTS prompt with style guidelines integrated using LLM.
+        
+        Args:
+            base_prompt: Original TTS prompt
+            style_guidelines: TTS style guidelines from speaker notes analysis
+            
+        Returns:
+            Rewritten prompt with TTS style integrated
+        """
+        logger.info("\n" + "=" * 80)
+        logger.info("REWRITING TTS PROMPT WITH LLM")
+        logger.info("=" * 80)
+        
+        rewrite_request = f"""BASE_PROMPT:
+{base_prompt}
+
+STYLE_GUIDELINES:
+{style_guidelines}
+
+STYLE_TYPE: tts_speech
+
+CRITICAL REQUIREMENT: This is for text-to-speech generation using Gemini TTS. The output should be a natural language instruction that tells the TTS engine how to speak the content.
+
+IMPORTANT TONE CONSTRAINT: The tone MUST be exactly one of these values: 'professional', 'casual', 'enthusiastic', 'technical', or 'narrative'. Do not use any other tone words.
+
+IMPORTANT LENGTH CONSTRAINT: The final output MUST be under 500 characters total. Be extremely concise.
+
+Focus on:
+1. Choose the most appropriate tone from: professional, casual, enthusiastic, technical, narrative
+2. Pace and rhythm instructions (slow, normal, fast)
+3. Emphasis and emotional expression
+4. Language-appropriate cultural considerations
+
+Please rewrite the base prompt to create a SHORT, natural language TTS instruction that incorporates the speaking style from the guidelines. Keep it under 500 characters and use only the allowed tone values."""
+        
+        try:
+            rewritten = self._run_rewriter_with_retry(rewrite_request, "tts_rewriter")
+            
+            # Validate and fix tone if needed
+            rewritten = self._validate_and_fix_tts_tone(rewritten)
+            
+            logger.info(f"Original TTS prompt length: {len(base_prompt)} chars")
+            logger.info(f"Rewritten TTS prompt length: {len(rewritten)} chars")
+            logger.info(f"Style integration: {len(style_guidelines)} chars of style content")
+            
+            # Check if rewritten prompt is too long for Gemini TTS
+            if len(rewritten.encode('utf-8')) > 3500:  # 4000 byte limit with buffer
+                logger.warning(f"Rewritten TTS prompt too long ({len(rewritten)} chars), truncating")
+                # Truncate to safe length
+                rewritten = rewritten[:500] + "..."
+                logger.info(f"Truncated TTS prompt length: {len(rewritten)} chars")
+            
+            logger.info("✓ TTS prompt rewritten successfully")
+            logger.info("=" * 80 + "\n")
+            
+            # Log full rewritten prompt for debugging
+            logger.debug("FULL REWRITTEN TTS PROMPT:")
+            logger.debug("-" * 80)
+            logger.debug(rewritten)
+            logger.debug("-" * 80)
+            
+            return rewritten
+            
+        except Exception as e:
+            logger.error(f"Failed to rewrite TTS prompt with LLM: {e}")
+            # Fallback to simple concatenation for TTS
+            fallback_prompt = self._create_tts_fallback_prompt(base_prompt, style_guidelines)
+            logger.warning("Using fallback TTS prompt concatenation")
+            return fallback_prompt
+    
+    def _validate_and_fix_tts_tone(self, tts_prompt: str) -> str:
+        """
+        Validate and fix TTS tone to ensure it uses only allowed values.
+        
+        Args:
+            tts_prompt: The TTS prompt to validate
+            
+        Returns:
+            Fixed TTS prompt with valid tone
+        """
+        valid_tones = ["professional", "casual", "enthusiastic", "technical", "narrative"]
+        
+        # Check if prompt contains any valid tone
+        found_tone = None
+        for tone in valid_tones:
+            if tone in tts_prompt.lower():
+                found_tone = tone
+                break
+        
+        if not found_tone:
+            # Default to professional if no valid tone found
+            logger.warning("No valid TTS tone found in prompt, defaulting to 'professional'")
+            # Insert professional tone at the beginning
+            tts_prompt = f"Speak in a professional tone. {tts_prompt}"
+        
+        # Remove any invalid tone words that might cause issues
+        invalid_tone_words = [
+            "martial arts", "heroic", "commanding", "passionate", "righteous",
+            "wise", "brave", "chivalrous", "powerful", "dramatic", "intense"
+        ]
+        
+        for invalid_word in invalid_tone_words:
+            if invalid_word in tts_prompt.lower():
+                logger.debug(f"Removing potentially problematic tone word: {invalid_word}")
+                # Replace with appropriate valid tone
+                if "passionate" in invalid_word or "intense" in invalid_word:
+                    tts_prompt = tts_prompt.replace(invalid_word, "enthusiastic")
+                elif "wise" in invalid_word or "commanding" in invalid_word:
+                    tts_prompt = tts_prompt.replace(invalid_word, "professional")
+                else:
+                    tts_prompt = tts_prompt.replace(invalid_word, "")
+        
+        return tts_prompt.strip()
+    
+    def _create_tts_fallback_prompt(self, base_prompt: str, style_guidelines: str) -> str:
+        """
+        Create a safe TTS fallback prompt with valid tone.
+        
+        Args:
+            base_prompt: Original TTS prompt
+            style_guidelines: Style guidelines
+            
+        Returns:
+            Safe TTS prompt with valid tone
+        """
+        # Analyze style to determine appropriate tone
+        style_lower = style_guidelines.lower()
+        
+        if any(word in style_lower for word in ["technical", "precise", "analytical"]):
+            tone = "technical"
+        elif any(word in style_lower for word in ["casual", "friendly", "relaxed"]):
+            tone = "casual"
+        elif any(word in style_lower for word in ["exciting", "energetic", "passionate"]):
+            tone = "enthusiastic"
+        elif any(word in style_lower for word in ["story", "narrative", "tale"]):
+            tone = "narrative"
+        else:
+            tone = "professional"  # Safe default
+        
+        fallback_prompt = f"Speak in a {tone} tone with appropriate pacing and emphasis for the content."
+        
+        logger.info(f"Created TTS fallback prompt with tone: {tone}")
+        return fallback_prompt
+
     def log_rewrite_summary(self):
-        """Log a summary of the rewrite configuration."""
+        """Log a summary of the rewrite configuration and performance."""
         summary = self.get_rewrite_summary()
-        logger.info("\n" + "╔" + "═" * 78 + "╗")
-        logger.info("║" + " " * 25 + "REWRITE SUMMARY" + " " * 38 + "║")
-        logger.info("╚" + "═" * 78 + "╝")
+        cache_stats = summary.get('cache_stats', {})
+        
+        logger.info("\n" + "+" + "=" * 78 + "+")
+        logger.info("|" + " " * 25 + "REWRITE SUMMARY" + " " * 38 + "|")
+        logger.info("+" + "=" * 78 + "+")
         logger.info(f"Visual Style Length: {summary['visual_style_length']} chars")
         logger.info(f"Speaker Style Length: {summary['speaker_style_length']} chars")
         logger.info(f"Visual Preview: {summary['visual_style_preview']}")
         logger.info(f"Speaker Preview: {summary['speaker_style_preview']}")
-        logger.info("═" * 80 + "\n")
+        
+        if cache_stats.get('enabled'):
+            logger.info("+" + "-" * 78 + "+")
+            logger.info("|" + " " * 25 + "CACHE PERFORMANCE" + " " * 36 + "|")
+            logger.info("+" + "-" * 78 + "+")
+            logger.info(f"Cache Enabled: {cache_stats.get('enabled', False)}")
+            logger.info(f"Total Entries: {cache_stats.get('total_entries', 0)}")
+            logger.info(f"Cache Hits: {cache_stats.get('cache_hits', 0)}")
+            logger.info(f"Cache Misses: {cache_stats.get('cache_misses', 0)}")
+            logger.info(f"Hit Rate: {cache_stats.get('hit_rate', 0):.1%}")
+            logger.info(f"Cache Size: {cache_stats.get('total_size_mb', 0):.2f}MB / {cache_stats.get('max_size_mb', 0):.0f}MB")
+            logger.info(f"Cache Directory: {cache_stats.get('cache_dir', 'N/A')}")
+        else:
+            logger.info("Cache: DISABLED")
+            
+        logger.info("=" * 80 + "\n")
+    
+    def log_performance_metrics(self):
+        """Log detailed performance metrics for monitoring."""
+        cache_stats = self.cache.get_cache_stats()
+        
+        if cache_stats.get('enabled'):
+            total_requests = cache_stats.get('cache_hits', 0) + cache_stats.get('cache_misses', 0)
+            hit_rate = cache_stats.get('hit_rate', 0)
+            
+            logger.info("PERFORMANCE METRICS:")
+            logger.info(f"  Total Requests: {total_requests}")
+            logger.info(f"  Cache Hit Rate: {hit_rate:.1%}")
+            logger.info(f"  Cache Efficiency: {'EXCELLENT' if hit_rate > 0.8 else 'GOOD' if hit_rate > 0.5 else 'POOR'}")
+            logger.info(f"  Storage Used: {cache_stats.get('total_size_mb', 0):.2f}MB")
+            
+            if hit_rate > 0.5:
+                estimated_time_saved = cache_stats.get('cache_hits', 0) * 15  # Assume 15s saved per hit
+                logger.info(f"  Estimated Time Saved: {estimated_time_saved}s ({estimated_time_saved/60:.1f} minutes)")
+        else:
+            logger.info("PERFORMANCE METRICS: Cache disabled - no performance benefits")

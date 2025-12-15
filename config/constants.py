@@ -18,6 +18,8 @@ class ModelConfig:
     REFINER: Final[str] = "gemini-2.5-flash"
     PROMPT_REWRITER: Final[str] = "gemini-2.5-flash"
     FALLBACK_IMAGEN: Final[str] = "imagen-4.0-generate-001"
+    TTS_GEMINI_FLASH: Final[str] = "gemini-2.5-flash-tts"
+    TTS_GEMINI_PRO: Final[str] = "gemini-2.5-pro-tts"
 
 
 class ProcessingConfig:
@@ -41,8 +43,10 @@ class FilePatterns:
     VISUALS_OUTPUT: Final[str] = "{base}_{lang}_with_visuals{ext}"
     VISUALS_DIR: Final[str] = "{base}_{lang}_visuals"
     VIDEOS_DIR: Final[str] = "{base}_{lang}_videos"
+    SPEECH_DIR: Final[str] = "{base}_{lang}_speech"
     VIDEO_PROMPT_FILE: Final[str] = "slide_{idx}_video_prompt.txt"
     REIMAGINED_SLIDE: Final[str] = "slide_{idx}_reimagined.png"
+    SPEECH_FILE: Final[str] = "slide_{idx}_{hash}.mp3"
 
 
 class LanguageConfig:
@@ -92,3 +96,9 @@ class EnvironmentVars:
     GOOGLE_CLOUD_PROJECT: Final[str] = "GOOGLE_CLOUD_PROJECT"
     FORCE_FALLBACK_IMAGE_GEN: Final[str] = "FORCE_FALLBACK_IMAGE_GEN"
     FALLBACK_IMAGEN_MODEL: Final[str] = "FALLBACK_IMAGEN_MODEL"
+    TTS_ENABLED: Final[str] = "TTS_ENABLED"
+    TTS_CACHE_ENABLED: Final[str] = "TTS_CACHE_ENABLED"
+    TTS_CACHE_TTL_HOURS: Final[str] = "TTS_CACHE_TTL_HOURS"
+    TTS_STORAGE_BUCKET: Final[str] = "TTS_STORAGE_BUCKET"
+    TTS_PARALLEL_PROCESSING: Final[str] = "TTS_PARALLEL_PROCESSING"
+    TTS_MAX_CONCURRENT_SLIDES: Final[str] = "TTS_MAX_CONCURRENT_SLIDES"

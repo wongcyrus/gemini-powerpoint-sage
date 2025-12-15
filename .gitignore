@@ -36,3 +36,6 @@ config.yml
 # Notes directory
 notes/
 tests/sample_data/generate
+
+.hypothesis
+cache/**
