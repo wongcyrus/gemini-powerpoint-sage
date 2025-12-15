@@ -99,15 +99,32 @@ ls styles/config.*.yaml
 cat styles/config.cyberpunk.yaml
 ```
 
+### Performance Configuration
+```bash
+# High-performance caching (default: enabled)
+export PROMPT_CACHE_ENABLED=true
+export PROMPT_CACHE_MAX_SIZE_MB=100
+export PROMPT_CACHE_TTL_DAYS=30
+
+# TTS configuration
+export MODEL_TTS=gemini-2.5-flash-tts
+export TTS_TIMEOUT_SECONDS=90
+
+# Check cache performance
+ls -la cache/prompt_rewriter/
+```
+
 ### Clean Up
 ```bash
 rm -rf notes/*/generate/*
 rm -rf logs/*
+rm -rf cache/prompt_rewriter/*  # Clear prompt cache
 ```
 
 ## 📚 Documentation
 
 - **Prompt Rewriter:** `docs/PROMPT_REWRITER.md`
+- **Performance & Caching:** `docs/PERFORMANCE_CACHING.md`
 - **Style Gallery:** `docs/STYLE_CONFIGS.md`
 - **Run Scripts:** `docs/RUN_SCRIPTS_USAGE.md`
 - **Test Commands:** `TEST_COMMANDS.md`

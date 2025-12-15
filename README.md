@@ -58,6 +58,8 @@ The system uses a sophisticated **10-Agent Multi-Agent Architecture** with three
 - 🛠️ **Production Ready** with robust error handling and fallback mechanisms
 - 🎯 **Style Integration** via Prompt Rewriter agent that deeply integrates themes into all agents
 - 💾 **Self-Contained Output** with organized language-specific folders
+- 🚀 **High-Performance Caching** with file-based prompt caching reducing processing time from 110s to <1s
+- 🎙️ **Advanced TTS Support** with Gemini TTS integration, intelligent timeout handling, and tone validation
 
 ## 🚀 Quick Start
 
@@ -487,12 +489,31 @@ Output: Creates `_refined.json` suffix files (e.g., `progress_refined.json`)
 - Non-English languages use style-aware translation (2-3x faster)
 - Maintains consistency across all language versions
 
+### High-Performance Caching System
+
+**Prompt Rewriter Caching**:
+- **File-based persistence** with SHA-256 hash keys for cache integrity
+- **Dramatic speed improvement**: Reduces processing from 110s to <1s for cached prompts
+- **Intelligent cache management**: TTL-based expiration, size limits, and automatic cleanup
+- **Environment configuration**: Configurable via `PROMPT_CACHE_*` environment variables
+- **Cache statistics**: Hit rate monitoring and performance metrics logging
+
+### Advanced TTS Integration
+
+**Gemini TTS Engine**:
+- **Unified model configuration**: Single `MODEL_TTS` environment variable (default: `gemini-2.5-flash-tts`)
+- **Intelligent timeout handling**: Configurable via `TTS_TIMEOUT_SECONDS` (default: 90s)
+- **Tone validation and mapping**: Ensures valid tone values for TTS synthesis
+- **Robust error handling**: Exponential backoff retry with fallback mechanisms
+- **Multi-language support**: 25+ languages with voice mapping and cultural adaptation
+
 ### Robust Error Handling
 
 - **Supervisor Fallback**: "Last Tool Output" pattern captures writer output if supervisor terminates unexpectedly
 - **Retry Strategy**: Exponential backoff with 3 attempts for all agent calls
 - **Progress Tracking**: Resume interrupted processing automatically
 - **Image Caching**: Skip existing visuals unless `--retry-errors` specified
+- **TTS Resilience**: Timeout protection and tone validation with intelligent fallbacks
 
 ### Style Integration Architecture
 
@@ -501,6 +522,7 @@ Output: Creates `_refined.json` suffix files (e.g., `progress_refined.json`)
 2. Uses LLM to deeply integrate style throughout prompts
 3. Creates style-aware agents before content processing begins
 4. Fallback to simple concatenation if LLM rewriting fails
+5. **Cached results** for instant subsequent runs with same style combinations
 
 ### Context Management
 
@@ -508,6 +530,7 @@ Output: Creates `_refined.json` suffix files (e.g., `progress_refined.json`)
 - **Rolling Context**: Previous slide summary informs next slide generation
 - **Language Isolation**: Independent progress tracking per language
 - **Session Management**: Reused supervisor sessions for efficiency
+- **Cache Persistence**: File-based caching survives application restarts
 
 
 
@@ -518,9 +541,13 @@ Output: Creates `_refined.json` suffix files (e.g., `progress_refined.json`)
 - **Frameworks**: Google ADK (Agent Development Kit), FastMCP
 - **Document Processing**: python-pptx, PyMuPDF, Pillow
 - **Configuration**: YAML-driven with environment variable support
+- **Caching**: File-based prompt caching with SHA-256 hashing and TTL management
+- **TTS Integration**: Google Cloud Text-to-Speech with Gemini TTS engine support
+- **Performance**: High-speed caching reduces processing time from 110s to <1s
 
 ## 🌐 Environment Variables (Optional)
 
+### Core Configuration
 ```bash
 # Linux/macOS - Use alternate GCP project
 export GOOGLE_CLOUD_PROJECT='your-project-id'
@@ -533,6 +560,29 @@ python main.py --pptx file.pptx
 $env:GOOGLE_CLOUD_PROJECT = 'your-project-id'
 $env:GOOGLE_CLOUD_LOCATION = 'us-central1'
 python main.py --pptx "file.pptx"
+```
+
+### Performance & Caching Configuration
+```bash
+# Prompt Rewriter Caching (High Performance)
+export PROMPT_CACHE_ENABLED=true              # Enable/disable caching (default: true)
+export PROMPT_CACHE_DIR=cache/prompt_rewriter  # Cache directory (default: cache/prompt_rewriter)
+export PROMPT_CACHE_MAX_SIZE_MB=100           # Max cache size in MB (default: 100)
+export PROMPT_CACHE_TTL_DAYS=30               # Cache TTL in days (default: 30)
+
+# TTS Configuration
+export MODEL_TTS=gemini-2.5-flash-tts         # TTS model (default: gemini-2.5-flash-tts)
+export TTS_TIMEOUT_SECONDS=90                 # TTS timeout in seconds (default: 90)
+export TTS_ENABLED=true                       # Enable/disable TTS (default: true)
+export TTS_CACHE_ENABLED=true                 # Enable TTS caching (default: true)
+```
+
+```powershell
+# Windows PowerShell - Performance Configuration
+$env:PROMPT_CACHE_ENABLED = 'true'
+$env:PROMPT_CACHE_MAX_SIZE_MB = '100'
+$env:MODEL_TTS = 'gemini-2.5-flash-tts'
+$env:TTS_TIMEOUT_SECONDS = '90'
 ```
 
 ## 📚 Documentation

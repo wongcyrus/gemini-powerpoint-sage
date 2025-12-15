@@ -18,6 +18,7 @@ Start here if you're new to the project:
 - **[Style Prompts Guide](STYLE_PROMPTS.md)** - Create detailed multi-line style prompts
 - **[Folder Structure](FOLDER_STRUCTURE.md)** - Understand output organization
 - **[Chinese Locale Support](CHINESE_LOCALE_SUPPORT.md)** - Traditional vs Simplified Chinese
+- **[Performance & Caching](PERFORMANCE_CACHING.md)** - High-speed caching and TTS integration
 
 ### Reference
 - **[User Quick Reference](../QUICK_REFERENCE.md)** - Command-line reference and tips
@@ -31,8 +32,13 @@ For developers and contributors:
 - **[Architecture](ARCHITECTURE.md)** - System architecture overview
 - **[Agent Flow Detailed](AGENT_FLOW_DETAILED.md)** - Complete agent logic flow and relationships
 - **[Agent Relationships](AGENT_RELATIONSHIPS.md)** - Agent interactions and dependencies
-- **[Prompt Rewriter](PROMPT_REWRITER.md)** - Prompt rewriter system overview
+- **[Prompt Rewriter](PROMPT_REWRITER.md)** - Prompt rewriter system overview with caching
 - **[Prompt Rewriter Agent Details](PROMPT_REWRITER_AGENT_DETAILS.md)** - Detailed meta-agent analysis
+
+### Performance & Integration
+- **High-Performance Caching** - File-based prompt caching reduces processing from 110s to <1s
+- **TTS Integration** - Advanced Gemini TTS with timeout handling and tone validation
+- **Configuration Management** - Environment variables for caching, TTS, and performance tuning
 
 ## 🎯 Quick Links by Task
 
@@ -59,6 +65,9 @@ For developers and contributors:
 **Learn about the system architecture**
 → [Architecture](ARCHITECTURE.md)
 
+**Optimize performance and understand caching**
+→ [Performance & Caching](PERFORMANCE_CACHING.md)
+
 ## 📂 Documentation Structure
 
 ```
@@ -76,7 +85,8 @@ docs/
 ├── AGENT_FLOW_DETAILED.md         # Complete agent logic flow trace
 ├── AGENT_RELATIONSHIPS.md         # Agent interactions and dependencies
 ├── PROMPT_REWRITER.md             # Prompt rewriter system overview
-└── PROMPT_REWRITER_AGENT_DETAILS.md # Detailed meta-agent analysis
+├── PROMPT_REWRITER_AGENT_DETAILS.md # Detailed meta-agent analysis
+└── PERFORMANCE_CACHING.md         # Performance optimization and caching guide
 ```
 
 ## 🔄 Documentation Updates

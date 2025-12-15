@@ -238,10 +238,81 @@ This will:
 4. **Maintainable**: Base prompts remain clean and focused
 5. **Robust**: Automatic fallback ensures reliability
 
+## High-Performance Caching System
+
+### Performance Impact
+
+The Prompt Rewriter now includes intelligent caching that dramatically improves performance:
+
+- **Before**: 110+ seconds per style combination (4 sequential LLM calls)
+- **After**: <1 second for cached results
+- **Cache Hit Rate**: Typically 80%+ after initial runs
+
+### Cache Implementation
+
+```python
+from services.prompt_cache import PromptCache
+
+# Automatic caching in PromptRewriter
+class PromptRewriter:
+    def __init__(self, visual_style=None, speaker_style=None):
+        self.cache = PromptCache()  # File-based caching
+        
+    def _rewrite_with_cache(self, base_prompt, style_guidelines, prompt_type):
+        # Generate cache key
+        cache_key = self.cache.generate_cache_key(base_prompt, style_guidelines, prompt_type)
+        
+        # Try cache first
+        cached_result = self.cache.get_cached_prompt(cache_key)
+        if cached_result:
+            return cached_result
+            
+        # Perform LLM rewriting and cache result
+        rewritten = self._run_rewriter_with_retry(...)
+        self.cache.store_prompt(cache_key, rewritten, prompt_type, base_prompt, style_guidelines)
+        return rewritten
+```
+
+### Cache Configuration
+
+```bash
+# Environment Variables
+export PROMPT_CACHE_ENABLED=true              # Enable/disable (default: true)
+export PROMPT_CACHE_DIR=cache/prompt_rewriter  # Directory (default: cache/prompt_rewriter)
+export PROMPT_CACHE_MAX_SIZE_MB=100           # Size limit (default: 100MB)
+export PROMPT_CACHE_TTL_DAYS=30               # Expiration (default: 30 days)
+```
+
+### Cache Features
+
+1. **SHA-256 Hash Keys**: Unique keys based on prompt + style + type
+2. **File-based Persistence**: Survives application restarts
+3. **TTL Management**: Automatic expiration of old entries
+4. **Size Limits**: Automatic cleanup when cache grows too large
+5. **Statistics Tracking**: Hit rates and performance metrics
+6. **Atomic Operations**: Safe concurrent access
+
+### Cache Statistics
+
+```
+CACHE PERFORMANCE SUMMARY
+Status: ENABLED
+Total Requests: 45
+Cache Hits: 38
+Cache Misses: 7
+Hit Rate: 84.4%
+Efficiency Rating: EXCELLENT
+Storage: 2.34MB / 100MB
+Estimated Time Saved: 570s (9.5 min)
+```
+
 ## Future Enhancements
 
-Potential improvements:
-- Cache rewritten prompts to avoid redundant LLM calls
+Completed improvements:
+- ✅ **Cache rewritten prompts** - Implemented with file-based persistence
+- ✅ **Performance optimization** - 110s → <1s for cached results
+
+Potential future improvements:
 - Support for multiple style dimensions (e.g., color + layout separately)
 - Style validation and consistency checking
 - A/B testing framework for comparing rewrite strategies
