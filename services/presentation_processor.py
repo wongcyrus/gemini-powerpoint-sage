@@ -100,7 +100,7 @@ class PresentationProcessor:
         try:
             tts_config = get_tts_config()
             if tts_config.enabled:
-                self.tts_orchestrator = create_tts_orchestrator(tts_config)
+                self.tts_orchestrator = create_tts_orchestrator(tts_config, main_config=self.config)
                 logger.info("TTS orchestrator initialized successfully")
             else:
                 self.tts_orchestrator = None

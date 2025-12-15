@@ -14,12 +14,13 @@ logger = logging.getLogger(__name__)
 class StorageManager:
     """Handles TTS file organization and cloud storage integration."""
     
-    def __init__(self, storage_config: TTSStorageConfig):
+    def __init__(self, storage_config: TTSStorageConfig, main_config=None):
         """Initialize storage manager with configuration."""
         self.config = storage_config
+        self.main_config = main_config  # Optional main config for directory integration
         self.local_cache_dir = Path(storage_config.local_cache_dir)
         
-        # Ensure local cache directory exists
+        # Ensure local cache directory exists (fallback only)
         self.local_cache_dir.mkdir(parents=True, exist_ok=True)
     
     def generate_speech_directory_path(
@@ -37,11 +38,33 @@ class StorageManager:
         Returns:
             Directory path for speech files
         """
-        directory_name = self.config.directory_pattern.format(
-            base_name=presentation_id,
-            language_code=language_code
-        )
-        return str(self.local_cache_dir / directory_name)
+        # Try to use the main config's speech directory if available
+        if self.main_config:
+            try:
+                # Use the main config's speech directory
+                return self.main_config.speech_dir
+            except Exception as e:
+                logger.warning(f"Failed to use main config speech directory: {e}")
+        
+        # Try to create a temporary config to get the speech directory pattern
+        try:
+            from config.config import Config
+            # Create a temporary config to get the speech directory pattern
+            temp_config = Config(
+                pptx_path=f"{presentation_id}.pptx",
+                pdf_path=f"{presentation_id}.pdf",
+                language=language_code
+            )
+            # Use the speech directory instead of cache/speech
+            return temp_config.speech_dir
+        except Exception as e:
+            logger.warning(f"Failed to create temp config for speech directory: {e}")
+            # Fallback to original behavior if config is not available
+            directory_name = self.config.directory_pattern.format(
+                base_name=presentation_id,
+                language_code=language_code
+            )
+            return str(self.local_cache_dir / directory_name)
     
     def generate_audio_filename(
         self,
@@ -115,6 +138,41 @@ class StorageManager:
         except Exception as e:
             logger.error(f"Error saving audio file {file_path}: {e}")
             raise TTSStorageError(f"Failed to save audio file: {e}")
+    
+    async def migrate_audio_file(
+        self,
+        old_file_path: str,
+        new_file_path: str
+    ) -> str:
+        """
+        Migrate audio file from old location to new location.
+        
+        Args:
+            old_file_path: Path to existing audio file
+            new_file_path: Path where to copy the file
+            
+        Returns:
+            Path to migrated file
+        """
+        try:
+            import shutil
+            
+            # Check if old file exists
+            if not os.path.exists(old_file_path):
+                raise TTSStorageError(f"Source file not found: {old_file_path}")
+            
+            # Ensure target directory exists
+            Path(new_file_path).parent.mkdir(parents=True, exist_ok=True)
+            
+            # Copy file to new location
+            shutil.copy2(old_file_path, new_file_path)
+            
+            logger.debug(f"Migrated audio file from {old_file_path} to {new_file_path}")
+            return new_file_path
+            
+        except Exception as e:
+            logger.error(f"Error migrating audio file from {old_file_path} to {new_file_path}: {e}")
+            raise TTSStorageError(f"Failed to migrate audio file: {e}")
     
     async def upload_audio_file(
         self,

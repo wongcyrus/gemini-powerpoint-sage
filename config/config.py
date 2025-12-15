@@ -28,6 +28,8 @@ class Config:
         style: Optional[str] = None,
         output_dir: Optional[str] = None,
         enable_tts: bool = True,
+        enable_video_synthesis: bool = False,
+        video_synthesis_config: Optional[dict] = None,
     ):
         """
         Initialize configuration.
@@ -45,6 +47,8 @@ class Config:
             style: Optional style/theme for content generation (e.g., "Gundam", "Cyberpunk", "Minimalist")
             output_dir: Optional output directory (defaults to generate/ folder next to input)
             enable_tts: Whether to enable TTS generation
+            enable_video_synthesis: Whether to enable video synthesis from slides and audio
+            video_synthesis_config: Optional video synthesis configuration dictionary
         """
         self.pptx_path = pptx_path
         self.pdf_path = pdf_path
@@ -57,6 +61,8 @@ class Config:
         self.language = language
         self.output_dir = output_dir
         self.enable_tts = enable_tts
+        self.enable_video_synthesis = enable_video_synthesis
+        self.video_synthesis_config = video_synthesis_config or {}
         
         # Handle style - can be a string or dict with visual_style and speaker_style
         if isinstance(style, dict):
@@ -199,10 +205,25 @@ class Config:
         output_dir = self._get_output_dir()
         
         # Build directory name with language (always include language code)
-        dirname = f"{pptx_base}_{self.language}_speech"
+        dirname = FilePatterns.SPEECH_DIR.format(
+            base=pptx_base,
+            lang=self.language
+        )
         speech_dir = os.path.join(output_dir, dirname)
         os.makedirs(speech_dir, exist_ok=True)
         return speech_dir
+
+    @property
+    def video_synthesis_dir(self) -> str:
+        """Get the directory for storing video synthesis outputs."""
+        pptx_base = os.path.splitext(os.path.basename(self.pptx_path))[0]
+        output_dir = self._get_output_dir()
+        
+        # Build directory name with language (always include language code)
+        dirname = f"{pptx_base}_{self.language}_video_synthesis"
+        video_synthesis_dir = os.path.join(output_dir, dirname)
+        os.makedirs(video_synthesis_dir, exist_ok=True)
+        return video_synthesis_dir
 
     @property
     def tts_config(self) -> TTSConfig:
@@ -265,11 +286,42 @@ class Config:
 
         return f"Course {self.course_id}"
 
+    def get_video_synthesis_config(self):
+        """
+        Get video synthesis configuration.
+        
+        Returns:
+            VideoConfig instance for video synthesis
+        """
+        try:
+            from core.domain.video_synthesis import VideoConfig
+            from services.video_synthesis.video_config_manager import VideoConfigManager
+            
+            config_manager = VideoConfigManager()
+            
+            # Start with default config
+            if self.video_synthesis_config:
+                # Create config from provided dictionary
+                video_config = config_manager.create_config_from_dict(self.video_synthesis_config)
+            else:
+                # Use default config
+                video_config = config_manager.create_default_config()
+            
+            return video_config
+            
+        except ImportError as e:
+            logger.warning(f"Video synthesis not available: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Failed to create video synthesis config: {e}")
+            return None
+
     def __repr__(self) -> str:
         """String representation of configuration."""
         return (
             f"Config(pptx={self.pptx_path}, pdf={self.pdf_path}, "
             f"course_id={self.course_id}, region={self.region}, "
             f"skip_visuals={self.skip_visuals}, language={self.language}, "
-            f"visual_style={self.visual_style}, speaker_style={self.speaker_style})"
+            f"visual_style={self.visual_style}, speaker_style={self.speaker_style}, "
+            f"enable_video_synthesis={self.enable_video_synthesis})"
         )

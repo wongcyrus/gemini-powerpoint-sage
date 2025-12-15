@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 from typing import Dict, List, Optional, Tuple
 
 from google.cloud import texttospeech
@@ -185,6 +186,28 @@ class TTSOrchestrator:
                 cached_result = await self.cache_manager.get_cached_audio(cache_key)
                 if cached_result:
                     logger.info(f"✓ Cache hit for slide {slide_number}")
+                    
+                    # Check if cached file needs migration to new location
+                    expected_file_path = self.storage_manager.get_audio_file_path(
+                        presentation_id, language_code, slide_number, cache_key
+                    )
+                    
+                    # If cached result has old file path, migrate it
+                    if cached_result.file_path != expected_file_path:
+                        if os.path.exists(cached_result.file_path):
+                            try:
+                                # Migrate file from old location to new location
+                                migrated_path = await self.storage_manager.migrate_audio_file(
+                                    cached_result.file_path, expected_file_path
+                                )
+                                # Update the cached result with new path
+                                cached_result.file_path = migrated_path
+                                logger.debug(f"Migrated audio file for slide {slide_number} to new location")
+                            except Exception as e:
+                                logger.warning(f"Failed to migrate cached audio file for slide {slide_number}: {e}")
+                        else:
+                            logger.warning(f"Cached audio file not found: {cached_result.file_path}")
+                    
                     return cached_result
                 
                 # Generate speech using appropriate engine
@@ -466,7 +489,8 @@ class TTSOrchestrator:
 
 def create_tts_orchestrator(
     tts_config: Optional[TTSConfig] = None,
-    tts_style_adapter: Optional[TTSStyleAdapter] = None
+    tts_style_adapter: Optional[TTSStyleAdapter] = None,
+    main_config=None
 ) -> TTSOrchestrator:
     """
     Factory function to create TTS orchestrator with default components.
@@ -474,6 +498,7 @@ def create_tts_orchestrator(
     Args:
         tts_config: Optional TTS configuration
         tts_style_adapter: Optional style adapter
+        main_config: Optional main config for directory integration
         
     Returns:
         Configured TTSOrchestrator instance
@@ -493,7 +518,7 @@ def create_tts_orchestrator(
     # Create other components
     engine_selector = EngineSelector(tts_config)
     cache_manager = CacheManager(tts_config.cache)
-    storage_manager = StorageManager(tts_config.storage)
+    storage_manager = StorageManager(tts_config.storage, main_config)
     
     return TTSOrchestrator(
         tts_config=tts_config,

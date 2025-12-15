@@ -18,6 +18,9 @@ pyyaml>=6.0
 fastmcp>=0.1.0
 pydantic>=2.0.0
 
+# Video processing for slide synthesis
+ffmpeg-python>=0.2.0
+
 # Type hints and validation
 typing-extensions>=4.8.0
 

@@ -19,6 +19,8 @@ Start here if you're new to the project:
 - **[Folder Structure](FOLDER_STRUCTURE.md)** - Understand output organization
 - **[Chinese Locale Support](CHINESE_LOCALE_SUPPORT.md)** - Traditional vs Simplified Chinese
 - **[Performance & Caching](PERFORMANCE_CACHING.md)** - High-speed caching and TTS integration
+- **[Video Synthesis Setup](../VIDEO_SYNTHESIS_SETUP.md)** - Video creation from slides and audio
+- **[Video Caching Guide](../CACHING_GUIDE.md)** - Intelligent caching for 2-5x faster video reruns
 
 ### Reference
 - **[User Quick Reference](../QUICK_REFERENCE.md)** - Command-line reference and tips
@@ -67,6 +69,12 @@ For developers and contributors:
 
 **Optimize performance and understand caching**
 → [Performance & Caching](PERFORMANCE_CACHING.md)
+
+**Create presentation videos**
+→ [Video Synthesis Setup](../VIDEO_SYNTHESIS_SETUP.md)
+
+**Speed up video synthesis with caching**
+→ [Video Caching Guide](../CACHING_GUIDE.md)
 
 ## 📂 Documentation Structure
 
