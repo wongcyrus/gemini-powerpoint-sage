@@ -256,29 +256,71 @@ class TTSTextProcessor:
         Returns:
             Tuple of (processed_text, processed_prompt, was_truncated)
         """
-        # Strip markdown from text
+        # Strip markdown from text first
+        clean_text = self.markdown_stripper.strip_markdown(text)
+        
+        # Calculate total size after markdown stripping
+        text_bytes = len(clean_text.encode('utf-8'))
+        prompt_bytes = len(style_prompt.encode('utf-8'))
+        total_bytes = text_bytes + prompt_bytes
+        
+        # Check if we need to truncate
+        if total_bytes <= max_total_bytes:
+            # No truncation needed
+            return clean_text, style_prompt, False
+        
+        # Text is too long - we'll need to truncate
+        logger.warning(f"Text too long ({total_bytes} bytes), truncating to {max_total_bytes} bytes")
+        
+        # Reserve space for style prompt (minimum 200 bytes, maximum half of limit)
+        prompt_reserve = min(max(prompt_bytes, 200), max_total_bytes // 2)
+        text_limit = max_total_bytes - prompt_reserve - 100  # Leave 100 byte buffer
+        
+        # Truncate text intelligently
         clean_text, text_truncated = self.markdown_stripper.strip_and_truncate(
-            text, max_bytes=max_total_bytes // 2  # Reserve half for style prompt
+            text, max_bytes=text_limit
         )
         
-        # Calculate remaining bytes for style prompt
-        text_bytes = len(clean_text.encode('utf-8'))
-        remaining_bytes = max_total_bytes - text_bytes - 100  # Leave 100 byte buffer
-        
-        # Truncate style prompt if needed
+        # Truncate style prompt if still needed
+        remaining_bytes = max_total_bytes - len(clean_text.encode('utf-8')) - 100
         prompt_truncated = False
+        
         if len(style_prompt.encode('utf-8')) > remaining_bytes:
             logger.warning(f"Style prompt too long, truncating to {remaining_bytes} bytes")
             style_prompt = style_prompt.encode('utf-8')[:remaining_bytes].decode('utf-8', errors='ignore')
             prompt_truncated = True
         
         was_truncated = text_truncated or prompt_truncated
+        final_total = len(clean_text.encode('utf-8')) + len(style_prompt.encode('utf-8'))
         
-        if was_truncated:
-            total_bytes = len(clean_text.encode('utf-8')) + len(style_prompt.encode('utf-8'))
-            logger.info(f"Text processed for TTS: {total_bytes} bytes (truncated: {was_truncated})")
+        logger.info(f"Text processed for TTS: {final_total} bytes (truncated: {was_truncated})")
         
         return clean_text, style_prompt, was_truncated
+    
+    def check_size_for_gemini_tts(
+        self,
+        text: str,
+        style_prompt: str = "",
+        max_bytes: int = 3800
+    ) -> bool:
+        """
+        Check if text and style prompt would fit within Gemini TTS size limits.
+        
+        Args:
+            text: Text content
+            style_prompt: Style prompt
+            max_bytes: Maximum allowed bytes
+            
+        Returns:
+            True if content fits within limits, False otherwise
+        """
+        # Strip markdown first
+        clean_text = self.markdown_stripper.strip_markdown(text)
+        
+        # Calculate total size
+        total_bytes = len(clean_text.encode('utf-8')) + len(style_prompt.encode('utf-8'))
+        
+        return total_bytes <= max_bytes
 
 
 # Global instances for easy import
@@ -294,3 +336,8 @@ def strip_markdown(text: str) -> str:
 def prepare_text_for_tts(text: str, style_prompt: str = "") -> Tuple[str, str, bool]:
     """Convenience function to prepare text for TTS."""
     return tts_text_processor.prepare_text_for_tts(text, style_prompt)
+
+
+def check_gemini_tts_size_limit(text: str, style_prompt: str = "") -> bool:
+    """Convenience function to check if content fits Gemini TTS size limits."""
+    return tts_text_processor.check_size_for_gemini_tts(text, style_prompt)

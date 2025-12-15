@@ -82,10 +82,19 @@ The solution has been tested with various markdown patterns:
 
 ## Impact
 
-This solution should resolve both issues:
-1. **No more "Request contains an invalid argument" errors** from oversized requests
-2. **Better TTS quality** with clean text instead of raw markdown syntax
-3. **Automatic fallback** to Traditional TTS when Gemini fails
-4. **Preserved functionality** - all existing features continue to work
+This solution resolves both issues with intelligent engine selection:
 
-The TTS system will now automatically clean and size-limit all text before sending to either engine.
+1. **No more "Request contains an invalid argument" errors** - Content is checked before sending to Gemini TTS
+2. **No text truncation** - Large content automatically uses Traditional TTS instead
+3. **Better TTS quality** - Clean text without markdown syntax for both engines
+4. **Intelligent fallback** - Automatic engine selection based on content size
+5. **Preserved functionality** - All existing features continue to work
+
+## Behavior Changes
+
+- **Small content** (< 3800 bytes): Uses Gemini TTS with advanced styling
+- **Large content** (≥ 3800 bytes): Automatically uses Traditional TTS with SSML enhancement
+- **All content**: Markdown is stripped for cleaner speech output
+- **Logging**: Clear indication when Traditional TTS is used due to size limits
+
+The TTS system now provides the best engine for each content size while maintaining full speech generation capability.

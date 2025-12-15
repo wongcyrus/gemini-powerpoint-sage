@@ -60,6 +60,42 @@ class TTSOrchestrator:
         
         logger.info("TTSOrchestrator initialized with dual-engine support")
     
+    def _check_and_adjust_engine_for_size(
+        self,
+        text_content: str,
+        speaker_notes: str,
+        original_engine: TTSEngineType,
+        slide_number: int
+    ) -> TTSEngineType:
+        """
+        Check if content fits Gemini TTS size limits and adjust engine if needed.
+        
+        Args:
+            text_content: Main slide text content
+            speaker_notes: Speaker notes for style analysis
+            original_engine: Originally selected engine
+            slide_number: Slide number for logging
+            
+        Returns:
+            Adjusted engine type
+        """
+        if original_engine != TTSEngineType.GEMINI:
+            return original_engine
+        
+        # Import here to avoid circular imports
+        from utils.text_processing import check_gemini_tts_size_limit
+        
+        # Generate a sample style prompt to check total size
+        # Use a typical style prompt length for estimation
+        sample_style_prompt = "Speak in a professional, clear manner with appropriate emphasis on key concepts and maintain good pacing for comprehension."
+        
+        # Check if content would fit within Gemini TTS limits
+        if check_gemini_tts_size_limit(text_content, sample_style_prompt):
+            return TTSEngineType.GEMINI
+        else:
+            logger.info(f"Slide {slide_number}: Content too large for Gemini TTS, using Traditional TTS instead")
+            return TTSEngineType.TRADITIONAL
+    
     def _create_gemini_engine(self) -> GeminiTTSEngine:
         """Create Gemini TTS engine instance."""
         try:
@@ -109,6 +145,12 @@ class TTSOrchestrator:
             
             # Select appropriate TTS engine using normalized language
             engine_type = self.engine_selector.select_engine(normalized_language)
+            
+            # Check if content is too large for Gemini TTS and force Traditional TTS if needed
+            if engine_type == TTSEngineType.GEMINI:
+                engine_type = self._check_and_adjust_engine_for_size(
+                    text_content, speaker_notes, engine_type, slide_number
+                )
             
             # Use engine-specific semaphore for concurrency control
             semaphore = self.gemini_semaphore if engine_type == TTSEngineType.GEMINI else self.traditional_semaphore

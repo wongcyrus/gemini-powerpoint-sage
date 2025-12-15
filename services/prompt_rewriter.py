@@ -438,7 +438,7 @@ Apply these style guidelines throughout all operations."""
     
     def rewrite_tts_prompt(self, base_prompt: str, style_guidelines: str) -> str:
         """
-        Rewrite TTS prompt with style guidelines integrated using LLM.
+        Rewrite TTS prompt with style guidelines integrated using LLM with caching.
         
         Args:
             base_prompt: Original TTS prompt
@@ -447,11 +447,25 @@ Apply these style guidelines throughout all operations."""
         Returns:
             Rewritten prompt with TTS style integrated
         """
-        logger.info("\n" + "=" * 80)
-        logger.info("REWRITING TTS PROMPT WITH LLM")
-        logger.info("=" * 80)
+        start_time = time.time()
         
-        rewrite_request = f"""BASE_PROMPT:
+        try:
+            # Generate cache key for TTS prompts
+            cache_key = self.cache.generate_cache_key(base_prompt, style_guidelines, "tts")
+            
+            # Try to get cached result
+            cached_result = self.cache.get_cached_prompt(cache_key)
+            if cached_result:
+                elapsed = time.time() - start_time
+                logger.info(f"✓ Cache hit for TTS prompt: {elapsed:.3f}s")
+                return cached_result
+            
+            # Cache miss - perform LLM rewriting
+            logger.info("\n" + "=" * 80)
+            logger.info("REWRITING TTS PROMPT WITH LLM")
+            logger.info("=" * 80)
+            
+            rewrite_request = f"""BASE_PROMPT:
 {base_prompt}
 
 STYLE_GUIDELINES:
@@ -472,41 +486,60 @@ Focus on:
 4. Language-appropriate cultural considerations
 
 Please rewrite the base prompt to create a SHORT, natural language TTS instruction that incorporates the speaking style from the guidelines. Keep it under 500 characters and use only the allowed tone values."""
-        
-        try:
-            rewritten = self._run_rewriter_with_retry(rewrite_request, "tts_rewriter")
             
-            # Validate and fix tone if needed
-            rewritten = self._validate_and_fix_tts_tone(rewritten)
-            
-            logger.info(f"Original TTS prompt length: {len(base_prompt)} chars")
-            logger.info(f"Rewritten TTS prompt length: {len(rewritten)} chars")
-            logger.info(f"Style integration: {len(style_guidelines)} chars of style content")
-            
-            # Check if rewritten prompt is too long for Gemini TTS
-            if len(rewritten.encode('utf-8')) > 3500:  # 4000 byte limit with buffer
-                logger.warning(f"Rewritten TTS prompt too long ({len(rewritten)} chars), truncating")
-                # Truncate to safe length
-                rewritten = rewritten[:500] + "..."
-                logger.info(f"Truncated TTS prompt length: {len(rewritten)} chars")
-            
-            logger.info("✓ TTS prompt rewritten successfully")
-            logger.info("=" * 80 + "\n")
-            
-            # Log full rewritten prompt for debugging
-            logger.debug("FULL REWRITTEN TTS PROMPT:")
-            logger.debug("-" * 80)
-            logger.debug(rewritten)
-            logger.debug("-" * 80)
-            
-            return rewritten
-            
+            try:
+                rewritten = self._run_rewriter_with_retry(rewrite_request, "tts_rewriter")
+                
+                # Validate and fix tone if needed
+                rewritten = self._validate_and_fix_tts_tone(rewritten)
+                
+                # Check if rewritten prompt is too long for Gemini TTS
+                if len(rewritten.encode('utf-8')) > 3500:  # 4000 byte limit with buffer
+                    logger.warning(f"Rewritten TTS prompt too long ({len(rewritten)} chars), truncating")
+                    # Truncate to safe length
+                    rewritten = rewritten[:500] + "..."
+                    logger.info(f"Truncated TTS prompt length: {len(rewritten)} chars")
+                
+                # Store in cache (ignore cache failures)
+                try:
+                    self.cache.store_prompt(cache_key, rewritten, "tts", base_prompt, style_guidelines)
+                except Exception as cache_error:
+                    logger.warning(f"Failed to cache TTS result: {cache_error}")
+                
+                elapsed = time.time() - start_time
+                logger.info(f"Original TTS prompt length: {len(base_prompt)} chars")
+                logger.info(f"Rewritten TTS prompt length: {len(rewritten)} chars")
+                logger.info(f"Style integration: {len(style_guidelines)} chars of style content")
+                logger.info(f"✓ TTS prompt rewritten successfully: {elapsed:.3f}s")
+                logger.info("=" * 80 + "\n")
+                
+                # Log full rewritten prompt for debugging
+                logger.debug("FULL REWRITTEN TTS PROMPT:")
+                logger.debug("-" * 80)
+                logger.debug(rewritten)
+                logger.debug("-" * 80)
+                
+                return rewritten
+                
+            except Exception as llm_error:
+                logger.warning(f"LLM rewriting failed for TTS: {llm_error}")
+                # Fall back to simple concatenation
+                fallback_result = self._create_tts_fallback_prompt(base_prompt, style_guidelines)
+                
+                # Try to cache the fallback result (ignore failures)
+                try:
+                    self.cache.store_prompt(cache_key, fallback_result, "tts", base_prompt, style_guidelines)
+                except Exception as cache_error:
+                    logger.debug(f"Failed to cache TTS fallback result: {cache_error}")
+                
+                elapsed = time.time() - start_time
+                logger.info(f"✓ TTS fallback completed: {elapsed:.3f}s")
+                return fallback_result
+                
         except Exception as e:
-            logger.error(f"Failed to rewrite TTS prompt with LLM: {e}")
-            # Fallback to simple concatenation for TTS
-            fallback_prompt = self._create_tts_fallback_prompt(base_prompt, style_guidelines)
-            logger.warning("Using fallback TTS prompt concatenation")
-            return fallback_prompt
+            logger.error(f"Failed to rewrite TTS prompt: {e}")
+            # Final fallback
+            return self._create_tts_fallback_prompt(base_prompt, style_guidelines)
     
     def _validate_and_fix_tts_tone(self, tts_prompt: str) -> str:
         """
@@ -528,59 +561,51 @@ Please rewrite the base prompt to create a SHORT, natural language TTS instructi
                 break
         
         if not found_tone:
-            # Default to professional if no valid tone found
-            logger.warning("No valid TTS tone found in prompt, defaulting to 'professional'")
-            # Insert professional tone at the beginning
-            tts_prompt = f"Speak in a professional tone. {tts_prompt}"
+            # Default to professional tone
+            logger.warning("No valid tone found in TTS prompt, defaulting to professional")
+            return f"Speak in a professional manner. {tts_prompt}"
         
-        # Remove any invalid tone words that might cause issues
-        invalid_tone_words = [
-            "martial arts", "heroic", "commanding", "passionate", "righteous",
-            "wise", "brave", "chivalrous", "powerful", "dramatic", "intense"
-        ]
-        
-        for invalid_word in invalid_tone_words:
-            if invalid_word in tts_prompt.lower():
-                logger.debug(f"Removing potentially problematic tone word: {invalid_word}")
-                # Replace with appropriate valid tone
-                if "passionate" in invalid_word or "intense" in invalid_word:
-                    tts_prompt = tts_prompt.replace(invalid_word, "enthusiastic")
-                elif "wise" in invalid_word or "commanding" in invalid_word:
-                    tts_prompt = tts_prompt.replace(invalid_word, "professional")
-                else:
-                    tts_prompt = tts_prompt.replace(invalid_word, "")
-        
-        return tts_prompt.strip()
+        return tts_prompt
     
     def _create_tts_fallback_prompt(self, base_prompt: str, style_guidelines: str) -> str:
         """
-        Create a safe TTS fallback prompt with valid tone.
+        Create fallback TTS prompt when LLM rewriting fails.
         
         Args:
             base_prompt: Original TTS prompt
             style_guidelines: Style guidelines
             
         Returns:
-            Safe TTS prompt with valid tone
+            Simple fallback TTS prompt
         """
-        # Analyze style to determine appropriate tone
-        style_lower = style_guidelines.lower()
+        logger.info("Creating TTS fallback prompt")
         
-        if any(word in style_lower for word in ["technical", "precise", "analytical"]):
-            tone = "technical"
-        elif any(word in style_lower for word in ["casual", "friendly", "relaxed"]):
-            tone = "casual"
-        elif any(word in style_lower for word in ["exciting", "energetic", "passionate"]):
-            tone = "enthusiastic"
-        elif any(word in style_lower for word in ["story", "narrative", "tale"]):
-            tone = "narrative"
-        else:
-            tone = "professional"  # Safe default
+        # Extract key style elements from guidelines
+        lines = style_guidelines.split('\n')
+        tone = "professional"
+        pace = "normal"
         
-        fallback_prompt = f"Speak in a {tone} tone with appropriate pacing and emphasis for the content."
+        for line in lines:
+            if "Detected Tone:" in line:
+                detected = line.split(":", 1)[1].strip().lower()
+                if detected in ["professional", "casual", "enthusiastic", "technical", "narrative"]:
+                    tone = detected
+            elif "Pace Indicators:" in line:
+                pace_part = line.split(":", 1)[1].strip().lower()
+                if pace_part in ["slow", "fast"]:
+                    pace = pace_part
         
-        logger.info(f"Created TTS fallback prompt with tone: {tone}")
-        return fallback_prompt
+        # Create simple fallback
+        pace_instruction = ""
+        if pace == "slow":
+            pace_instruction = " Speak slowly and clearly."
+        elif pace == "fast":
+            pace_instruction = " Speak at a brisk but clear pace."
+        
+        fallback = f"Speak in a {tone} manner.{pace_instruction}"
+        
+        logger.info(f"Created TTS fallback prompt: {len(fallback)} chars")
+        return fallback
 
     def log_rewrite_summary(self):
         """Log a summary of the rewrite configuration and performance."""
