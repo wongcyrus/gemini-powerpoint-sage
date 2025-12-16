@@ -166,7 +166,7 @@ if [ $EXIT_CODE -eq 0 ]; then
                 echo ""
                 
                 # Run video synthesis with hkcomic-optimized settings and timeout
-                echo "🚀 Running video synthesis with direct FFmpeg implementation..."
+                echo "🚀 Running video synthesis with FFmpeg implementation..."
                 
 
                 

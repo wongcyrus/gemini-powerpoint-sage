@@ -121,8 +121,26 @@ class VideoSynthesisService:
             
             # Mark as completed - with timeout protection
             try:
+                import signal
+                
+                def timeout_handler(signum, frame):
+                    raise TimeoutError("Progress tracker timeout")
+                
+                # Set a 5-second timeout for progress tracker completion
+                signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(5)
+                
                 progress_tracker.mark_completed(final_output, file_size, video_duration)
-            except Exception as e:
+                
+                # Cancel the alarm
+                signal.alarm(0)
+                
+            except (Exception, TimeoutError) as e:
+                # Cancel the alarm in case of exception
+                try:
+                    signal.alarm(0)
+                except:
+                    pass
                 logger.warning(f"Progress tracker completion failed (non-critical): {e}")
                 # Continue anyway - the video was created successfully
             
@@ -457,6 +475,203 @@ class VideoSynthesisService:
         """
         base_config = self.config_manager.create_default_config()
         return self.config_manager.optimize_config_for_content(base_config, total_duration, slide_count)
+    
+    def combine_videos(
+        self,
+        video_paths: list[Path],
+        output_path: Path,
+        progress_callback: Optional[Callable] = None
+    ) -> VideoSynthesisResult:
+        """
+        Combine multiple video files into a single video using MoviePy.
+        
+        Args:
+            video_paths: List of paths to video files to combine
+            output_path: Path for the output combined video
+            progress_callback: Optional progress callback
+            
+        Returns:
+            VideoSynthesisResult with operation outcome
+        """
+        # Use FFmpeg for video combining (much faster than MoviePy)
+        try:
+            import subprocess
+        except ImportError:
+            raise VideoSynthesisError("subprocess module not available")
+        
+        start_time = time.time()
+        operation_id = f"video_combine_{int(start_time)}"
+        
+        # Use provided callback or instance callback
+        callback = progress_callback or self.progress_callback
+        
+        try:
+            logger.info(f"Starting video combination: {operation_id}")
+            logger.info(f"Combining {len(video_paths)} videos into {output_path}")
+            
+            if callback:
+                callback({
+                    'operation_id': operation_id,
+                    'stage': 'loading',
+                    'message': f'Loading {len(video_paths)} video files',
+                    'progress': 0
+                })
+            
+            # Validate input files
+            for i, video_path in enumerate(video_paths):
+                if not video_path.exists():
+                    raise FileValidationError(f"Video file not found: {video_path}")
+                if not video_path.is_file():
+                    raise FileValidationError(f"Path is not a file: {video_path}")
+            
+            # Get total duration using FFmpeg
+            total_duration = 0
+            
+            for i, video_path in enumerate(video_paths):
+                if callback:
+                    callback({
+                        'operation_id': operation_id,
+                        'stage': 'analyzing',
+                        'message': f'Analyzing video {i+1}/{len(video_paths)}: {video_path.name}',
+                        'progress': (i / len(video_paths)) * 20  # 20% for analysis
+                    })
+                
+                try:
+                    # Get video duration using FFprobe
+                    result = subprocess.run([
+                        'ffprobe', '-v', 'quiet', '-show_entries', 'format=duration',
+                        '-of', 'default=noprint_wrappers=1:nokey=1', str(video_path)
+                    ], capture_output=True, text=True, timeout=10)
+                    
+                    if result.returncode == 0:
+                        duration = float(result.stdout.strip())
+                        total_duration += duration
+                        logger.debug(f"Video {i+1}: {video_path.name} ({duration:.2f}s)")
+                    else:
+                        raise VideoProcessingError(f"Failed to get duration for {video_path}")
+                        
+                except Exception as e:
+                    raise VideoProcessingError(f"Failed to analyze video {video_path}: {e}")
+            
+            if callback:
+                callback({
+                    'operation_id': operation_id,
+                    'stage': 'concatenating',
+                    'message': f'Concatenating {len(video_paths)} video files with FFmpeg',
+                    'progress': 40
+                })
+            
+            # Concatenate videos using FFmpeg
+            logger.info(f"Concatenating {len(video_paths)} videos (total duration: {total_duration:.2f}s)")
+            
+            # Create temporary concat file
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+                concat_file = Path(f.name)
+                for video_path in video_paths:
+                    f.write(f"file '{video_path.absolute()}'\n")
+            
+            try:
+                if callback:
+                    callback({
+                        'operation_id': operation_id,
+                        'stage': 'writing',
+                        'message': f'Writing combined video to {output_path.name}',
+                        'progress': 60
+                    })
+                
+                # Ensure output directory exists
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                # Use FFmpeg concat demuxer (fastest method)
+                cmd = [
+                    'ffmpeg', '-y',  # Overwrite output
+                    '-f', 'concat',  # Use concat demuxer
+                    '-safe', '0',    # Allow absolute paths
+                    '-i', str(concat_file),  # Input concat file
+                    '-c', 'copy',    # Copy streams without re-encoding (fastest!)
+                    str(output_path)  # Output file
+                ]
+                
+                logger.info(f"Running FFmpeg: {' '.join(cmd[:6])}...")
+                
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=max(300, len(video_paths) * 10)  # 5 min minimum, 10s per video
+                )
+                
+                if result.returncode != 0:
+                    raise VideoProcessingError(f"FFmpeg concatenation failed: {result.stderr}")
+                
+                logger.info(f"FFmpeg concatenation completed successfully")
+                
+            finally:
+                # Clean up concat file
+                concat_file.unlink(missing_ok=True)
+            
+            # Calculate final statistics
+            processing_time = time.time() - start_time
+            file_size = output_path.stat().st_size
+            
+            if callback:
+                callback({
+                    'operation_id': operation_id,
+                    'stage': 'completed',
+                    'message': f'Video combination completed: {output_path.name}',
+                    'progress': 100
+                })
+            
+            # Create success result
+            result = VideoSynthesisResult.success_result(
+                output_path=output_path,
+                duration_seconds=total_duration,
+                file_size_bytes=file_size,
+                processing_time_seconds=processing_time,
+                slides_processed=len(video_paths),
+                metadata={
+                    'operation_id': operation_id,
+                    'input_videos': [str(p) for p in video_paths],
+                    'combination_method': 'ffmpeg_concat'
+                }
+            )
+            
+            logger.info(f"Video combination completed successfully: {output_path}")
+            return result
+            
+        except Exception as e:
+            # Clean up concat file if it exists
+            try:
+                if 'concat_file' in locals():
+                    concat_file.unlink(missing_ok=True)
+            except:
+                pass  # Ignore cleanup errors
+            
+            processing_time = time.time() - start_time
+            
+            if callback:
+                callback({
+                    'operation_id': operation_id,
+                    'stage': 'failed',
+                    'message': f'Video combination failed: {str(e)}',
+                    'progress': 0
+                })
+            
+            # Create failure result
+            result = VideoSynthesisResult.failure_result(
+                error_message=str(e),
+                processing_time_seconds=processing_time,
+                slides_processed=0,
+                metadata={
+                    'operation_id': operation_id,
+                    'error_type': type(e).__name__,
+                    'input_videos': [str(p) for p in video_paths] if 'video_paths' in locals() else []
+                }
+            )
+            
+            logger.error(f"Video combination failed: {e}")
+            return result
 
 
 def create_video_synthesis_service(

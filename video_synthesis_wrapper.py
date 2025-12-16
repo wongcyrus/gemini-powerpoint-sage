@@ -39,10 +39,44 @@ def run_video_synthesis_with_timeout(slides_dir, audio_dir, video_output, video_
         ]
         
         print(f"🔧 Command: {' '.join(cmd[:6])}...")
+        print("📺 Starting video synthesis process (output will appear below)...")
+        print("=" * 60)
         
         start_time = time.time()
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        # Start the process without capturing output for real-time feedback
+        process = subprocess.Popen(cmd)
+        
+        # Monitor the process and show it's alive
+        print("🔄 Process started, monitoring progress...")
+        last_check = start_time
+        
+        while process.poll() is None:  # While process is running
+            time.sleep(5)  # Check every 5 seconds
+            current_time = time.time()
+            elapsed = current_time - start_time
+            print(f"⏱️  Process running for {elapsed:.0f}s... (still alive)")
+            
+            # Check if we've exceeded timeout
+            if elapsed > timeout_seconds:
+                print(f"⏰ Timeout reached ({timeout_seconds}s), terminating process...")
+                process.terminate()
+                time.sleep(2)
+                if process.poll() is None:
+                    process.kill()
+                raise TimeoutError("Video synthesis timed out")
+        
         end_time = time.time()
+        result_code = process.returncode
+        
+        print("=" * 60)
+        
+        # Create a result object that matches subprocess.run return
+        class ProcessResult:
+            def __init__(self, returncode):
+                self.returncode = returncode
+        
+        result = ProcessResult(result_code)
         
         # Cancel the alarm
         signal.alarm(0)
@@ -63,8 +97,6 @@ def run_video_synthesis_with_timeout(slides_dir, audio_dir, video_output, video_
                 return False
         else:
             print(f"❌ Video synthesis failed with return code {result.returncode}")
-            if result.stderr:
-                print(f"Error: {result.stderr}")
             return False
             
     except TimeoutError:
@@ -105,7 +137,8 @@ def main():
     # Calculate timeout based on number of slides
     try:
         slide_count = len(list(Path(slides_dir).glob("*.png"))) + len(list(Path(slides_dir).glob("*.jpg")))
-        timeout_seconds = max(300, slide_count * 30)  # 30 seconds per slide, minimum 5 minutes
+        # Increase timeout for large presentations: 60 seconds per slide, minimum 10 minutes
+        timeout_seconds = max(600, slide_count * 60)
         print(f"📊 Found ~{slide_count} slides, setting timeout to {timeout_seconds//60} minutes")
     except:
         timeout_seconds = 1800  # 30 minutes default

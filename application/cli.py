@@ -244,8 +244,8 @@ class CLI:
         import json
         
         try:
-            print("Starting video synthesis with direct FFmpeg implementation...")
-            print("🚀 Using anti-hang direct FFmpeg commands for reliability")
+            print("Starting video synthesis with FFmpeg implementation...")
+            print("🚀 Using FFmpeg for fast and reliable video processing")
             
             # Validate required arguments
             if not args.slides_dir:
