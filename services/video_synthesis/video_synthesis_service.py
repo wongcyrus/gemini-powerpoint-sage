@@ -73,8 +73,11 @@ class VideoSynthesisService:
         if callback:
             progress_tracker.add_progress_callback(callback)
         
-        # Initialize file manager
-        file_manager = VideoFileManager(self.temp_dir, operation_id)
+        # Derive audio directory from first audio file for cache location
+        audio_dir = request.audio_files[0].parent if request.audio_files else None
+        
+        # Initialize file manager with audio_dir for presentation-specific caching
+        file_manager = VideoFileManager(self.temp_dir, operation_id, audio_dir=audio_dir)
         
         try:
             logger.info(f"Starting video synthesis: {operation_id}")

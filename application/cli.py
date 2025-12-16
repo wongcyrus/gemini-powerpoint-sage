@@ -101,6 +101,11 @@ class CLI:
             help="Synthesize video from slide images and audio files"
         )
         parser.add_argument(
+            "--synthesize-style-videos",
+            action="store_true",
+            help="Batch synthesize videos for a style using its YAML config (reads output_dir and language)"
+        )
+        parser.add_argument(
             "--slides-dir",
             help="Directory containing slide images (for video synthesis). If --audio-dir is not specified, this directory will also be used for audio files."
         )
@@ -119,13 +124,13 @@ class CLI:
         parser.add_argument(
             "--video-cache-stats",
             action="store_true",
-            help="Show video synthesis cache statistics"
+            help="Show video synthesis cache statistics (segments saved per-presentation in *_segments folders)"
         )
         parser.add_argument(
             "--video-clear-cache",
             type=int,
             metavar="DAYS",
-            help="Clear video synthesis cache (optionally older than DAYS)"
+            help="Clear video synthesis cache (removes slide_*.mp4 files from *_segments folders, optionally older than DAYS)"
         )
         # Single-file processing options (only used with --pptx)
         parser.add_argument(
@@ -360,6 +365,12 @@ class CLI:
                 print(f"  File size: {result.get_file_size_mb():.2f} MB")
                 print(f"  Processing time: {result.processing_time_seconds:.2f} seconds")
                 print(f"  Slides processed: {result.slides_processed}")
+                
+                # Show where segments are cached
+                segments_dir = audio_dir.parent / f"{audio_dir.name.replace('_speech', '_segments')}"
+                if segments_dir.exists():
+                    segment_count = len(list(segments_dir.glob("slide_*.mp4"))) + len(list(segments_dir.glob("slide_*.webm")))
+                    print(f"  Cached segments: {segments_dir} ({segment_count} files)")
             else:
                 print(f"\n✗ Video synthesis failed!")
                 print(f"  Error: {result.error_message}")
@@ -432,6 +443,145 @@ class CLI:
             logger.error(f"Failed to clear cache: {e}")
             print(f"Error: {e}")
 
+    async def _handle_synthesize_style_videos(self, args: argparse.Namespace) -> None:
+        """Batch synthesize videos driven by a style YAML config.
+
+        Requires --style-config to identify the YAML. Uses config.language and
+        config.output_dir to locate per-language visuals/speech and synthesize
+        one MP4 per language/presentation pair.
+        """
+        from pathlib import Path
+        from config.config_loader import ConfigFileLoader
+        from application.input_scanner import InputScanner
+        from utils.cli_utils import parse_languages
+        from services.video_synthesis.video_synthesis_service import VideoSynthesisService
+        from services.video_synthesis.progress_tracker import ProgressReporter
+        from core.domain.video_synthesis import VideoSynthesisRequest
+        from services.video_synthesis.video_config_manager import VideoConfigManager
+        from utils.file_sorting import natural_sort_files, print_file_pairing_preview
+
+        if not args.style_config:
+            print("Error: --synthesize-style-videos requires --style-config <name|path>")
+            return
+
+        # Resolve config path by style name or full path
+        scanner = InputScanner(root_path=".")
+        if Path(args.style_config).is_file():
+            config_path = Path(args.style_config)
+        else:
+            resolved = scanner.get_style_config_path(args.style_config)
+            if not resolved:
+                print(f"Error: Could not find YAML for style '{args.style_config}' in styles/ directory")
+                return
+            config_path = Path(resolved)
+
+        try:
+            cfg = ConfigFileLoader.load_from_file(str(config_path))
+        except Exception as e:
+            print(f"Error loading configuration file {config_path}: {e}")
+            return
+
+        output_dir = cfg.get("output_dir")
+        langs = parse_languages(cfg.get("language", "en"))
+        if not output_dir:
+            print(f"Error: 'output_dir' missing in {config_path}")
+            return
+
+        base_dir = Path(output_dir)
+        if not base_dir.exists():
+            print(f"Warning: Output directory not found: {base_dir}")
+            return
+
+        print(f"Scanning for visuals/speech folders in: {base_dir}")
+        print(f"Languages from YAML: {', '.join(langs)}")
+
+        visuals_dirs = sorted([p for p in base_dir.glob("*_visuals") if p.is_dir()])
+        if not visuals_dirs:
+            print("No *_visuals folders found. Nothing to synthesize.")
+            return
+
+        vc_manager = VideoConfigManager()
+        video_config = vc_manager.create_default_config()
+        video_service = VideoSynthesisService()
+
+        total = 0
+        success = 0
+        failures = 0
+
+        for vdir in visuals_dirs:
+            name = vdir.name[:-8]  # strip _visuals
+            # Split base and language (tail after last underscore)
+            if "_" not in name:
+                print(f"Skipping folder with unexpected name: {vdir.name}")
+                continue
+            lang = name.split("_")[-1]
+            base = name[: -(len(lang) + 1)]
+
+            if lang not in langs:
+                # Skip languages not requested by YAML
+                continue
+
+            speech_dir = base_dir / f"{base}_{lang}_speech"
+            if not speech_dir.exists():
+                print(f"❌ Missing speech folder for {base} ({lang}): {speech_dir}")
+                failures += 1
+                continue
+
+            # Collect files
+            slide_images = natural_sort_files(
+                list(vdir.glob("*.png")) + list(vdir.glob("*.jpg")) + list(vdir.glob("*.jpeg"))
+            )
+            audio_files = natural_sort_files(list(speech_dir.glob("*.mp3")))
+
+            if not slide_images or not audio_files:
+                print(f"⚠️  No slides or audio found for {base} ({lang}). Skipping.")
+                failures += 1
+                continue
+
+            if len(slide_images) != len(audio_files):
+                print(f"⚠️  Mismatch: {len(slide_images)} images vs {len(audio_files)} audio for {base} ({lang}). Skipping.")
+                failures += 1
+                continue
+
+            # Output name: cleaned base + lang (style already indicated by folder structure)
+            clean_base = "".join(ch if ch.isalnum() or ch == " " else "" for ch in base).strip().replace(" ", "_")
+            output_path = base_dir / f"{clean_base}_{lang}.mp4"
+
+            total += 1
+            print("")
+            print(f"📋 Presentation: {base}")
+            print(f"🌐 Language: {lang}")
+            print(f"📁 Visuals: {vdir}")
+            print(f"📁 Speech:  {speech_dir}")
+            print(f"🎥 Output:  {output_path}")
+
+            # Preview pairing
+            print_file_pairing_preview(slide_images, audio_files)
+
+            # Build request and run
+            request = VideoSynthesisRequest(
+                slide_images=slide_images,
+                audio_files=audio_files,
+                output_path=output_path,
+                config=video_config,
+                presentation_id=output_path.stem,
+            )
+            reporter = ProgressReporter(show_detailed=True)
+            result = video_service.synthesize_video(request, progress_callback=reporter.on_progress_update)
+
+            if result.success:
+                size_mb = result.get_file_size_mb()
+                print(f"🎉 Completed: {output_path} ({size_mb:.2f} MB)")
+                success += 1
+            else:
+                print(f"❌ Failed: {output_path} — {result.error_message}")
+                failures += 1
+
+        print("")
+        print("==================================================")
+        print(f"📦 Synthesis summary: total={total}, success={success}, failures={failures}")
+        print("==================================================")
+
     async def _handle_processing(self, args: argparse.Namespace) -> None:
         """Handle processing modes."""
         # Handle TTS-only mode first
@@ -442,6 +592,11 @@ class CLI:
         # Handle video synthesis mode
         if args.synthesize_video:
             await self._handle_video_synthesis(args)
+            return
+        
+        # Handle batch synthesis from style YAML
+        if args.synthesize_style_videos:
+            await self._handle_synthesize_style_videos(args)
             return
         
         # Handle video cache commands
@@ -537,11 +692,15 @@ class CLI:
             return 0
         
         # Validate input methods
+        style_config_is_method = bool(args.style_config) and not (
+            args.synthesize_style_videos or args.synthesize_video or args.tts_only or args.video_cache_stats or (args.video_clear_cache is not None)
+        )
         input_methods = sum([
             bool(args.pptx),
             bool(args.styles),
-            bool(args.style_config),
+            style_config_is_method,
             bool(args.synthesize_video),
+            bool(args.synthesize_style_videos),
             bool(args.video_cache_stats),
             bool(args.video_clear_cache is not None)
         ])

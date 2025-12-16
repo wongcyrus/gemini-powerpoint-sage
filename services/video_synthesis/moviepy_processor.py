@@ -91,7 +91,7 @@ class MoviePyVideoProcessor:
                 }
                 
                 cache_key = file_manager.generate_segment_cache_key(
-                    segment.image_path, segment.audio_path, config_dict
+                    segment.image_path, segment.audio_path, config_dict, segment.slide_index
                 )
                 
                 cached_segment = file_manager.get_cached_segment(cache_key, config.output_format)

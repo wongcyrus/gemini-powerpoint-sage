@@ -25,7 +25,7 @@ class VideoFileManager:
     _registry_lock = threading.Lock()
     
     def __init__(self, base_temp_dir: Optional[Path] = None, operation_id: Optional[str] = None, 
-                 enable_cache: bool = True, cache_dir: Optional[Path] = None):
+                 enable_cache: bool = True, cache_dir: Optional[Path] = None, audio_dir: Optional[Path] = None):
         """
         Initialize video file manager.
         
@@ -33,17 +33,29 @@ class VideoFileManager:
             base_temp_dir: Base directory for temporary files
             operation_id: Unique identifier for this operation
             enable_cache: Whether to enable segment caching for speed
-            cache_dir: Directory for persistent cache (defaults to ./cache/video_synthesis)
+            cache_dir: Directory for persistent cache (if None, derives from audio_dir)
+            audio_dir: Audio directory to derive cache location (used if cache_dir is None)
         """
         self.operation_id = operation_id or str(uuid.uuid4())
         self.base_temp_dir = base_temp_dir or Path(tempfile.gettempdir())
         self.enable_cache = enable_cache
         
-        # Set up cache directory
+        # Set up cache directory - prefer audio_dir parent for presentation-specific caching
         if cache_dir:
             self.cache_dir = cache_dir
+        elif audio_dir:
+            # Save segments next to speech files: <output_dir>/<presentation>_<lang>_segments/
+            # Extract parent and add _segments suffix to speech directory name
+            speech_parent = audio_dir.parent
+            speech_dirname = audio_dir.name
+            if speech_dirname.endswith('_speech'):
+                segments_dirname = speech_dirname.replace('_speech', '_segments')
+            else:
+                segments_dirname = f"{speech_dirname}_segments"
+            self.cache_dir = speech_parent / segments_dirname
         else:
-            self.cache_dir = Path("cache") / "video_synthesis"
+            # Fallback to temp location (not persistent)
+            self.cache_dir = Path(tempfile.gettempdir()) / "video_segments_temp"
         
         if self.enable_cache:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -129,7 +141,7 @@ class VideoFileManager:
         return working_dir
     
     def generate_segment_cache_key(self, image_path: Path, audio_path: Path, 
-                                 video_config: Dict[str, Any]) -> str:
+                                 video_config: Dict[str, Any], slide_index: Optional[int] = None) -> str:
         """
         Generate cache key for a video segment based on inputs and config.
         
@@ -137,12 +149,17 @@ class VideoFileManager:
             image_path: Path to slide image
             audio_path: Path to audio file
             video_config: Video configuration dictionary
+            slide_index: Optional slide index to include in key for uniqueness
             
         Returns:
-            Cache key string
+            Cache key string (includes slide index if provided)
         """
         # Create hash from file contents and config
         hasher = hashlib.sha256()
+        
+        # Add slide index if provided (ensures unique keys per slide)
+        if slide_index is not None:
+            hasher.update(f"slide_{slide_index}".encode())
         
         # Add image file hash
         if image_path.exists():
@@ -160,7 +177,9 @@ class VideoFileManager:
         config_str = json.dumps(video_config, sort_keys=True)
         hasher.update(config_str.encode())
         
-        cache_key = hasher.hexdigest()[:16]  # Use first 16 chars for readability
+        cache_key = hasher.hexdigest()[:8]  # Use first 8 chars for readability
+        if slide_index is not None:
+            cache_key = f"{slide_index}_{cache_key}"
         logger.debug(f"Generated cache key {cache_key} for {image_path.name} + {audio_path.name}")
         return cache_key
     
@@ -178,7 +197,7 @@ class VideoFileManager:
         if not self.enable_cache:
             return None
         
-        cached_file = self.cache_dir / f"segment_{cache_key}.{output_format}"
+        cached_file = self.cache_dir / f"slide_{cache_key}.{output_format}"
         
         if cached_file.exists():
             logger.debug(f"Found cached segment: {cached_file}")
@@ -200,7 +219,7 @@ class VideoFileManager:
         if not self.enable_cache:
             return segment_path
         
-        cached_file = self.cache_dir / f"segment_{cache_key}.{segment_path.suffix[1:]}"
+        cached_file = self.cache_dir / f"slide_{cache_key}.{segment_path.suffix[1:]}"
         
         try:
             # Copy segment to cache
@@ -260,7 +279,7 @@ class VideoFileManager:
             return {'cache_enabled': False}
         
         try:
-            cached_files = list(self.cache_dir.glob("segment_*.mp4")) + list(self.cache_dir.glob("segment_*.webm"))
+            cached_files = list(self.cache_dir.glob("slide_*.mp4")) + list(self.cache_dir.glob("slide_*.webm"))
             total_size = sum(f.stat().st_size for f in cached_files if f.exists())
             
             return {
@@ -300,7 +319,7 @@ class VideoFileManager:
             current_time = time.time()
             cutoff_time = current_time - (older_than_days * 24 * 3600) if older_than_days else 0
             
-            cached_files = list(self.cache_dir.glob("segment_*"))
+            cached_files = list(self.cache_dir.glob("slide_*"))
             
             for cached_file in cached_files:
                 try:
