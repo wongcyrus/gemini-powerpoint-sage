@@ -182,33 +182,60 @@ class TTSOrchestrator:
                     text_content, style_context, voice_config, normalized_language
                 )
                 
-                # Check cache first
-                cached_result = await self.cache_manager.get_cached_audio(cache_key)
-                if cached_result:
+                # Get expected file path (like visual content approach)
+                expected_file_path = self.storage_manager.get_audio_file_path(
+                    presentation_id, language_code, slide_number, cache_key
+                )
+                
+                # Debug: Print cache key and expected path
+                print(f"🔍 SLIDE {slide_number} CACHE DEBUG:")
+                print(f"   Cache Key: {cache_key[:16]}...")
+                print(f"   Expected:  {expected_file_path}")
+                
+                # Check cache first (file path based like visual content)
+                cached_audio_data = await self.cache_manager.get_cached_audio(cache_key, expected_file_path)
+                if cached_audio_data:
                     logger.info(f"✓ Cache hit for slide {slide_number}")
                     
-                    # Check if cached file needs migration to new location
-                    expected_file_path = self.storage_manager.get_audio_file_path(
-                        presentation_id, language_code, slide_number, cache_key
+                    # Create TTSResult from cached audio data
+                    cached_result = TTSResult(
+                        audio_data=cached_audio_data,
+                        engine_used=TTSEngineType.GEMINI,  # Default assumption
+                        file_path=expected_file_path,
+                        cache_key=cache_key,
+                        metadata={"cached": True}
                     )
                     
-                    # If cached result has old file path, migrate it
-                    if cached_result.file_path != expected_file_path:
-                        if os.path.exists(cached_result.file_path):
-                            try:
-                                # Migrate file from old location to new location
-                                migrated_path = await self.storage_manager.migrate_audio_file(
-                                    cached_result.file_path, expected_file_path
-                                )
-                                # Update the cached result with new path
-                                cached_result.file_path = migrated_path
-                                logger.debug(f"Migrated audio file for slide {slide_number} to new location")
-                            except Exception as e:
-                                logger.warning(f"Failed to migrate cached audio file for slide {slide_number}: {e}")
-                        else:
-                            logger.warning(f"Cached audio file not found: {cached_result.file_path}")
-                    
+                    # Print cached file path information prominently
+                    print(f"💾 SLIDE {slide_number} TTS (CACHED): {expected_file_path}")
                     return cached_result
+                
+                # Fallback: Check for any existing file for this slide (cache key mismatch tolerance)
+                speech_dir = Path(expected_file_path).parent
+                if speech_dir.exists():
+                    existing_files = list(speech_dir.glob(f"slide_{slide_number}_*.mp3"))
+                    if existing_files:
+                        existing_file = existing_files[0]  # Use first match
+                        logger.info(f"✓ Found existing audio file for slide {slide_number} (cache key mismatch)")
+                        
+                        try:
+                            with open(existing_file, 'rb') as f:
+                                cached_audio_data = f.read()
+                            
+                            # Create TTSResult from existing file
+                            cached_result = TTSResult(
+                                audio_data=cached_audio_data,
+                                engine_used=TTSEngineType.GEMINI,
+                                file_path=str(existing_file),
+                                cache_key=cache_key,
+                                metadata={"cached": True, "cache_key_mismatch": True}
+                            )
+                            
+                            print(f"💾 SLIDE {slide_number} TTS (EXISTING): {existing_file}")
+                            return cached_result
+                            
+                        except Exception as e:
+                            logger.warning(f"Failed to read existing file {existing_file}: {e}")
                 
                 # Generate speech using appropriate engine
                 if engine_type == TTSEngineType.GEMINI:
@@ -233,10 +260,12 @@ class TTSOrchestrator:
                 tts_result.file_path = saved_path
                 tts_result.cache_key = cache_key
                 
-                # Store in cache
-                await self.cache_manager.store_audio(cache_key, tts_result)
+                # Store in cache (file path based - no metadata needed)
+                await self.cache_manager.store_audio(cache_key, saved_path)
                 
-                logger.info(f"✓ Generated speech for slide {slide_number} ({tts_result.duration_seconds:.1f}s)")
+                # Print file path information prominently
+                print(f"📁 SLIDE {slide_number} TTS: {saved_path}")
+                logger.info(f"✓ Generated speech for slide {slide_number} ({tts_result.duration_seconds:.1f}s) → {saved_path}")
                 return tts_result
                 
         except Exception as e:
@@ -394,6 +423,17 @@ class TTSOrchestrator:
         )
         total_tasks = len(slides_data) * len(languages)
         
+        # Print batch completion summary with file paths
+        print(f"\n🎵 TTS BATCH COMPLETED: {total_successful}/{total_tasks} successful")
+        for language, lang_results in results.items():
+            valid_results = [r for r in lang_results if r.is_valid()]
+            if valid_results:
+                print(f"📁 {language.upper()}: {len(valid_results)} files generated")
+                # Show directory where files are saved
+                if valid_results[0].file_path:
+                    directory = str(Path(valid_results[0].file_path).parent)
+                    print(f"   Directory: {directory}")
+        
         logger.info(f"Batch processing completed: {total_successful}/{total_tasks} successful")
         
         return results
@@ -467,7 +507,15 @@ class TTSOrchestrator:
     
     def get_orchestrator_stats(self) -> Dict[str, any]:
         """Get orchestrator statistics."""
-        cache_stats = self.cache_manager.get_cache_stats()
+        # Get common output directories for cache stats
+        output_directories = [
+            "output/professional/generate",
+            "output/comic/generate", 
+            "output/gundam/generate",
+            "cache/tts_audio"  # fallback directory
+        ]
+        
+        cache_stats = self.cache_manager.get_cache_stats(output_directories)
         storage_stats = self.storage_manager.get_storage_stats()
         
         return {

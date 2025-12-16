@@ -15,19 +15,17 @@ logger = logging.getLogger(__name__)
 
 
 class CacheManager:
-    """Manages TTS audio file caching with content and style-aware hashing."""
+    """Manages TTS audio file caching with file path based approach (like visual content)."""
     
     def __init__(self, cache_config: TTSCacheConfig):
         """Initialize cache manager with configuration."""
         self.config = cache_config
         self.cache_dir = Path(cache_config.cache_directory)
-        self.metadata_file = self.cache_dir / cache_config.metadata_file
         
         # Ensure cache directory exists
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         
-        # Load existing metadata
-        self._metadata = self._load_metadata()
+        logger.info("TTS CacheManager initialized with file path based caching (like visual content)")
     
     def generate_cache_key(
         self,
@@ -77,168 +75,127 @@ class CacheManager:
         normalized = ' '.join(text.split())
         return normalized.strip().lower()
     
-    async def get_cached_audio(self, cache_key: str) -> Optional[TTSResult]:
+    async def get_cached_audio(self, cache_key: str, expected_file_path: str) -> Optional[bytes]:
         """
-        Retrieve cached audio if available and not expired.
+        Retrieve cached audio if file exists (file path based caching like visual content).
         
         Args:
-            cache_key: Cache key for the audio
+            cache_key: Cache key for the audio (for logging)
+            expected_file_path: Expected file path for the audio
             
         Returns:
-            TTSResult if cached and valid, None otherwise
+            Audio bytes if cached file exists, None otherwise
         """
         if not self.config.enabled:
             return None
         
         try:
-            # Check if cache entry exists in metadata
-            if cache_key not in self._metadata:
-                return None
+            file_path = Path(expected_file_path)
             
-            entry = self._metadata[cache_key]
+            # Simple file existence check (like visual content)
+            if file_path.exists():
+                # Check TTL if configured
+                if self.config.ttl_hours > 0:
+                    file_age_hours = (datetime.now().timestamp() - file_path.stat().st_mtime) / 3600
+                    if file_age_hours > self.config.ttl_hours:
+                        logger.debug(f"Cached audio expired (age: {file_age_hours:.1f}h): {expected_file_path}")
+                        file_path.unlink()  # Remove expired file
+                        return None
+                
+                # Read and return audio data
+                with open(file_path, 'rb') as f:
+                    audio_data = f.read()
+                
+                logger.debug(f"Cache hit for audio file: {expected_file_path}")
+                return audio_data
             
-            # Check if entry is expired
-            if self._is_expired(entry):
-                await self._remove_cache_entry(cache_key)
-                return None
-            
-            # Check if file exists
-            file_path = Path(entry["file_path"])
-            if not file_path.exists():
-                await self._remove_cache_entry(cache_key)
-                return None
-            
-            # Return TTSResult from cached data
-            return TTSResult.from_dict(entry["tts_result"])
+            return None
             
         except Exception as e:
-            logger.warning(f"Error retrieving cached audio for key {cache_key}: {e}")
+            logger.warning(f"Error retrieving cached audio from {expected_file_path}: {e}")
             return None
     
     async def store_audio(
         self,
         cache_key: str,
-        tts_result: TTSResult
+        file_path: str
     ) -> None:
         """
-        Store generated audio in cache.
+        Store generated audio in cache (file path based - no metadata needed).
         
         Args:
-            cache_key: Cache key for the audio
-            tts_result: TTS result to cache
+            cache_key: Cache key for the audio (for logging)
+            file_path: Path where audio file is stored
         """
         if not self.config.enabled:
             return
         
-        try:
-            # Create cache entry
-            entry = {
-                "cache_key": cache_key,
-                "created_at": datetime.now().isoformat(),
-                "file_path": tts_result.file_path,
-                "tts_result": tts_result.to_dict()
-            }
-            
-            # Store in metadata
-            self._metadata[cache_key] = entry
-            
-            # Save metadata to disk
-            await self._save_metadata()
-            
-            logger.debug(f"Cached audio with key: {cache_key}")
-            
-        except Exception as e:
-            logger.error(f"Error storing audio in cache: {e}")
-            raise TTSCacheError(f"Failed to store audio in cache: {e}")
+        # With file path based caching, storage is handled by the storage manager
+        # This method is kept for compatibility but doesn't need to do anything
+        logger.debug(f"Audio cached at: {file_path} (key: {cache_key[:8]}...)")
     
-    def _is_expired(self, entry: Dict[str, Any]) -> bool:
-        """Check if cache entry is expired."""
-        if self.config.ttl_hours <= 0:
-            return False  # No expiration
-        
-        try:
-            created_at = datetime.fromisoformat(entry["created_at"])
-            expiry_time = created_at + timedelta(hours=self.config.ttl_hours)
-            return datetime.now() > expiry_time
-        except Exception:
-            return True  # Treat invalid timestamps as expired
-    
-    async def _remove_cache_entry(self, cache_key: str) -> None:
-        """Remove cache entry and associated file."""
-        try:
-            if cache_key in self._metadata:
-                entry = self._metadata[cache_key]
-                
-                # Remove file if it exists
-                file_path = Path(entry.get("file_path", ""))
-                if file_path.exists():
-                    file_path.unlink()
-                
-                # Remove from metadata
-                del self._metadata[cache_key]
-                
-                # Save updated metadata
-                await self._save_metadata()
-                
-        except Exception as e:
-            logger.warning(f"Error removing cache entry {cache_key}: {e}")
-    
-    def _load_metadata(self) -> Dict[str, Any]:
-        """Load cache metadata from disk."""
-        try:
-            if self.metadata_file.exists():
-                with open(self.metadata_file, 'r') as f:
-                    return json.load(f)
-        except Exception as e:
-            logger.warning(f"Error loading cache metadata: {e}")
-        
-        return {}
-    
-    async def _save_metadata(self) -> None:
-        """Save cache metadata to disk."""
-        try:
-            with open(self.metadata_file, 'w') as f:
-                json.dump(self._metadata, f, indent=2)
-        except Exception as e:
-            logger.error(f"Error saving cache metadata: {e}")
-            raise TTSCacheError(f"Failed to save cache metadata: {e}")
-    
-    async def cleanup_expired_entries(self) -> int:
+    def cleanup_expired_files(self, output_directories: list) -> int:
         """
-        Clean up expired cache entries.
+        Clean up expired audio files based on file timestamps.
         
+        Args:
+            output_directories: List of directories to scan for audio files
+            
         Returns:
-            Number of entries cleaned up
+            Number of files cleaned up
         """
-        if not self.config.enabled:
+        if not self.config.enabled or self.config.ttl_hours <= 0:
             return 0
         
-        expired_keys = []
+        cleaned_count = 0
+        cutoff_time = datetime.now().timestamp() - (self.config.ttl_hours * 3600)
         
-        for cache_key, entry in self._metadata.items():
-            if self._is_expired(entry):
-                expired_keys.append(cache_key)
+        try:
+            for directory in output_directories:
+                dir_path = Path(directory)
+                if not dir_path.exists():
+                    continue
+                
+                for audio_file in dir_path.glob("**/*.mp3"):
+                    try:
+                        if audio_file.stat().st_mtime < cutoff_time:
+                            audio_file.unlink()
+                            cleaned_count += 1
+                            logger.debug(f"Cleaned up expired audio file: {audio_file}")
+                    except Exception as e:
+                        logger.warning(f"Error cleaning up {audio_file}: {e}")
+            
+            if cleaned_count > 0:
+                logger.info(f"Cleaned up {cleaned_count} expired audio files")
+            
+        except Exception as e:
+            logger.error(f"Error during audio file cleanup: {e}")
         
-        for cache_key in expired_keys:
-            await self._remove_cache_entry(cache_key)
-        
-        logger.info(f"Cleaned up {len(expired_keys)} expired cache entries")
-        return len(expired_keys)
+        return cleaned_count
     
-    def get_cache_stats(self) -> Dict[str, Any]:
-        """Get cache statistics."""
-        total_entries = len(self._metadata)
+    def get_cache_stats(self, output_directories: list) -> Dict[str, Any]:
+        """Get cache statistics by scanning audio files directly."""
+        total_files = 0
         total_size = 0
         
-        for entry in self._metadata.values():
-            file_path = Path(entry.get("file_path", ""))
-            if file_path.exists():
-                total_size += file_path.stat().st_size
+        try:
+            for directory in output_directories:
+                dir_path = Path(directory)
+                if not dir_path.exists():
+                    continue
+                
+                for audio_file in dir_path.glob("**/*.mp3"):
+                    if audio_file.exists():
+                        total_files += 1
+                        total_size += audio_file.stat().st_size
+        
+        except Exception as e:
+            logger.warning(f"Error calculating cache stats: {e}")
         
         return {
-            "total_entries": total_entries,
+            "total_files": total_files,
             "total_size_mb": total_size / (1024 * 1024),
-            "cache_directory": str(self.cache_dir),
+            "cache_approach": "file_path_based",
             "enabled": self.config.enabled,
             "ttl_hours": self.config.ttl_hours
         }

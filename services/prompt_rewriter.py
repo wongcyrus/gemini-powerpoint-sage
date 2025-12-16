@@ -244,7 +244,31 @@ Apply these visual style guidelines throughout all design decisions and outputs.
             # Cache miss - perform LLM rewriting
             logger.info(f"Cache miss for {prompt_type} - performing LLM rewriting")
             
-            rewrite_request = f"""BASE_PROMPT:
+            # Create appropriate rewrite request based on prompt type
+            if prompt_type == "tts":
+                rewrite_request = f"""BASE_PROMPT:
+{base_prompt}
+
+STYLE_GUIDELINES:
+{style_guidelines}
+
+STYLE_TYPE: tts_speech
+
+CRITICAL REQUIREMENT: This is for text-to-speech generation using Gemini TTS. The output should be a natural language instruction that tells the TTS engine how to speak the content.
+
+IMPORTANT TONE CONSTRAINT: The tone MUST be exactly one of these values: 'professional', 'casual', 'enthusiastic', 'technical', or 'narrative'. Do not use any other tone words.
+
+IMPORTANT LENGTH CONSTRAINT: The final output MUST be under 500 characters total. Be extremely concise.
+
+Focus on:
+1. Choose the most appropriate tone from: professional, casual, enthusiastic, technical, narrative
+2. Pace and rhythm instructions (slow, normal, fast)
+3. Emphasis and emotional expression
+4. Language-appropriate cultural considerations
+
+Please rewrite the base prompt to create a SHORT, natural language TTS instruction that incorporates the speaking style from the guidelines. Keep it under 500 characters and use only the allowed tone values."""
+            else:
+                rewrite_request = f"""BASE_PROMPT:
 {base_prompt}
 
 STYLE_GUIDELINES:
@@ -447,99 +471,34 @@ Apply these style guidelines throughout all operations."""
         Returns:
             Rewritten prompt with TTS style integrated
         """
-        start_time = time.time()
+        logger.info("\n" + "=" * 80)
+        logger.info("REWRITING TTS PROMPT WITH LLM")
+        logger.info("=" * 80)
         
-        try:
-            # Generate cache key for TTS prompts
-            cache_key = self.cache.generate_cache_key(base_prompt, style_guidelines, "tts")
-            
-            # Try to get cached result
-            cached_result = self.cache.get_cached_prompt(cache_key)
-            if cached_result:
-                elapsed = time.time() - start_time
-                logger.info(f"✓ Cache hit for TTS prompt: {elapsed:.3f}s")
-                return cached_result
-            
-            # Cache miss - perform LLM rewriting
-            logger.info("\n" + "=" * 80)
-            logger.info("REWRITING TTS PROMPT WITH LLM")
-            logger.info("=" * 80)
-            
-            rewrite_request = f"""BASE_PROMPT:
-{base_prompt}
-
-STYLE_GUIDELINES:
-{style_guidelines}
-
-STYLE_TYPE: tts_speech
-
-CRITICAL REQUIREMENT: This is for text-to-speech generation using Gemini TTS. The output should be a natural language instruction that tells the TTS engine how to speak the content.
-
-IMPORTANT TONE CONSTRAINT: The tone MUST be exactly one of these values: 'professional', 'casual', 'enthusiastic', 'technical', or 'narrative'. Do not use any other tone words.
-
-IMPORTANT LENGTH CONSTRAINT: The final output MUST be under 500 characters total. Be extremely concise.
-
-Focus on:
-1. Choose the most appropriate tone from: professional, casual, enthusiastic, technical, narrative
-2. Pace and rhythm instructions (slow, normal, fast)
-3. Emphasis and emotional expression
-4. Language-appropriate cultural considerations
-
-Please rewrite the base prompt to create a SHORT, natural language TTS instruction that incorporates the speaking style from the guidelines. Keep it under 500 characters and use only the allowed tone values."""
-            
-            try:
-                rewritten = self._run_rewriter_with_retry(rewrite_request, "tts_rewriter")
-                
-                # Validate and fix tone if needed
-                rewritten = self._validate_and_fix_tts_tone(rewritten)
-                
-                # Check if rewritten prompt is too long for Gemini TTS
-                if len(rewritten.encode('utf-8')) > 3500:  # 4000 byte limit with buffer
-                    logger.warning(f"Rewritten TTS prompt too long ({len(rewritten)} chars), truncating")
-                    # Truncate to safe length
-                    rewritten = rewritten[:500] + "..."
-                    logger.info(f"Truncated TTS prompt length: {len(rewritten)} chars")
-                
-                # Store in cache (ignore cache failures)
-                try:
-                    self.cache.store_prompt(cache_key, rewritten, "tts", base_prompt, style_guidelines)
-                except Exception as cache_error:
-                    logger.warning(f"Failed to cache TTS result: {cache_error}")
-                
-                elapsed = time.time() - start_time
-                logger.info(f"Original TTS prompt length: {len(base_prompt)} chars")
-                logger.info(f"Rewritten TTS prompt length: {len(rewritten)} chars")
-                logger.info(f"Style integration: {len(style_guidelines)} chars of style content")
-                logger.info(f"✓ TTS prompt rewritten successfully: {elapsed:.3f}s")
-                logger.info("=" * 80 + "\n")
-                
-                # Log full rewritten prompt for debugging
-                logger.debug("FULL REWRITTEN TTS PROMPT:")
-                logger.debug("-" * 80)
-                logger.debug(rewritten)
-                logger.debug("-" * 80)
-                
-                return rewritten
-                
-            except Exception as llm_error:
-                logger.warning(f"LLM rewriting failed for TTS: {llm_error}")
-                # Fall back to simple concatenation
-                fallback_result = self._create_tts_fallback_prompt(base_prompt, style_guidelines)
-                
-                # Try to cache the fallback result (ignore failures)
-                try:
-                    self.cache.store_prompt(cache_key, fallback_result, "tts", base_prompt, style_guidelines)
-                except Exception as cache_error:
-                    logger.debug(f"Failed to cache TTS fallback result: {cache_error}")
-                
-                elapsed = time.time() - start_time
-                logger.info(f"✓ TTS fallback completed: {elapsed:.3f}s")
-                return fallback_result
-                
-        except Exception as e:
-            logger.error(f"Failed to rewrite TTS prompt: {e}")
-            # Final fallback
-            return self._create_tts_fallback_prompt(base_prompt, style_guidelines)
+        # Use the centralized caching method with TTS-specific customization
+        rewritten = self._rewrite_with_cache(base_prompt, style_guidelines, "tts")
+        
+        # Apply TTS-specific post-processing
+        rewritten = self._validate_and_fix_tts_tone(rewritten)
+        
+        # Check if rewritten prompt is too long for Gemini TTS
+        if len(rewritten.encode('utf-8')) > 3500:  # 4000 byte limit with buffer
+            logger.warning(f"Rewritten TTS prompt too long ({len(rewritten)} chars), using concise fallback")
+            rewritten = self._create_concise_tts_prompt(style_guidelines)
+        
+        logger.info(f"Original TTS prompt length: {len(base_prompt)} chars")
+        logger.info(f"Rewritten TTS prompt length: {len(rewritten)} chars")
+        logger.info(f"Style integration: {len(style_guidelines)} chars of style content")
+        logger.info("✓ TTS prompt rewritten successfully")
+        logger.info("=" * 80 + "\n")
+        
+        # Log full rewritten prompt for debugging
+        logger.debug("FULL REWRITTEN TTS PROMPT:")
+        logger.debug("-" * 80)
+        logger.debug(rewritten)
+        logger.debug("-" * 80)
+        
+        return rewritten
     
     def _validate_and_fix_tts_tone(self, tts_prompt: str) -> str:
         """
@@ -606,6 +565,80 @@ Please rewrite the base prompt to create a SHORT, natural language TTS instructi
         
         logger.info(f"Created TTS fallback prompt: {len(fallback)} chars")
         return fallback
+    
+    def _create_concise_tts_prompt(self, style_guidelines: str) -> str:
+        """
+        Create concise TTS prompt that stays under Gemini TTS length limits.
+        
+        Args:
+            style_guidelines: Style guidelines to extract key elements from
+            
+        Returns:
+            Concise TTS prompt under 500 characters
+        """
+        logger.info("Creating concise TTS prompt to stay under length limits")
+        
+        # Extract only the most essential style elements
+        lines = style_guidelines.split('\n')
+        tone = "professional"
+        pace = "normal"
+        emphasis_words = []
+        emotions = []
+        
+        for line in lines:
+            if "Detected Tone:" in line:
+                tone = line.split(":", 1)[1].strip().lower()
+            elif "Pace Indicators:" in line:
+                pace = line.split(":", 1)[1].strip().lower()
+            elif "Emphasis Points:" in line and "None" not in line:
+                # Extract emphasis words if present
+                emphasis_part = line.split(":", 1)[1].strip()
+                if emphasis_part and emphasis_part != "None":
+                    emphasis_words = [w.strip() for w in emphasis_part.split(",")][:2]  # Limit to 2
+            elif "Emotional Context:" in line and "Neutral" not in line:
+                emotion_part = line.split(":", 1)[1].strip()
+                if emotion_part and emotion_part != "Neutral":
+                    emotions = [emotion_part.lower()]
+        
+        # Build concise prompt components
+        components = []
+        
+        # Base tone instruction (always include)
+        tone_map = {
+            "professional": "professional and clear",
+            "enthusiastic": "energetic and passionate", 
+            "casual": "friendly and conversational",
+            "technical": "precise and methodical",
+            "formal": "authoritative and structured",
+            "narrative": "engaging storytelling"
+        }
+        base_tone = tone_map.get(tone, "clear and professional")
+        components.append(f"Speak in a {base_tone} manner")
+        
+        # Add pace if not normal
+        if pace == "slow":
+            components.append("at a slow, deliberate pace")
+        elif pace == "fast":
+            components.append("at a brisk pace")
+        
+        # Add emotion if present
+        if emotions:
+            components.append(f"with {emotions[0]} emotion")
+        
+        # Add emphasis if present (limit to 1-2 words)
+        if emphasis_words:
+            components.append(f"emphasizing {emphasis_words[0]}")
+        
+        # Create final concise prompt
+        prompt = ". ".join(components) + "."
+        
+        # Ensure it's under the limit (aim for under 200 chars for safety)
+        if len(prompt) > 200:
+            # Ultra-concise fallback
+            prompt = f"Speak in a {base_tone} manner."
+        
+        logger.info(f"Created concise TTS prompt: {len(prompt)} chars")
+        return prompt
 
     def log_rewrite_summary(self):
         """Log a summary of the rewrite configuration and performance."""

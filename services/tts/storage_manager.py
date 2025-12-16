@@ -38,33 +38,69 @@ class StorageManager:
         Returns:
             Directory path for speech files
         """
-        # Try to use the main config's speech directory if available
+        # Use the main config's speech directory if available (this respects output_dir from YAML)
         if self.main_config:
             try:
-                # Use the main config's speech directory
-                return self.main_config.speech_dir
+                # The main config's speech_dir already handles output_dir from style YAML
+                speech_dir = self.main_config.speech_dir
+                logger.info(f"Using main config speech directory (respects YAML output_dir): {speech_dir}")
+                return speech_dir
             except Exception as e:
                 logger.warning(f"Failed to use main config speech directory: {e}")
         
-        # Try to create a temporary config to get the speech directory pattern
+        # Fallback: Try to create a config that matches the visual output structure
         try:
             from config.config import Config
-            # Create a temporary config to get the speech directory pattern
+            
+            # Create a temporary config to get the proper output directory structure
             temp_config = Config(
                 pptx_path=f"{presentation_id}.pptx",
                 pdf_path=f"{presentation_id}.pdf",
-                language=language_code
+                language=language_code,
+                style=getattr(self.main_config, 'style', 'professional') if self.main_config else 'professional',
+                output_dir=getattr(self.main_config, 'output_dir', None) if self.main_config else None
             )
-            # Use the speech directory instead of cache/speech
-            return temp_config.speech_dir
+            speech_dir = temp_config.speech_dir
+            logger.info(f"Using temp config speech directory: {speech_dir}")
+            return speech_dir
         except Exception as e:
             logger.warning(f"Failed to create temp config for speech directory: {e}")
-            # Fallback to original behavior if config is not available
-            directory_name = self.config.directory_pattern.format(
-                base_name=presentation_id,
-                language_code=language_code
-            )
-            return str(self.local_cache_dir / directory_name)
+            
+            # Final fallback: Use default structure
+            try:
+                # Determine style and output_dir from main config
+                style = getattr(self.main_config, 'style', 'professional') if self.main_config else 'professional'
+                output_dir = getattr(self.main_config, 'output_dir', None) if self.main_config else None
+                
+                if output_dir:
+                    # Use the output_dir from style configuration (e.g., "notes/hkcomic/generate")
+                    base_output_dir = Path(output_dir)
+                    logger.info(f"Using style-configured output directory: {base_output_dir}")
+                else:
+                    # Fallback to default output structure: output/[style]/generate/
+                    if style and style.lower() != "professional":
+                        style_folder = style.replace(" ", "_").lower()
+                        base_output_dir = Path("output") / style_folder / "generate"
+                    else:
+                        base_output_dir = Path("output") / "professional" / "generate"
+                    logger.info(f"Using default output structure: {base_output_dir}")
+                
+                # Create speech directory name using the same pattern as visuals
+                speech_dir_name = f"{presentation_id}_{language_code}_speech"
+                speech_dir_path = base_output_dir / speech_dir_name
+                
+                logger.info(f"Final fallback speech directory path: {speech_dir_path}")
+                return str(speech_dir_path)
+                
+            except Exception as fallback_error:
+                logger.warning(f"Enhanced fallback failed: {fallback_error}")
+                
+                # Final fallback to original cache behavior
+                directory_name = self.config.directory_pattern.format(
+                    base_name=presentation_id,
+                    language_code=language_code
+                )
+                return str(self.local_cache_dir / directory_name)
     
     def generate_audio_filename(
         self,
@@ -132,7 +168,9 @@ class StorageManager:
             with open(file_path, 'wb') as f:
                 f.write(audio_data)
             
-            logger.debug(f"Saved audio file: {file_path}")
+            # Print file path prominently for user visibility
+            print(f"🎵 TTS MP3 SAVED: {file_path}")
+            logger.info(f"✓ Saved TTS audio file: {file_path}")
             return file_path
             
         except Exception as e:
@@ -167,7 +205,9 @@ class StorageManager:
             # Copy file to new location
             shutil.copy2(old_file_path, new_file_path)
             
-            logger.debug(f"Migrated audio file from {old_file_path} to {new_file_path}")
+            # Print migration information prominently
+            print(f"🔄 TTS MIGRATED: {old_file_path} → {new_file_path}")
+            logger.info(f"✓ Migrated audio file from {old_file_path} to {new_file_path}")
             return new_file_path
             
         except Exception as e:
