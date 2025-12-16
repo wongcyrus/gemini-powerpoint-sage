@@ -38,13 +38,19 @@ class StorageManager:
         Returns:
             Directory path for speech files
         """
-        # Use the main config's speech directory if available (this respects output_dir from YAML)
+        # Use the main config's output directory but force the requested language code
         if self.main_config:
             try:
-                # The main config's speech_dir already handles output_dir from style YAML
-                speech_dir = self.main_config.speech_dir
-                logger.info(f"Using main config speech directory (respects YAML output_dir): {speech_dir}")
-                return speech_dir
+                output_dir = Path(self.main_config._get_output_dir())  # re-use style/output_dir logic
+                pptx_base = Path(self.main_config.pptx_path).stem
+                speech_dir = output_dir / f"{pptx_base}_{language_code}_speech"
+                speech_dir.mkdir(parents=True, exist_ok=True)
+                logger.info(
+                    "Using main config speech directory for %s (respects YAML output_dir): %s",
+                    language_code,
+                    speech_dir,
+                )
+                return str(speech_dir)
             except Exception as e:
                 logger.warning(f"Failed to use main config speech directory: {e}")
         
