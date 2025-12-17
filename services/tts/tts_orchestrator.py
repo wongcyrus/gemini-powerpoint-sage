@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from google.cloud import texttospeech

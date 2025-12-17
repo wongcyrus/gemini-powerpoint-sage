@@ -38,19 +38,26 @@ class StorageManager:
         Returns:
             Directory path for speech files
         """
-        # Use the main config's output directory but force the requested language code
+        # Use the main config's output directory but ALWAYS use the passed language_code
+        # (main_config.language is the first language only, not the current TTS language)
         if self.main_config:
             try:
-                output_dir = Path(self.main_config._get_output_dir())  # re-use style/output_dir logic
-                pptx_base = Path(self.main_config.pptx_path).stem
-                speech_dir = output_dir / f"{pptx_base}_{language_code}_speech"
-                speech_dir.mkdir(parents=True, exist_ok=True)
+                # Temporarily override language in a new Config to get correct speech_dir
+                from config.config import Config
+                temp_config = Config(
+                    pptx_path=self.main_config.pptx_path,
+                    pdf_path=self.main_config.pdf_path,
+                    language=language_code,  # Use the TTS language, not main_config.language
+                    style=self.main_config.style,
+                    output_dir=self.main_config.output_dir,
+                )
+                speech_dir = temp_config.speech_dir  # Uses correct language via speech_dir property
                 logger.info(
-                    "Using main config speech directory for %s (respects YAML output_dir): %s",
+                    "Using main config speech directory for %s (respects output_dir): %s",
                     language_code,
                     speech_dir,
                 )
-                return str(speech_dir)
+                return speech_dir
             except Exception as e:
                 logger.warning(f"Failed to use main config speech directory: {e}")
         

@@ -165,7 +165,7 @@ DELIVERY INSTRUCTIONS:
         
         # Style patterns for tone detection
         style_patterns = {
-            "formal": ["formal", "professional", "academic", "official", "structured"],
+            "professional": ["formal", "professional", "academic", "official", "structured"],
             "casual": ["casual", "informal", "conversational", "friendly", "relaxed"],
             "enthusiastic": ["exciting", "energetic", "passionate", "dynamic", "enthusiastic"],
             "technical": ["technical", "detailed", "precise", "step-by-step", "systematic"],
@@ -231,12 +231,11 @@ DELIVERY INSTRUCTIONS:
         
         # Create style description
         style_descriptions = {
-            "formal": "Professional, authoritative, and structured delivery appropriate for business or academic settings.",
+            "professional": "Professional, authoritative, and structured delivery appropriate for business or academic settings.",
             "casual": "Friendly, conversational tone as if speaking to colleagues or friends.",
             "enthusiastic": "Energetic, passionate delivery that conveys excitement and engagement.",
             "technical": "Precise, methodical explanation with emphasis on accuracy and clarity.",
-            "narrative": "Storytelling approach with natural flow and engaging rhythm.",
-            "professional": "Clear, professional delivery suitable for general presentation contexts."
+            "narrative": "Storytelling approach with natural flow and engaging rhythm."
         }
         
         # Create delivery instructions
