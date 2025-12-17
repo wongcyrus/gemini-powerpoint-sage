@@ -132,6 +132,11 @@ class CLI:
             metavar="DAYS",
             help="Clear video synthesis cache (removes slide_*.mp4 files from *_segments folders, optionally older than DAYS)"
         )
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Force regeneration even if valid video already exists"
+        )
         # Single-file processing options (only used with --pptx)
         parser.add_argument(
             "--language",
@@ -303,6 +308,13 @@ class CLI:
                 return
             
             print(f"Found {len(slide_images)} slide images and {len(audio_files)} audio files")
+            
+            # Check if we should skip synthesis (video already exists and is valid)
+            from utils.video_validator import VideoValidator
+            if not args.force and VideoValidator.should_skip_synthesis(output_path, audio_files, tolerance_factor=0.8):
+                print(f"✅ Video already exists and is valid: {output_path}")
+                print("   Skipping synthesis. Use --force to regenerate.")
+                return
             
             # Show file pairing preview with verification
             print_file_pairing_preview(slide_images, audio_files)
@@ -554,6 +566,13 @@ class CLI:
             print(f"📁 Visuals: {vdir}")
             print(f"📁 Speech:  {speech_dir}")
             print(f"🎥 Output:  {output_path}")
+
+            # Check if we should skip synthesis (video already exists and is valid)
+            from utils.video_validator import VideoValidator
+            if not getattr(args, 'force', False) and VideoValidator.should_skip_synthesis(output_path, audio_files, tolerance_factor=0.8):
+                print(f"✅ Skipping: Valid video already exists ({output_path.name})")
+                success += 1
+                continue
 
             # Preview pairing
             print_file_pairing_preview(slide_images, audio_files)
