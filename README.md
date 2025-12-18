@@ -511,6 +511,103 @@ Progress files track:
 - Processing status (success/error)
 - Global context for consistency
 
+## 🚨 Error Handling & Dependencies
+
+The system uses a **strict dependency chain** where each phase requires the previous phase to succeed:
+
+### Processing Dependencies
+
+| Phase | Depends On | What Happens When Previous Phase Fails |
+|-------|------------|---------------------------------------|
+| **Speaker Notes** | PDF content, existing notes | ❌ Status = "error", empty/failed content |
+| **Image Generation** | ✅ **Speaker notes success** | ❌ **SKIPPED** - "due to notes generation failure" |
+| **MP3/TTS Generation** | ✅ **Speaker notes success** + non-empty content | ❌ **SKIPPED** - not added to processing queue |
+| **Video Generation** | ✅ **Speaker notes success** | ❌ **SKIPPED** - "status != success" |
+| **Video Synthesis** | ✅ **All slides successful** | ❌ **ABORTED** - "slide-audio count mismatch" |
+
+### Critical Rules
+
+1. **Speaker Notes are Foundation**: If speaker notes fail for any slide, ALL downstream processes are skipped for that slide
+2. **Video Synthesis Requires ALL Slides**: Missing any slide breaks the entire video synthesis process
+3. **Strict 1:1 Pairing**: Video synthesis requires exactly matching numbers of slide images and audio files
+4. **Sequence Alignment**: Missing slide 16 means slide 17's image gets paired with slide 16's audio (misalignment)
+
+### Error Recovery
+
+**Automatic Retry with `retry_errors: true`:**
+```yaml
+# In styles/config.*.yaml
+retry_errors: true  # Force regeneration of failed slides
+```
+
+**Manual Retry:**
+```bash
+# Retry failed slides only
+python main.py --style-config cyberpunk --retry-errors
+
+# Force regenerate all slides (including successful ones)
+python main.py --styles --retry-errors
+```
+
+### Common Error Scenarios
+
+**Scenario 1: Single Slide Failure**
+- Slide 16 speaker notes fail → Slide 16 gets no image, no audio, no video
+- Video synthesis fails: "45 images vs 45 audio files" (missing slide 16)
+- **Solution**: Fix slide 16 with `retry_errors: true`
+
+**Scenario 2: Multiple Slide Failures**
+- Slides 5, 12, 23 fail → Missing 3 slides from all downstream processes
+- Video synthesis fails: "43 images vs 43 audio files" but misaligned pairing
+- **Solution**: Fix all failed slides before attempting video synthesis
+
+**Scenario 3: Partial Recovery**
+- Some slides succeed on retry, others still fail
+- Video synthesis still fails until ALL slides succeed
+- **Solution**: Continue retrying until 100% success rate
+
+For detailed troubleshooting, see [Error Handling Guide](docs/ERROR_HANDLING.md).
+
+### Quick Troubleshooting
+
+**❌ Video synthesis fails with "slide-audio count mismatch"**
+```bash
+# Check for failed slides
+grep -r "status.*error" notes/*/generate/*.json
+
+# Fix failed slides
+python main.py --styles --retry-errors
+
+# Verify all slides successful before video synthesis
+python main.py --video-cache-stats
+```
+
+**❌ Some slides show "status": "error"**
+```bash
+# Enable retry mode in YAML config
+retry_errors: true
+
+# Or use CLI flag
+python main.py --style-config cyberpunk --retry-errors
+```
+
+**❌ Slides marked "success" but contain error messages (Fixed in v2.1+)**
+```bash
+# Symptoms: "status": "success" but note contains "Error: The writer agent failed..."
+# This was a critical bug - tool errors were misclassified as successful
+
+# Solution: System now uses structured error format and intelligent detection
+# New format: "SYSTEM_ERROR: SPEECH_WRITER - Tool returned error message"
+# Affected slides will be properly marked as "error" and retried automatically
+```
+
+**❌ "Skipping visual generation due to notes generation failure"**
+```bash
+# Root cause: Speaker notes failed first
+# Fix speaker notes, then images will generate automatically
+python main.py --style-config cyberpunk --retry-errors
+```
+
 ## Batch Processing
 
 The system automatically processes multiple PPTX files using YAML configurations:

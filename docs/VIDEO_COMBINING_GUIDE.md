@@ -2,6 +2,26 @@
 
 This guide covers video synthesis and combining using MoviePy in this project. The video synthesis system now uses MoviePy instead of FFmpeg for all video processing operations.
 
+## ⚠️ Critical Requirements
+
+**Video synthesis has strict requirements that must be met:**
+
+1. **ALL slides must have successful speaker notes** - Any failed slide breaks the entire process
+2. **Exact 1:1 slide-audio pairing** - Number of slide images must exactly match number of audio files
+3. **Sequential file naming** - Missing any slide creates misaligned pairing (slide 17 image + slide 16 audio)
+4. **Complete dependency chain** - Speaker Notes → Images → Audio → Video Synthesis
+
+**Before attempting video synthesis, ensure:**
+```bash
+# Check for failed slides
+grep -r "status.*error" notes/*/generate/*.json
+
+# If any failures found, fix them first:
+python main.py --styles --retry-errors
+```
+
+See [Error Handling Guide](ERROR_HANDLING.md) for detailed troubleshooting.
+
 ## Installation
 
 MoviePy has been added to the requirements and is now the primary video processing engine. Install it with:
@@ -32,6 +52,29 @@ python main.py --synthesize-video \
   --slides-dir path/to/visuals \
   --audio-dir path/to/speech \
   --video-output output.mp4
+```
+
+### Pre-flight Validation
+
+**The system performs strict validation before video synthesis:**
+
+```python
+# In services/video_synthesis/file_validator.py
+if len(slide_images) != len(audio_files):
+    raise FileValidationError(
+        f"Number of slide images ({len(slide_images)}) must match "
+        f"number of audio files ({len(audio_files)})"
+    )
+```
+
+**Common failure scenarios:**
+- Slide 16 speaker notes failed → No slide_16.png, no slide_16.mp3 → Video synthesis aborted
+- Multiple slides failed → Misaligned pairing → Incorrect video segments
+- Partial recovery → Some slides fixed, others still failed → Still cannot proceed
+
+**Solution:** Fix ALL failed slides before attempting video synthesis:
+```bash
+python main.py --style-config hkcomic --retry-errors
 ```
 
 ## Basic Usage
@@ -240,18 +283,94 @@ See the `examples/combine_videos_example.py` file for complete working examples.
 
 ## Troubleshooting
 
-### MoviePy Not Found
+### Video Synthesis Failures
+
+**Error: "Number of slide images (X) must match number of audio files (Y)"**
+```bash
+# Root cause: Some slides failed in earlier processing phases
+# Solution: Fix failed slides first
+
+# 1. Check for failed slides
+grep -r "status.*error" notes/*/generate/*.json
+
+# 2. Fix failed slides
+python main.py --style-config hkcomic --retry-errors
+
+# 3. Verify all slides successful
+python -c "
+import json
+with open('notes/hkcomic/generate/presentation_en_progress.json') as f:
+    data = json.load(f)
+failed = [s for s in data['slides'].values() if s.get('status') != 'success']
+print(f'Failed slides: {len(failed)}')
+if failed:
+    for slide in failed:
+        print(f'  Slide {slide.get(\"slide_index\", \"?\")}: {slide.get(\"status\", \"unknown\")}')
+"
+
+# 4. Retry video synthesis
+python main.py --synthesize-video --slides-dir path/to/visuals --video-output output.mp4
+```
+
+**Error: "Missing video segment file for slide X"**
+```bash
+# Root cause: Slide image or audio file missing
+# Check what files exist
+ls -la slides_dir/ | grep -E "(slide_[0-9]+|\.png|\.jpg)"
+ls -la audio_dir/ | grep -E "(slide_[0-9]+|\.mp3)"
+
+# Regenerate missing files
+python main.py --style-config hkcomic --retry-errors
+```
+
+**Error: Misaligned slide-audio pairing**
+```bash
+# Symptoms: Video content doesn't match audio narration
+# Root cause: Missing slides created sequence gaps
+
+# Example problem:
+# slide_1.png + slide_1.mp3 ✅ Correct
+# slide_2.png + slide_2.mp3 ✅ Correct  
+# slide_4.png + slide_3.mp3 ❌ Wrong! (slide_3 failed)
+# slide_5.png + slide_4.mp3 ❌ Wrong!
+
+# Solution: Ensure NO missing slides
+python main.py --style-config hkcomic --retry-errors
+```
+
+### MoviePy Issues
+
+**MoviePy Not Found**
 ```bash
 pip install moviepy
 ```
 
-### FFmpeg Issues
+**FFmpeg Issues**
 MoviePy requires FFmpeg. Install it:
 - **Ubuntu/Debian**: `sudo apt install ffmpeg`
 - **macOS**: `brew install ffmpeg`
 - **Windows**: Download from https://ffmpeg.org/
 
-### Memory Errors
+**Memory Errors**
 - Process smaller files
 - Close clips promptly
 - Use lower quality settings for testing
+
+### Performance Issues
+
+**Video synthesis timeout**
+```bash
+# Use wrapper script with timeout protection
+python video_synthesis_wrapper.py slides_dir audio_dir output.mp4 config.json
+
+# Or increase timeout
+export VIDEO_SYNTHESIS_TIMEOUT=3600  # 1 hour
+python main.py --synthesize-video --slides-dir path/to/visuals --video-output output.mp4
+```
+
+**Large file processing**
+```bash
+# Process in smaller batches
+# Split presentation into chunks of 10-20 slides
+# Combine final videos using MoviePy
+```

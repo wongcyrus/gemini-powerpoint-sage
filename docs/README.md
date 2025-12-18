@@ -21,6 +21,7 @@ Start here if you're new to the project:
 - **[Performance & Caching](PERFORMANCE_CACHING.md)** - High-speed caching and TTS integration
 - **[Video Synthesis Setup](../VIDEO_SYNTHESIS_SETUP.md)** - Video creation from slides and audio
 - **[Video Caching Guide](../CACHING_GUIDE.md)** - Intelligent caching for 2-5x faster video reruns
+- **[Error Handling & Recovery](ERROR_HANDLING.md)** - Troubleshooting and dependency management
 
 ### Reference
 - **[User Quick Reference](../QUICK_REFERENCE.md)** - Command-line reference and tips
@@ -64,6 +65,9 @@ For developers and contributors:
 **Understand the output folder structure**
 → [Folder Structure](FOLDER_STRUCTURE.md)
 
+**Troubleshoot errors or failed slides**
+→ [Error Handling & Recovery](ERROR_HANDLING.md)
+
 **Learn about the system architecture**
 → [Architecture](ARCHITECTURE.md)
 
@@ -94,7 +98,9 @@ docs/
 ├── AGENT_RELATIONSHIPS.md         # Agent interactions and dependencies
 ├── PROMPT_REWRITER.md             # Prompt rewriter system overview
 ├── PROMPT_REWRITER_AGENT_DETAILS.md # Detailed meta-agent analysis
-└── PERFORMANCE_CACHING.md         # Performance optimization and caching guide
+├── PERFORMANCE_CACHING.md         # Performance optimization and caching guide
+├── ERROR_HANDLING.md              # Error handling and recovery guide
+└── VIDEO_COMBINING_GUIDE.md       # Video synthesis with MoviePy
 ```
 
 ## 🔄 Documentation Updates

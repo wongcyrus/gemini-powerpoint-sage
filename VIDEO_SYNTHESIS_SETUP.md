@@ -9,6 +9,34 @@ The video synthesis feature combines slide images with audio files to create pre
 - **Flexible Configuration**: Multiple video quality presets and custom configurations
 - **CLI Integration**: Easy-to-use command-line interface with cache management
 
+## ⚠️ Critical Prerequisites
+
+**Video synthesis requires ALL slides to be successful:**
+
+1. **Complete Dependency Chain**: Speaker Notes → Images → Audio → Video Synthesis
+2. **No Failed Slides**: Any slide with `"status": "error"` will break video synthesis
+3. **Exact File Pairing**: Must have matching slide images and audio files (1:1 ratio)
+4. **Sequential Naming**: Missing any slide creates misaligned pairing
+
+**Before video synthesis, verify all slides succeeded:**
+```bash
+# Check for any failed slides
+grep -r "status.*error" notes/*/generate/*.json
+
+# If failures found, fix them first:
+python main.py --styles --retry-errors
+
+# Verify readiness
+python main.py --video-cache-stats  # Shows file counts per presentation
+```
+
+**Common failure scenario:**
+- Slide 16 speaker notes fail → No slide_16.png, no slide_16.mp3
+- Video synthesis gets 45 images + 45 audio files but misaligned
+- Result: slide_17.png paired with slide_16.mp3 (wrong content!)
+
+See [Error Handling Guide](docs/ERROR_HANDLING.md) for detailed troubleshooting.
+
 ## Key Changes Made
 
 ### 1. Directory Structure Update

@@ -199,13 +199,13 @@ class AgentToolFactory:
             result = await run_stateless_agent(self.writer_agent, prompt)
 
             if not result or not result.strip():
-                logger.warning(
-                    "[Tool] speech_writer returned empty text. "
-                    "Returning fallback."
+                logger.error(
+                    "[Tool] speech_writer returned empty text for slide analysis. "
+                    "This indicates a tool failure that should be retried."
                 )
                 return (
-                    "Error: The writer agent failed to generate a script. "
-                    "Please try again or use a placeholder."
+                    "Error: The writer agent failed to generate a script - returned empty response. "
+                    "This is a tool failure that requires retry or manual intervention."
                 )
 
             # Capture successful output for fallback

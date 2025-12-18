@@ -239,24 +239,73 @@ class NotesGenerator:
         # Check if we got a response
         final_response = final_response.strip()
         if final_response:
-            self.tool_factory.reset_writer_output()
-            return final_response, "success"
+            # Check if the response is an error message from tools
+            if self._is_error_response(final_response):
+                logger.error(
+                    f"Tool error detected in response for Slide {slide_idx}: "
+                    f"{final_response[:100]}..."
+                )
+                raise SlideProcessingError(
+                    slide_idx,
+                    f"Tool error: {final_response[:200]}..."
+                )
+            else:
+                self.tool_factory.reset_writer_output()
+                return final_response, "success"
         
         # Try fallback to last writer output
         last_output = self.tool_factory.last_writer_output
         if last_output:
-            logger.info(
-                f"Supervisor returned empty text, "
-                f"using fallback content ({len(last_output)} chars)."
-            )
-            self.tool_factory.reset_writer_output()
-            return last_output, "success"
+            # Check if fallback output is also an error
+            if self._is_error_response(last_output):
+                logger.error(
+                    f"Fallback output is also an error for Slide {slide_idx}: "
+                    f"{last_output[:100]}..."
+                )
+                raise SlideProcessingError(
+                    slide_idx,
+                    f"Fallback tool error: {last_output[:200]}..."
+                )
+            else:
+                logger.info(
+                    f"Supervisor returned empty text, "
+                    f"using fallback content ({len(last_output)} chars)."
+                )
+                self.tool_factory.reset_writer_output()
+                return last_output, "success"
         
         # No response - raise error for retry
         raise SlideProcessingError(
             slide_idx,
             "Supervisor returned empty response"
         )
+    
+    def _is_error_response(self, response: str) -> bool:
+        """
+        Check if a response contains error messages from tools.
+        
+        Uses only highly specific patterns that are very unlikely to appear 
+        in legitimate speaker notes to minimize false positives.
+        
+        Args:
+            response: The response text to check
+            
+        Returns:
+            True if the response appears to be an error message
+        """
+        if not response or not response.strip():
+            return False
+            
+        response_stripped = response.strip()
+        response_lower = response_stripped.lower()
+        
+        # 1. Check for structured error format (very specific, unlikely in real content)
+        if (response_lower.startswith('system_error:') or 
+            response_lower.startswith('tool_error:') or
+            response_lower.startswith('processing_error:')):
+            return True  
+            
+        return False
     
     def _build_supervisor_prompt(
         self,
