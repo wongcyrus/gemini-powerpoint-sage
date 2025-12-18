@@ -135,6 +135,13 @@ class PresentationProcessor:
         # Load files - create two separate presentations
         prs_notes = Presentation(self.config.pptx_path)
         prs_visuals = Presentation(self.config.pptx_path)
+        
+        # Force 16:9 aspect ratio for visuals presentation immediately
+        # This ensures image placement calculations are correct
+        from pptx.util import Inches
+        prs_visuals.slide_width = Inches(10)
+        prs_visuals.slide_height = Inches(5.625)
+
         pdf_doc = pymupdf.open(self.config.pdf_path)
         limit = min(len(prs_notes.slides), len(pdf_doc))
 
@@ -619,11 +626,6 @@ class PresentationProcessor:
 
         # Only save visuals presentation if all images were generated
         if missing_visuals_count == 0:
-            # Force 16:9 aspect ratio for visuals presentation
-            from pptx.util import Inches
-            prs_visuals.slide_width = Inches(10)
-            prs_visuals.slide_height = Inches(5.625)
-
             temp_visuals_pptx = ensure_pptx_path(output_path_visuals)
             prs_visuals.save(temp_visuals_pptx)
 

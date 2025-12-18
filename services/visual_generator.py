@@ -189,37 +189,89 @@ class VisualGenerator:
         slide,
         img_path: str,
         speaker_notes: str,
+        mode: str = "cover",  # "contain" or "cover"
+        target_dpi: int = 150   # controls file size if you downscale
     ) -> bool:
         """
-        Replace slide content with generated visual and add notes to notes section.
+        Replace slide content with generated visual and add notes to the notes section.
 
         Args:
-            prs: PowerPoint presentation object
-            slide: PowerPoint slide object to modify
+            prs: PowerPoint Presentation object
+            slide: Slide object to modify
             img_path: Path to the generated image
-            speaker_notes: Speaker notes to add to the notes section
+            speaker_notes: Notes to add to the notes section
+            mode: "contain" (preserve aspect, may letterbox) or "cover" (fill, crop overflow)
+            target_dpi: DPI to use when re-saving image to reduce file size
 
         Returns:
             True if successful, False otherwise
         """
         try:
-            # Remove all shapes from the slide
+            # Remove all shapes on the slide
             for shape in list(slide.shapes):
                 sp = shape.element
                 sp.getparent().remove(sp)
 
-            # Get slide dimensions from the presentation
             slide_width = prs.slide_width
             slide_height = prs.slide_height
+            
+            logger.debug(f"Slide dimensions: {slide_width.inches}\" x {slide_height.inches}\"")
 
-            # Add the reimagined image to fill the entire slide
-            slide.shapes.add_picture(
-                img_path,
-                left=0,
-                top=0,
-                width=slide_width,
-                height=slide_height
+            # Optionally reduce image file size (not dimensions) by re-saving
+            # This keeps pixel dimensions but lowers compression quality for smaller .pptx
+            reduced_img_path = img_path
+            try:
+                with Image.open(img_path) as im:
+                    img_width_px, img_height_px = im.size
+                    
+                    # Re-save to JPEG or PNG with optimized settings to reduce size
+                    # If original has alpha, keep PNG; otherwise use JPEG for disk-size savings.
+                    if im.mode in ("RGBA", "LA") or (im.format == "PNG" and "transparency" in im.info):
+                        tmp_path = os.path.splitext(img_path)[0] + "_reduced.png"
+                        im.save(tmp_path, format="PNG", optimize=True)
+                    else:
+                        tmp_path = os.path.splitext(img_path)[0] + "_reduced.jpg"
+                        # quality ~85 is a good balance; adjust as needed
+                        im = im.convert("RGB")
+                        im.save(tmp_path, format="JPEG", quality=85, optimize=True)
+                    
+                    reduced_img_path = tmp_path
+            except Exception as e:
+                logger.debug(f"Image re-save optimization skipped: {e}")
+
+            # Compute placement with aspect ratio rules
+            try:
+                with Image.open(reduced_img_path) as im:
+                    img_width_px, img_height_px = im.size
+                    left, top, width, height = self._compute_image_placement(
+                        img_width_px, img_height_px, slide_width, slide_height, dpi=96, mode=mode
+                    )
+            except Exception as e:
+                logger.debug(f"Placement fallback (full slide) due to error: {e}")
+                left, top, width, height = 0, 0, slide_width, slide_height
+
+            logger.info(f"Original image: {img_path}")
+            logger.info(f"Reduced image: {reduced_img_path}")
+
+            # Add the picture with final size AT INSERTION TIME to avoid oversized initial shape
+            picture = slide.shapes.add_picture(
+                reduced_img_path,
+                left=left,
+                top=top,
+                width=width,
+                height=height
             )
+
+            logger.debug(f"Picture dimensions set to: {picture.width.inches}\" x {picture.height.inches}\"")
+            logger.info(f"Optimized image added with {mode} mode")
+
+            # Clean up the reduced image if it's different from original
+            if reduced_img_path != img_path and os.path.exists(reduced_img_path):
+                try:
+                    os.unlink(reduced_img_path)
+                    logger.debug(f"Cleaned up reduced image: {reduced_img_path}")
+                except Exception as e:
+                    logger.debug(f"Could not clean up reduced image: {e}")
 
             # Add speaker notes to the notes section as plain text
             if not slide.has_notes_slide:
@@ -237,14 +289,16 @@ class VisualGenerator:
             from pptx.enum.text import PP_ALIGN
             p.alignment = PP_ALIGN.LEFT
 
-            logger.info(
-                f"Replaced slide content with reimagined visual."
-            )
+            logger.info(f"Replaced slide content with visual using {mode} mode.")
             return True
 
         except Exception as e:
             logger.error(f"Failed to replace slide with visual: {e}")
             return False
+
+
+
+
 
     def add_visual_to_presentation(
         self,
@@ -252,6 +306,8 @@ class VisualGenerator:
         slide_idx: int,
         img_path: str,
         speaker_notes: str,
+        mode: str = "cover",
+        target_dpi: int = 150
     ) -> bool:
         """
         Add a generated visual as a new slide in the presentation.
@@ -279,29 +335,80 @@ class VisualGenerator:
             # Add new slide
             new_slide = prs.slides.add_slide(blank_layout)
 
-            # Embed the generated image
-            left = Inches(0.5)
-            top = Inches(0.5)
-            width = Inches(9)
-            height = Inches(5)
-            new_slide.shapes.add_picture(
-                img_path, left, top,
-                width=width, height=height
-            )
+            # Get slide dimensions for full coverage
+            slide_width = prs.slide_width
+            slide_height = prs.slide_height
+            
+            logger.debug(f"New slide dimensions: {slide_width.inches}\" x {slide_height.inches}\"")
 
-            # Add speaker notes as text
-            txBox = new_slide.shapes.add_textbox(
-                Inches(0.5), Inches(5.7),
-                Inches(9), Inches(1.5)
+            # Optimize image file size by re-saving with compression
+            reduced_img_path = img_path
+            try:
+                with Image.open(img_path) as im:
+                    img_width_px, img_height_px = im.size
+                    
+                    # Re-save with optimized settings
+                    if im.mode in ("RGBA", "LA") or (im.format == "PNG" and "transparency" in im.info):
+                        tmp_path = os.path.splitext(img_path)[0] + "_reduced.png"
+                        im.save(tmp_path, format="PNG", optimize=True)
+                    else:
+                        tmp_path = os.path.splitext(img_path)[0] + "_reduced.jpg"
+                        im = im.convert("RGB")
+                        im.save(tmp_path, format="JPEG", quality=85, optimize=True)
+                    
+                    reduced_img_path = tmp_path
+            except Exception as e:
+                logger.debug(f"Image optimization skipped: {e}")
+
+            # Compute placement with aspect ratio rules
+            try:
+                with Image.open(reduced_img_path) as im:
+                    img_width_px, img_height_px = im.size
+                    left, top, width, height = self._compute_image_placement(
+                        img_width_px, img_height_px, slide_width, slide_height, dpi=96, mode=mode
+                    )
+            except Exception as e:
+                logger.debug(f"Placement fallback (full slide) due to error: {e}")
+                left, top, width, height = 0, 0, slide_width, slide_height
+
+            # Add the optimized image with proper placement
+            picture = new_slide.shapes.add_picture(
+                reduced_img_path,
+                left=left,
+                top=top,
+                width=width,
+                height=height
             )
-            tf = txBox.text_frame
-            tf.word_wrap = True
-            p = tf.paragraphs[0]
+            
+            logger.debug(f"Picture dimensions set to: {picture.width.inches}\" x {picture.height.inches}\"")
+            logger.info(f"Optimized image added with {mode} mode")
+            
+            # Clean up the reduced image if it's different from original
+            if reduced_img_path != img_path and os.path.exists(reduced_img_path):
+                try:
+                    os.unlink(reduced_img_path)
+                    logger.debug(f"Cleaned up reduced image: {reduced_img_path}")
+                except Exception as e:
+                    logger.debug(f"Could not clean up reduced image: {e}")
+
+            # Add speaker notes to the notes section instead of as text on slide
+            if not new_slide.has_notes_slide:
+                new_slide.notes_slide
+            
+            text_frame = new_slide.notes_slide.notes_text_frame
+            text_frame.clear()
+            
+            # Add notes as single paragraph
+            p = text_frame.paragraphs[0]
             p.text = f"Generated Notes for Slide {slide_idx}:\n{speaker_notes}"
-            p.font.size = Pt(10)
+            p.level = 0
+            
+            # Explicitly remove bullet formatting
+            from pptx.enum.text import PP_ALIGN
+            p.alignment = PP_ALIGN.LEFT
 
             logger.info(
-                f"Added new slide with reimagined image and notes "
+                f"Added new slide with full-size reimagined image and notes "
                 f"for Slide {slide_idx}."
             )
             return True
@@ -431,3 +538,96 @@ class VisualGenerator:
     def reset_style_context(self) -> None:
         """Reset the style context (previous image)."""
         self.previous_image = None
+
+    def _compute_image_placement(
+        self, 
+        img_width_px: int, 
+        img_height_px: int, 
+        slide_width, 
+        slide_height, 
+        dpi: int = 96, 
+        mode: str = "cover"
+    ):
+        """
+        Compute image placement on slide with proper aspect ratio handling.
+        
+        Args:
+            img_width_px: Image width in pixels
+            img_height_px: Image height in pixels
+            slide_width: Slide width (Length object)
+            slide_height: Slide height (Length object)
+            dpi: DPI for pixel to inch conversion
+            mode: "contain" (fit within, may letterbox) or "cover" (fill, may crop)
+            
+        Returns:
+            Tuple of (left, top, width, height) as Length objects
+        """
+        from pptx.util import Inches
+        
+        # Convert slide dimensions to pixels
+        slide_width_px = slide_width.inches * dpi
+        slide_height_px = slide_height.inches * dpi
+        
+        # Calculate aspect ratios
+        img_ratio = img_width_px / img_height_px
+        slide_ratio = slide_width_px / slide_height_px
+        
+        if mode == "contain":
+            # Fit image within slide bounds (letterbox/pillarbox)
+            if img_ratio > slide_ratio:
+                # Image is wider - fit to width
+                new_width_px = slide_width_px
+                new_height_px = slide_width_px / img_ratio
+                left_px = 0
+                top_px = (slide_height_px - new_height_px) / 2
+            else:
+                # Image is taller - fit to height
+                new_height_px = slide_height_px
+                new_width_px = slide_height_px * img_ratio
+                left_px = (slide_width_px - new_width_px) / 2
+                top_px = 0
+        else:  # mode == "cover"
+            # Fill slide completely (may crop image)
+            if img_ratio > slide_ratio:
+                # Image is wider - fit to height, crop width
+                new_height_px = slide_height_px
+                new_width_px = slide_height_px * img_ratio
+                left_px = -(new_width_px - slide_width_px) / 2
+                top_px = 0
+            else:
+                # Image is taller - fit to width, crop height
+                new_width_px = slide_width_px
+                new_height_px = slide_width_px / img_ratio
+                left_px = 0
+                top_px = -(new_height_px - slide_height_px) / 2
+        
+        # Convert back to inches
+        left = Inches(left_px / dpi)
+        top = Inches(top_px / dpi)
+        width = Inches(new_width_px / dpi)
+        height = Inches(new_height_px / dpi)
+        
+        logger.debug(f"Image placement ({mode}): {left.inches:.2f}\", {top.inches:.2f}\", {width.inches:.2f}\", {height.inches:.2f}\"")
+        
+        return left, top, width, height
+
+
+
+    def cleanup_temp_files(self, prs) -> None:
+        """Clean up temporary image files created during slide processing."""
+        cleaned_count = 0
+        for slide in prs.slides:
+            if hasattr(slide, '_temp_image_paths'):
+                for temp_path in slide._temp_image_paths:
+                    try:
+                        if os.path.exists(temp_path):
+                            os.unlink(temp_path)
+                            cleaned_count += 1
+                            logger.debug(f"Cleaned up temporary file: {temp_path}")
+                    except Exception as e:
+                        logger.warning(f"Could not clean up {temp_path}: {e}")
+                # Clear the list
+                slide._temp_image_paths = []
+        
+        if cleaned_count > 0:
+            logger.info(f"Cleaned up {cleaned_count} temporary image files")
