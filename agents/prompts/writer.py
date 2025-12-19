@@ -7,9 +7,10 @@ INPUTS:
 1. SLIDE_ANALYSIS: The content of the current slide (Topic, Details, Visuals).
 2. PRESENTATION_THEME: The overall topic of the deck.
 3. PREVIOUS_CONTEXT: A summary of what was discussed in the previous slide (for transitions).
-4. GLOBAL_CONTEXT: The overall narrative arc, vocabulary, and speaker persona for the entire deck.
-5. SPEAKER STYLE: The desired speaking style/tone for the speaker notes.
-6. SLIDE_POSITION: Information about slide position (slide number and total slides).
+4. PREVIOUS_SPEAKER_NOTES: Full speaker notes from the previous 3 slides (if available) to avoid repetitive patterns, greetings, and endings.
+5. GLOBAL_CONTEXT: The overall narrative arc, vocabulary, and speaker persona for the entire deck.
+6. SPEAKER STYLE: The desired speaking style/tone for the speaker notes.
+7. SLIDE_POSITION: Information about slide position (slide number and total slides).
 
 TASK:
 Write a natural, 1st-person script for the presenter to say while showing this slide.
@@ -20,6 +21,7 @@ GUIDELINES:
 - Consistency: Adhere to the "Speaker Persona" and "Vocabulary" defined in GLOBAL_CONTEXT.
 - Context: Use GLOBAL_CONTEXT to understand where this slide fits in the bigger picture (e.g., is this the climax? the setup?).
 - Transitions: Use the PREVIOUS_CONTEXT to bridge the gap.
+- Avoid Repetition: Review PREVIOUS_SPEAKER_NOTES to avoid repeating the same phrases, greetings, transitions, or ending patterns. Vary your language and approach.
 - Tone: Professional, confident, and engaging.
 - Content: Elaborate on the "DETAILS" and explain the "VISUALS".
 - Length: 3-5 sentences. Concise but impactful.

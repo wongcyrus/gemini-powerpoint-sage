@@ -240,6 +240,7 @@ class PresentationProcessor:
         
         slide_data = []  # Store slide data for visual processing
         previous_slide_summary = "Start of presentation."
+        previous_speaker_notes = []  # Track last 3 slides' full speaker notes
         
         user_id = "supervisor_user"
         session_id = "supervisor_session"
@@ -267,7 +268,8 @@ class PresentationProcessor:
                 slide_idx, image_id, existing_notes,
                 previous_slide_summary, presentation_theme,
                 global_context, entry, supervisor_runner,
-                user_id, session_id, total_slides=limit
+                user_id, session_id, total_slides=limit,
+                previous_speaker_notes=previous_speaker_notes
             )
 
             # Update slide notes in both presentations
@@ -279,6 +281,14 @@ class PresentationProcessor:
                 update_slide_notes(slide_visuals, final_response)
                 
                 previous_slide_summary = final_response[:200]
+                
+                # Track previous speaker notes (keep last 3)
+                previous_speaker_notes.append({
+                    'slide_idx': slide_idx,
+                    'notes': final_response
+                })
+                if len(previous_speaker_notes) > 3:
+                    previous_speaker_notes.pop(0)
 
             # Update progress
             progress["slides"][skey] = {
@@ -818,6 +828,7 @@ class PresentationProcessor:
         user_id: str,
         session_id: str,
         total_slides: int = None,
+        previous_speaker_notes: list = None,
     ) -> tuple[str, str]:
         """
         Process notes for a single slide.
@@ -879,7 +890,7 @@ class PresentationProcessor:
         supervisor_prompt = self._build_supervisor_prompt(
             slide_idx, image_id, existing_notes,
             previous_slide_summary, presentation_theme,
-            global_context, total_slides
+            global_context, total_slides, previous_speaker_notes
         )
 
         content = types.Content(
@@ -1058,6 +1069,7 @@ class PresentationProcessor:
         presentation_theme: str,
         global_context: str,
         total_slides: int = None,
+        previous_speaker_notes: list = None,
     ) -> str:
         """Build the prompt for the supervisor agent."""
         slide_position_info = ""
@@ -1072,11 +1084,20 @@ class PresentationProcessor:
         # Add target language information
         target_language_info = f"TARGET_LANGUAGE: {self.config.language}\n"
         
+        # Format previous speaker notes context
+        previous_notes_context = ""
+        if previous_speaker_notes:
+            previous_notes_context = "PREVIOUS_SPEAKER_NOTES:\n"
+            for note_data in previous_speaker_notes[-3:]:  # Last 3 slides
+                previous_notes_context += f"Slide {note_data['slide_idx']}: {note_data['notes']}\n"
+            previous_notes_context += "\n"
+        
         return (
             f"Here is Slide {slide_idx}.\n"
             f"Existing Notes: \"{existing_notes}\"\n"
             f"Image ID: \"{image_id}\"\n"
             f"Previous Slide Summary: \"{previous_slide_summary}\"\n"
+            f"{previous_notes_context}"
             f"Theme: \"{presentation_theme}\"\n"
             f"Global Context: \"{global_context}\"\n"
             f"{slide_position_info}"

@@ -97,6 +97,7 @@ class AgentToolFactory:
             global_ctx: str = global_context,
             slide_idx: int = None,
             slide_position: str = "",
+            previous_speaker_notes: str = "",
         ) -> str:
             """Tool: Writes the speaker note script."""
             logger.info("[Tool] speech_writer invoked.")
@@ -122,12 +123,14 @@ class AgentToolFactory:
                             f"Examples: Use 網絡 (not 网络), 數據 (not 数据), 計算機 (not 计算机)."
                         )
                     
+                    previous_notes_text = f"\nPREVIOUS_SPEAKER_NOTES:\n{previous_speaker_notes}\n" if previous_speaker_notes else ""
                     prompt = (
                         f"TRANSLATION TASK:\n"
                         f"Translate the following English speaker notes to {lang_name}.\n"
                         f"Maintain the same tone, style, and level of detail.\n\n"
                         f"ENGLISH NOTES:\n{en_note}\n\n"
-                        f"SLIDE CONTEXT:\n{analysis}\n\n"
+                        f"SLIDE CONTEXT:\n{analysis}\n"
+                        f"{previous_notes_text}\n"
                         f"IMPORTANT: Provide ONLY the translated speaker notes in {lang_name}. "
                         f"Do not include explanations or metadata.{chinese_instruction}"
                     )
@@ -149,10 +152,12 @@ class AgentToolFactory:
                         )
                     
                     slide_position_text = f"\nSLIDE_POSITION: {slide_position}\n" if slide_position else ""
+                    previous_notes_text = f"\nPREVIOUS_SPEAKER_NOTES:\n{previous_speaker_notes}\n" if previous_speaker_notes else ""
                     prompt = (
                         f"SLIDE_ANALYSIS:\n{analysis}\n\n"
                         f"PRESENTATION_THEME: {theme}\n"
                         f"PREVIOUS_CONTEXT: {previous_context}\n"
+                        f"{previous_notes_text}"
                         f"GLOBAL_CONTEXT: {global_ctx}{slide_position_text}\n\n"
                         f"IMPORTANT: Write the speaker notes in {lang_name}. "
                         f"All content must be in {lang_name}.{chinese_instruction}"
@@ -189,10 +194,12 @@ class AgentToolFactory:
 
                 # Note: Speaker style is now in the agent's system instruction, not here
                 slide_position_text = f"\nSLIDE_POSITION: {slide_position}\n" if slide_position else ""
+                previous_notes_text = f"\nPREVIOUS_SPEAKER_NOTES:\n{previous_speaker_notes}\n" if previous_speaker_notes else ""
                 prompt = (
                     f"SLIDE_ANALYSIS:\n{analysis}\n\n"
                     f"PRESENTATION_THEME: {theme}\n"
                     f"PREVIOUS_CONTEXT: {previous_context}\n"
+                    f"{previous_notes_text}"
                     f"GLOBAL_CONTEXT: {global_ctx}{slide_position_text}{language_instruction}\n"
                 )
 
