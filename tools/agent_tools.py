@@ -303,6 +303,14 @@ class AgentToolFactory:
             if not text or not text.strip():
                 return "ERROR: No text provided for translation."
 
+            # Skip translation if source and target languages are the same
+            if source_language == target_language:
+                logger.info(
+                    "[Tool] translator skipping translation: source and target languages are the same (%s)", 
+                    source_language
+                )
+                return text
+
             prompt = (
                 f"Translate the following {source_language} text to {target_language}. "
                 f"Maintain technical accuracy, educational tone, and clarity. "

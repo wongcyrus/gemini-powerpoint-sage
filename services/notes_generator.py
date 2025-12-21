@@ -114,10 +114,14 @@ class NotesGenerator:
         )
         
         # Get translator tool from factory
-        translator_tool = self.tool_factory.create_translator_tool(lang_name)
+        translator_tool = self.tool_factory.create_translator_tool()
         
         try:
-            translated = await translator_tool(english_note)
+            translated = await translator_tool(
+                text=english_note,
+                target_language=self.language,
+                source_language="en"
+            )
             if translated and translated.strip():
                 return translated.strip(), "success"
             else:
