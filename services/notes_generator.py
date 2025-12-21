@@ -183,6 +183,7 @@ class NotesGenerator:
                 parts=[types.Part.from_text(text=prompt)]
             )
             
+        try:
             # Execute with retry
             result = await self.retry_strategy.execute(
                 self._run_supervisor,
@@ -199,6 +200,8 @@ class NotesGenerator:
                 return "", "error"
                 
         finally:
+            # Small delay to ensure any async operations in tools have completed
+            await asyncio.sleep(0.05)
             unregister_image(image_id)
     
     async def _run_supervisor(

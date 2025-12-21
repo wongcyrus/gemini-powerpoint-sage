@@ -131,7 +131,10 @@ def get_image(image_id: str) -> Image.Image:
     Returns:
         PIL Image object or None if not found
     """
-    return IMAGE_REGISTRY.get(image_id)
+    image = IMAGE_REGISTRY.get(image_id)
+    if not image:
+        logger.warning(f"Image not found: {image_id} (available: {list(IMAGE_REGISTRY.keys())})")
+    return image
 
 
 def unregister_image(image_id: str) -> None:

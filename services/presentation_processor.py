@@ -144,7 +144,23 @@ class PresentationProcessor:
         prs_visuals.slide_height = Inches(5.625)
 
         pdf_doc = pymupdf.open(self.config.pdf_path)
-        limit = min(len(prs_notes.slides), len(pdf_doc))
+        
+        # Validate PDF document
+        pdf_page_count = len(pdf_doc)
+        pptx_slide_count = len(prs_notes.slides)
+        
+        logger.info(f"PDF pages: {pdf_page_count}, PPTX slides: {pptx_slide_count}")
+        
+        if pdf_page_count == 0:
+            raise ValueError("PDF document has no pages")
+        
+        limit = min(pptx_slide_count, pdf_page_count)
+        
+        if limit != pptx_slide_count:
+            logger.warning(
+                f"PDF has fewer pages ({pdf_page_count}) than PPTX slides ({pptx_slide_count}). "
+                f"Processing only {limit} slides."
+            )
 
         # Load progress
         progress = load_progress(self.progress_file)
@@ -246,8 +262,21 @@ class PresentationProcessor:
         user_id = "supervisor_user"
         session_id = "supervisor_session"
 
+        # Collect all image IDs for cleanup at the end
+        image_ids_to_cleanup = []
+
         for i in range(limit):
             slide_idx = i + 1
+            
+            # Validate slide and PDF page indices
+            if i >= len(prs_notes.slides):
+                logger.error(f"Slide index {i} exceeds PPTX slide count ({len(prs_notes.slides)})")
+                break
+                
+            if i >= len(pdf_doc):
+                logger.error(f"PDF page index {i} exceeds PDF page count ({len(pdf_doc)})")
+                break
+            
             slide_notes = prs_notes.slides[i]
             slide_visuals = prs_visuals.slides[i]
             pdf_page = pdf_doc[i]
@@ -266,8 +295,16 @@ class PresentationProcessor:
 
             # Register slide image
             image_id = f"slide_{slide_idx}"
-            slide_image = self._extract_slide_image(pdf_page)
-            register_image(image_id, slide_image)
+            image_ids_to_cleanup.append(image_id)
+            try:
+                slide_image = self._extract_slide_image(pdf_page)
+                register_image(image_id, slide_image)
+            except Exception as e:
+                logger.error(f"Failed to extract/register image for slide {slide_idx}: {e}")
+                # Create a placeholder image and register it
+                placeholder = Image.new('RGB', (800, 600), color='lightgray')
+                register_image(image_id, placeholder)
+                slide_image = placeholder
 
             # Generate or retrieve speaker notes
             final_response, status = await self._process_slide_notes(
@@ -314,8 +351,9 @@ class PresentationProcessor:
                 "speaker_notes": final_response,
                 "status": status,
             })
-
-            # Cleanup
+            
+        # Cleanup all images at the end to avoid premature deletion
+        for image_id in image_ids_to_cleanup:
             unregister_image(image_id)
             
         return slide_data
@@ -823,8 +861,21 @@ class PresentationProcessor:
 
     def _extract_slide_image(self, pdf_page) -> Image.Image:
         """Extract image from PDF page."""
-        pix = pdf_page.get_pixmap(dpi=150)
-        return Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        try:
+            pix = pdf_page.get_pixmap(dpi=150)
+            if not pix or pix.width == 0 or pix.height == 0:
+                raise ValueError(f"Invalid pixmap dimensions: {pix.width}x{pix.height}")
+            
+            image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            if not image:
+                raise ValueError("Failed to create PIL Image from pixmap data")
+                
+            return image
+        except Exception as e:
+            logger.error(f"Failed to extract image from PDF page: {e}")
+            # Create a placeholder image to prevent complete failure
+            placeholder = Image.new('RGB', (800, 600), color='lightgray')
+            return placeholder
 
     async def _process_slide_notes(
         self,

@@ -8,7 +8,7 @@ from google.adk.agents import LlmAgent
 
 from config.constants import LanguageConfig
 from utils.agent_utils import run_stateless_agent
-from utils.image_utils import get_image
+from utils.image_utils import get_image, IMAGE_REGISTRY
 
 logger = logging.getLogger(__name__)
 
@@ -56,14 +56,21 @@ class AgentToolFactory:
 
             image = get_image(image_id)
             if not image:
-                return "Error: Image not found."
+                logger.error(f"Image not found in registry for image_id: {image_id}")
+                logger.error(f"Available images in registry: {list(IMAGE_REGISTRY.keys())}")
+                return "SYSTEM_ERROR: ANALYST - Unable to analyze slide content\nDETAILS: Error: Image not found.\nACTION_REQUIRED: Check slide image quality and retry processing"
 
-            prompt_text = "Analyze this slide image."
-            return await run_stateless_agent(
-                self.analyst_agent,
-                prompt_text,
-                images=[image]
-            )
+            try:
+                prompt_text = "Analyze this slide image."
+                result = await run_stateless_agent(
+                    self.analyst_agent,
+                    prompt_text,
+                    images=[image]
+                )
+                return result
+            except Exception as e:
+                logger.error(f"Analyst agent failed for image_id {image_id}: {e}")
+                return f"SYSTEM_ERROR: ANALYST - Unable to analyze slide content\nDETAILS: Error: {str(e)}\nACTION_REQUIRED: Check slide image quality and retry processing"
 
         return call_analyst
 
