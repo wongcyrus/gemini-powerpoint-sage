@@ -121,6 +121,21 @@ pip install -r requirements.txt
 gcloud auth application-default login
 ```
 
+## Google Cloud Project Rotation
+
+To avoid hitting API quota limits when processing large presentations, you can configure multiple Google Cloud projects for automatic load balancing:
+
+```bash
+# .env file
+# Single project (default)
+GOOGLE_CLOUD_PROJECT=your-project-id
+
+# Multiple projects for load balancing (recommended for large workloads)
+GOOGLE_CLOUD_PROJECTS=project-id-1,project-id-2,project-id-3
+```
+
+The system automatically rotates through projects for each slide, visual, and TTS generation, distributing the load evenly. See [docs/PROJECT_ROTATION.md](docs/PROJECT_ROTATION.md) for details.
+
 ## Usage
 
 ### Three Processing Modes
@@ -748,11 +763,21 @@ Output: Creates `_refined.json` suffix files (e.g., `progress_refined.json`)
 export GOOGLE_CLOUD_PROJECT='your-project-id'
 export GOOGLE_CLOUD_LOCATION='us-central1'
 python main.py --pptx file.pptx
+
+# Linux/macOS - Use multiple projects for load balancing (avoids quota limits)
+export GOOGLE_CLOUD_PROJECTS='project-1,project-2,project-3'
+export GOOGLE_CLOUD_LOCATION='us-central1'
+python main.py --pptx file.pptx
 ```
 
 ```powershell
 # Windows - Use alternate GCP project
 $env:GOOGLE_CLOUD_PROJECT = 'your-project-id'
+$env:GOOGLE_CLOUD_LOCATION = 'us-central1'
+python main.py --pptx "file.pptx"
+
+# Windows - Use multiple projects for load balancing (avoids quota limits)
+$env:GOOGLE_CLOUD_PROJECTS = 'project-1,project-2,project-3'
 $env:GOOGLE_CLOUD_LOCATION = 'us-central1'
 python main.py --pptx "file.pptx"
 ```

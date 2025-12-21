@@ -23,6 +23,7 @@ from utils.progress_utils import (
     get_progress_file_path,
     should_retry_errors,
 )
+from utils.project_rotation import rotate_project, get_project_count
 from tools.agent_tools import AgentToolFactory
 from services.visual_generator import VisualGenerator
 from services.tts.tts_orchestrator import TTSOrchestrator, create_tts_orchestrator
@@ -251,7 +252,12 @@ class PresentationProcessor:
             slide_visuals = prs_visuals.slides[i]
             pdf_page = pdf_doc[i]
 
-            logger.info(f"--- Processing Notes for Slide {slide_idx} ---")
+            # Rotate Google Cloud project before processing each slide
+            current_project = rotate_project()
+            if current_project:
+                logger.info(f"--- Processing Notes for Slide {slide_idx} (Project: {current_project}) ---")
+            else:
+                logger.info(f"--- Processing Notes for Slide {slide_idx} ---")
 
             # Get existing notes (from notes presentation)
             existing_notes = get_slide_notes(slide_notes)
@@ -456,6 +462,11 @@ class PresentationProcessor:
             slide_image = slide_info["slide_image"]
             speaker_notes = slide_info["speaker_notes"]
             status = slide_info["status"]
+
+            # Rotate Google Cloud project before processing each slide visual
+            current_project = rotate_project()
+            if current_project:
+                logger.debug(f"Processing visual for Slide {slide_idx} (Project: {current_project})")
 
             if status == "success":
                 # For non-English, translate from English visuals if available

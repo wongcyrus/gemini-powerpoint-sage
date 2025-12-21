@@ -17,6 +17,7 @@ from pptx.util import Inches, Pt
 from google.adk.agents import LlmAgent
 from google import genai
 from google.genai import types
+from utils.project_rotation import rotate_project
 
 from config.constants import EnvironmentVars, FilePatterns, LanguageConfig
 from utils.agent_utils import run_visual_agent
@@ -105,7 +106,13 @@ class VisualGenerator:
 
         # Generate new visual with multi-tier fallback
         force_fallback = os.getenv(EnvironmentVars.FORCE_FALLBACK_IMAGE_GEN) == "1"
-        logger.info("--- Generating Visual for Slide %d (force_fallback=%s) ---" % (slide_idx, force_fallback))
+        
+        # Rotate Google Cloud project before visual generation
+        current_project = rotate_project()
+        if current_project:
+            logger.info("--- Generating Visual for Slide %d (Project: %s, force_fallback=%s) ---" % (slide_idx, current_project, force_fallback))
+        else:
+            logger.info("--- Generating Visual for Slide %d (force_fallback=%s) ---" % (slide_idx, force_fallback))
 
         img_bytes = None
         logo_instruction = self._get_logo_instruction(slide_idx)
@@ -501,6 +508,11 @@ class VisualGenerator:
             Image bytes or None if generation failed
         """
         try:
+            # Rotate project before Imagen API call
+            current_project = rotate_project()
+            if current_project:
+                logger.debug(f"Using Imagen API with project: {current_project}")
+            
             client = genai.Client()
             response = client.models.generate_images(
                 model=self.fallback_imagen_model,

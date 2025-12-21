@@ -208,6 +208,24 @@ class CLI:
             os.environ["GOOGLE_CLOUD_LOCATION"] = args.region
         elif "GOOGLE_CLOUD_LOCATION" not in os.environ:
             os.environ["GOOGLE_CLOUD_LOCATION"] = "global"
+        
+        # Log Google Cloud project rotation setup
+        from utils.project_rotation import get_project_count, get_current_project, reload_projects
+        
+        # Force reload projects to ensure we have the latest environment variables
+        reload_projects()
+        
+        project_count = get_project_count()
+        current_project = get_current_project()
+        
+        if project_count > 1:
+            logger.info(f"Google Cloud project rotation enabled: {project_count} projects configured")
+            if current_project:
+                logger.info(f"Starting with project: {current_project}")
+        elif project_count == 1:
+            logger.info(f"Using single Google Cloud project: {current_project}")
+        else:
+            logger.warning("No Google Cloud projects configured")
     
     async def _handle_refine(self, args: argparse.Namespace) -> None:
         """Handle refinement mode."""

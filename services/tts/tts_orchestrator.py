@@ -12,6 +12,7 @@ from core.domain.tts import (
     TTSResult, SlideData, TTSEngineType, StyleContext, VoiceConfig, TTSEngineError
 )
 from config.tts_config import TTSConfig
+from utils.project_rotation import rotate_project
 from services.tts.engine_selector import EngineSelector
 from services.tts.cache_manager import CacheManager
 from services.tts.storage_manager import StorageManager
@@ -140,7 +141,12 @@ class TTSOrchestrator:
             TTSResult with generated audio and metadata
         """
         try:
-            logger.info(f"Generating speech for slide {slide_number} in {language_code}")
+            # Rotate Google Cloud project before processing each slide
+            current_project = rotate_project()
+            if current_project:
+                logger.debug(f"Processing TTS for slide {slide_number} (Project: {current_project})")
+            else:
+                logger.info(f"Generating speech for slide {slide_number} in {language_code}")
             
             # Normalize language code
             normalized_language = self.config.normalize_language_code(language_code)
