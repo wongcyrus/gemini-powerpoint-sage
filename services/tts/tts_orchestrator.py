@@ -189,60 +189,32 @@ class TTSOrchestrator:
                     text_content, style_context, voice_config, normalized_language
                 )
                 
-                # Get expected file path (like visual content approach)
-                expected_file_path = self.storage_manager.get_audio_file_path(
+                # Get expected output file path (with hash suffix for uniqueness)
+                output_file_path = self.storage_manager.get_audio_file_path(
                     presentation_id, language_code, slide_number, cache_key
                 )
                 
-                # Debug: Print cache key and expected path
-                print(f"🔍 SLIDE {slide_number} CACHE DEBUG:")
-                print(f"   Cache Key: {cache_key[:16]}...")
-                print(f"   Expected:  {expected_file_path}")
-                
-                # Check cache first (file path based like visual content)
-                cached_audio_data = await self.cache_manager.get_cached_audio(cache_key, expected_file_path)
-                if cached_audio_data:
-                    logger.info(f"✓ Cache hit for slide {slide_number}")
-                    
-                    # Create TTSResult from cached audio data
-                    cached_result = TTSResult(
-                        audio_data=cached_audio_data,
-                        engine_used=TTSEngineType.GEMINI,  # Default assumption
-                        file_path=expected_file_path,
-                        cache_key=cache_key,
-                        metadata={"cached": True}
-                    )
-                    
-                    # Print cached file path information prominently
-                    print(f"💾 SLIDE {slide_number} TTS (CACHED): {expected_file_path}")
-                    return cached_result
-                
-                # Fallback: Check for any existing file for this slide (cache key mismatch tolerance)
-                speech_dir = Path(expected_file_path).parent
-                if speech_dir.exists():
-                    existing_files = list(speech_dir.glob(f"slide_{slide_number}_*.mp3"))
-                    if existing_files:
-                        existing_file = existing_files[0]  # Use first match
-                        logger.info(f"✓ Found existing audio file for slide {slide_number} (cache key mismatch)")
+                # Check if output file already exists (hash suffix ensures uniqueness)
+                if Path(output_file_path).exists():
+                    try:
+                        with open(output_file_path, 'rb') as f:
+                            audio_data = f.read()
                         
-                        try:
-                            with open(existing_file, 'rb') as f:
-                                cached_audio_data = f.read()
-                            
-                            # Create TTSResult from existing file
-                            cached_result = TTSResult(
-                                audio_data=cached_audio_data,
-                                engine_used=TTSEngineType.GEMINI,
-                                file_path=str(existing_file),
-                                cache_key=cache_key,
-                                metadata={"cached": True, "cache_key_mismatch": True}
-                            )
-                            
-                            print(f"💾 SLIDE {slide_number} TTS (EXISTING): {existing_file}")
-                            return cached_result
-                            
-                        except Exception as e:
-                            logger.warning(f"Failed to read existing file {existing_file}: {e}")
+                        logger.info(f"✓ Using existing TTS file for slide {slide_number}")
+                        
+                        result = TTSResult(
+                            audio_data=audio_data,
+                            engine_used=TTSEngineType.GEMINI,  # Default assumption
+                            file_path=output_file_path,
+                            cache_key=cache_key,
+                            metadata={"cached": True}
+                        )
+                        
+                        print(f"💾 SLIDE {slide_number} TTS (EXISTS): {output_file_path}")
+                        return result
+                        
+                    except Exception as e:
+                        logger.warning(f"Failed to read existing file {output_file_path}: {e}")
                 
                 # Generate speech using appropriate engine
                 if engine_type == TTSEngineType.GEMINI:
@@ -254,7 +226,7 @@ class TTSOrchestrator:
                         slide_data, style_context, voice_config, cache_key
                     )
                 
-                # Save audio file locally using original language code (for consistency with visual output)
+                # Save audio file to output directory
                 file_path = self.storage_manager.get_audio_file_path(
                     presentation_id, language_code, slide_number, cache_key
                 )
@@ -267,10 +239,6 @@ class TTSOrchestrator:
                 tts_result.file_path = saved_path
                 tts_result.cache_key = cache_key
                 
-                # Store in cache (file path based - no metadata needed)
-                await self.cache_manager.store_audio(cache_key, saved_path)
-                
-                # Print file path information prominently
                 print(f"📁 SLIDE {slide_number} TTS: {saved_path}")
                 logger.info(f"✓ Generated speech for slide {slide_number} ({tts_result.duration_seconds:.1f}s) → {saved_path}")
                 return tts_result

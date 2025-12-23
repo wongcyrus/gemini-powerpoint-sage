@@ -29,18 +29,25 @@ class ProjectRotator:
         """Load projects from environment variable."""
         # First check for the new GOOGLE_CLOUD_PROJECTS variable (comma-separated)
         projects_env = os.getenv("GOOGLE_CLOUD_PROJECTS", "")
+        print(f"🔍 DEBUG: GOOGLE_CLOUD_PROJECTS env var = '{projects_env}'")
+        
         if projects_env:
             # Parse comma-separated projects
             self._projects = [p.strip() for p in projects_env.split(",") if p.strip()]
+            print(f"🔍 DEBUG: Parsed {len(self._projects)} projects: {self._projects}")
             logger.info(f"Loaded {len(self._projects)} Google Cloud projects for rotation: {self._projects}")
             return
         
         # Fallback to single project from GOOGLE_CLOUD_PROJECT
         single_project = os.getenv("GOOGLE_CLOUD_PROJECT", "")
+        print(f"🔍 DEBUG: GOOGLE_CLOUD_PROJECT env var = '{single_project}'")
+        
         if single_project:
             self._projects = [single_project]
+            print(f"🔍 DEBUG: Using single project: {single_project}")
             logger.info(f"Using single Google Cloud project: {single_project}")
         else:
+            print(f"🔍 DEBUG: No Google Cloud projects configured")
             logger.warning("No Google Cloud projects configured")
             self._projects = []
     

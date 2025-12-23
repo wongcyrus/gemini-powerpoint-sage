@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class CacheManager:
-    """Manages TTS audio file caching with file path based approach (like visual content)."""
+    """Manages TTS audio file cleanup and statistics (caching now handled by direct file path checking)."""
     
     def __init__(self, cache_config: TTSCacheConfig):
         """Initialize cache manager with configuration."""
@@ -25,7 +25,7 @@ class CacheManager:
         # Ensure cache directory exists
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         
-        logger.info("TTS CacheManager initialized with file path based caching (like visual content)")
+        logger.info("TTS CacheManager initialized for cleanup and statistics (caching via direct file path checking)")
     
     def generate_cache_key(
         self,
@@ -75,65 +75,9 @@ class CacheManager:
         normalized = ' '.join(text.split())
         return normalized.strip().lower()
     
-    async def get_cached_audio(self, cache_key: str, expected_file_path: str) -> Optional[bytes]:
-        """
-        Retrieve cached audio if file exists (file path based caching like visual content).
-        
-        Args:
-            cache_key: Cache key for the audio (for logging)
-            expected_file_path: Expected file path for the audio
-            
-        Returns:
-            Audio bytes if cached file exists, None otherwise
-        """
-        if not self.config.enabled:
-            return None
-        
-        try:
-            file_path = Path(expected_file_path)
-            
-            # Simple file existence check (like visual content)
-            if file_path.exists():
-                # Check TTL if configured
-                if self.config.ttl_hours > 0:
-                    file_age_hours = (datetime.now().timestamp() - file_path.stat().st_mtime) / 3600
-                    if file_age_hours > self.config.ttl_hours:
-                        logger.debug(f"Cached audio expired (age: {file_age_hours:.1f}h): {expected_file_path}")
-                        file_path.unlink()  # Remove expired file
-                        return None
-                
-                # Read and return audio data
-                with open(file_path, 'rb') as f:
-                    audio_data = f.read()
-                
-                logger.debug(f"Cache hit for audio file: {expected_file_path}")
-                return audio_data
-            
-            return None
-            
-        except Exception as e:
-            logger.warning(f"Error retrieving cached audio from {expected_file_path}: {e}")
-            return None
+
     
-    async def store_audio(
-        self,
-        cache_key: str,
-        file_path: str
-    ) -> None:
-        """
-        Store generated audio in cache (file path based - no metadata needed).
-        
-        Args:
-            cache_key: Cache key for the audio (for logging)
-            file_path: Path where audio file is stored
-        """
-        if not self.config.enabled:
-            return
-        
-        # With file path based caching, storage is handled by the storage manager
-        # This method is kept for compatibility but doesn't need to do anything
-        logger.debug(f"Audio cached at: {file_path} (key: {cache_key[:8]}...)")
-    
+
     def cleanup_expired_files(self, output_directories: list) -> int:
         """
         Clean up expired audio files based on file timestamps.
@@ -195,7 +139,8 @@ class CacheManager:
         return {
             "total_files": total_files,
             "total_size_mb": total_size / (1024 * 1024),
-            "cache_approach": "file_path_based",
+            "cache_approach": "direct_file_path_checking",
             "enabled": self.config.enabled,
-            "ttl_hours": self.config.ttl_hours
+            "ttl_hours": self.config.ttl_hours,
+            "note": "Caching now handled by direct file path checking with hash suffixes"
         }
