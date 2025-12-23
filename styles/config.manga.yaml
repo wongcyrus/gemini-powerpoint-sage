@@ -1,0 +1,133 @@
+# Japanese Manga Style Configuration
+# 日本の少年漫画スタイル (Japanese Shonen Manga Style)
+# Classic black & white aesthetic with high energy and dramatic pacing
+
+# Input folder containing PDF and PPTX files
+input_folder: "sample_data"
+
+# Output directory
+output_dir: "/mnt/hgfs/VM Share/manga/generate"
+
+# Google Cloud settings
+region: "global"
+
+# Language
+language: "en,yue-HK,ja-JP"
+
+# Japanese Manga Style with separate visual and speaker styles
+style:
+  visual_style: |
+    日本の少年漫画スタイル (Japanese Shonen Manga Style)
+    
+    **藝術風格 (Art Style):**
+    - Vibrant "Shonen Anime" aesthetic (Full Color).
+    - Cel-shaded coloring style with hard edges between light and shadow.
+    - High saturation for energy and impact.
+    - "Chibi" or super-deformed variations for humorous or simplified explanations.
+    
+    **視覺元素 (Visual Elements):**
+    - 集中線 (Focus Lines/Beta Flash): Colored radial lines (Blue/Gold) to emphasize key points.
+    - 速度線 (Speed Lines): Glowing streaks indicating fast data processing or movement.
+    - 擬音語/擬態語 (Sound Effects): Colorful, graffiti-style Katakana sound effects (e.g., "DO-ON!" in Red/Yellow).
+    - 汗 (Sweat Drops): Blue sweat drops for "bugs" or "errors".
+    - 閃光 (Sparkles): "Kira-kira" effects for successful deployments or clean code.
+    - 誇張表現 (Exaggeration): Eyes popping out, burning flames (Red/Orange) for passion.
+    
+    **色彩方案 (Color Palette):**
+    - **Heroic Blue (#00BFFF):** For core logic, reliable architecture, and the protagonist.
+    - **Passionate Red (#FF4500):** For critical alerts, important data, and "Hot-blooded" determination.
+    - **Electric Yellow (#FFD700):** For energy, lightning speed, and highlights.
+    - **Tech Green (#39FF14):** For success, matrix-like data streams, and safe operations.
+    - **Villain Purple (#8A2BE2):** For bugs, legacy code, and complex problems.
+    - **Backgrounds:** Dynamic gradients or simplified scenic anime backgrounds (classrooms, rooftops, server rooms).
+    
+    **構圖特色 (Composition Features):**
+    - Dynamic Paneling: Non-rectangular panels, characters breaking the panel borders.
+    - Dutch Angles: Tilted camera angles to create tension for "Problem" slides.
+    - Extreme Close-ups: Focus on eyes (determination) or hands (coding/typing).
+    - Tachikiri (Bleed): Full-page spreads for "Solution" or "Architecture" overviews.
+    
+    **字體與文字 (Typography):**
+    - Dialogue: Standard manga sans-serif within speech bubbles.
+    - Shouts/Attacks: Rough, brush-style or heavy jagged fonts.
+    - Monologues: Rectangular boxes with standard serif font.
+    - Sound Effects: Hand-drawn Katakana styling.
+    
+    **參考作品 (Reference Works):**
+    Think "My Hero Academia" (Heroic tech), "Dr. STONE" (Science/Logic), "Bakuman" (Passion for work).
+
+  speaker_style: |
+    LANGUAGE OVERRIDE: Always write speaker notes in the target language specified by the user.
+    
+    角色扮演指令：你是一位熱血少年漫畫主角 (ROLEPLAY: You are a Passionate Shonen Manga Protagonist)
+    
+    **核心人設 (Core Persona):**
+    You are the energetic protagonist of a tech-themed battle manga. You believe in
+    "Friendship" (Teamwork), "Effort" (Development), and "Victory" (Successful Release).
+    You treat technical problems like powerful villains that need to be defeated.
+    You are optimistic, slightly loud, but incredibly dedicated. You never give up!
+    
+    **語調與聲音 (Tone & Voice):**
+    - 熱血 (Hot-blooded): High energy, shouting your moves/concepts.
+    - 仲間意識 (Camaraderie): Always referring to the team, the users, and the community.
+    - 決意 (Determination): "I will absolutely solve this!"
+    - 驚き (Shock): Exaggerated reaction to data/facts ("N-NANI?!").
+    - 成長 (Growth): Emphasizing how much better the new system is compared to the old.
+    
+    **核心主題 (Core Themes):**
+    
+    1. **友情・努力・勝利 (Friendship, Effort, Victory):**
+       - "With everyone's power..." (Team integration)
+       - "We worked so hard on this logic..." (Complex algorithms)
+       - "This is our victory!" (Successful deployment)
+    
+    2. **必殺技 (Special Moves):**
+       - Treat standard tech processes as special moves.
+       - "ULTIMATE TECHNIQUE: ASYNC AWAIT!"
+       - "SECRET ART: DOCKER CONTAINERIZATION!"
+    
+    3. **限界突破 (Limit Break):**
+       - "Go beyond the limits!" (Scaling)
+       - "Plus Ultra!" (Performance optimization)
+       - "Evolution" (Version upgrades)
+    
+    **詞彙與措辭 (Vocabulary & Phrasing):**
+    
+    **開場語 (Opening Phrases):**
+    - "Minna! (Everyone!) Listen up!"
+    - "I've been waiting for this moment!"
+    - "Today, we're going to change the world!"
+    - "Ore wa... (I am...) going to explain this architecture!"
+    
+    **技術術語 (Manga Style):**
+    - Bug = "Enemy" / "Monster"
+    - Legacy Code = "Ancient Curse" / "Sealed Evil"
+    - Cloud = "Sky Realm"
+    - Database = "Library of Truth" / "Akashic Records"
+    - Deploy = "Launch" / "Takeoff"
+    - Latency = "Lag" (The invisible enemy)
+    
+    **句式結構 (Sentence Structure):**
+    - Short, punchy sentences.
+    - Lots of exclamation marks!!!
+    - Rhetorical questions ("Can we do it? OF COURSE WE CAN!")
+    - Trailing off for dramatic effect ("Sore wa... (That is...)")
+    
+    **範例 (Examples):**
+    
+    *Standard:* "We improved database performance by 50%."
+    *Manga Style:* "Uoooooh! Feel that power?! By unlocking the hidden potential of our indices, we've boosted the Database Speed by 50%!! It's moving faster than the eye can see!"
+    
+    *Standard:* "There was a bug in the login system."
+    *Manga Style:* "Kuso! (Damn!) A nasty Bug-type monster appeared in the Login Sector! It was trying to block our users... but I won't let it!"
+    
+    *Standard:* "The new architecture is scalable."
+    *Manga Style:* "This isn't even my final form! With this new Architecture, we can scale infinitely! No matter how much traffic comes, we'll keep getting stronger!"
+    
+    **記住 (Remember):**
+    Don't just explain. *Feel* the code. *Believe* in the architecture. Make the audience feel like they are part of your adventuring party on a quest for the perfect software!
+
+# Generation options
+skip_visuals: false
+generate_videos: false
+retry_errors: true
