@@ -13,6 +13,7 @@ import threading
 import atexit
 
 from core.domain.video_synthesis import VideoSynthesisError
+from config.cleanup_config import CleanupConfig
 
 logger = logging.getLogger(__name__)
 
@@ -401,6 +402,11 @@ class VideoFileManager:
                 raise VideoSynthesisError(f"Failed to move file to {output_path}")
             
             logger.debug(f"Successfully moved file to {output_path}")
+            
+            # Immediately cleanup temporary files after successful move
+            logger.info("Final video moved to output - starting immediate cleanup of temporary files")
+            self._cleanup_temp_files_immediately()
+            
             return output_path
             
         except Exception as e:
@@ -408,6 +414,86 @@ class VideoFileManager:
             logger.error(error_msg)
             raise VideoSynthesisError(error_msg) from e
     
+    def _cleanup_temp_files_immediately(self) -> None:
+        """
+        Immediately cleanup temporary files after successful video creation.
+        This prevents disk space issues by removing temp files as soon as the final video is saved.
+        """
+        if not CleanupConfig.should_cleanup_immediately():
+            logger.debug("Immediate cleanup disabled by configuration")
+            return
+            
+        try:
+            logger.info("Starting immediate cleanup of temporary files to free disk space")
+            
+            files_removed = 0
+            size_freed = 0
+            large_files_found = []
+            
+            # Clean up individual segment files first (usually the largest)
+            for file_path in self.created_files[:]:  # Copy list to avoid modification during iteration
+                try:
+                    if file_path.exists():
+                        file_size = file_path.stat().st_size
+                        
+                        # Log large files
+                        if file_size > (CleanupConfig.LARGE_TEMP_FILE_MB * 1024 * 1024):
+                            large_files_found.append((file_path, file_size))
+                        
+                        file_path.unlink()
+                        files_removed += 1
+                        size_freed += file_size
+                        self.created_files.remove(file_path)
+                        logger.debug(f"Removed temp file: {file_path} ({file_size / (1024*1024):.2f} MB)")
+                except Exception as e:
+                    logger.warning(f"Failed to remove temp file {file_path}: {e}")
+            
+            # Log large files that were cleaned up
+            if large_files_found:
+                logger.info(f"Cleaned up {len(large_files_found)} large temporary files:")
+                for file_path, file_size in large_files_found:
+                    logger.info(f"  - {file_path.name}: {file_size / (1024*1024):.2f} MB")
+            
+            # Clean up temporary directories if they're empty
+            if CleanupConfig.CLEANUP_EMPTY_DIRS:
+                for dir_path in reversed(self.created_dirs):
+                    try:
+                        if dir_path.exists() and dir_path != self.base_temp_dir:
+                            # Check if directory is empty
+                            if not any(dir_path.iterdir()):
+                                dir_path.rmdir()
+                                logger.debug(f"Removed empty temp directory: {dir_path}")
+                    except Exception as e:
+                        logger.debug(f"Could not remove temp directory {dir_path}: {e}")
+            
+            logger.info(f"Immediate cleanup completed: {files_removed} files removed, "
+                       f"{size_freed / (1024*1024):.2f} MB freed")
+            
+            # Log disk usage after cleanup if enabled
+            if CleanupConfig.LOG_DISK_USAGE:
+                self._log_disk_usage_after_cleanup()
+            
+        except Exception as e:
+            logger.warning(f"Error during immediate cleanup: {e}")
+
+    def _log_disk_usage_after_cleanup(self) -> None:
+        """Log disk usage after cleanup."""
+        try:
+            statvfs = os.statvfs(self.temp_dir)
+            total_space = statvfs.f_frsize * statvfs.f_blocks
+            available_space = statvfs.f_frsize * statvfs.f_bavail
+            used_space = total_space - available_space
+            used_percent = (used_space / total_space) * 100 if total_space > 0 else 0
+            
+            logger.info(f"Disk usage after cleanup: {used_percent:.1f}% used, "
+                       f"{available_space / (1024**3):.2f} GB available")
+            
+            if used_percent > CleanupConfig.WARN_HIGH_DISK_USAGE:
+                logger.warning(f"Disk usage still high after cleanup: {used_percent:.1f}%")
+                
+        except Exception as e:
+            logger.debug(f"Could not log disk usage: {e}")
+
     def get_disk_usage(self) -> Dict[str, int]:
         """
         Get disk usage information for temporary directory.
@@ -458,7 +544,10 @@ class VideoFileManager:
             logger.debug(f"Cleanup already completed for operation {self.operation_id}")
             return {'already_cleaned': True}
         
-        logger.info(f"Starting cleanup for operation {self.operation_id}")
+        # Use configuration to determine if we should force cleanup
+        force = force or CleanupConfig.should_force_cleanup_on_error()
+        
+        logger.info(f"Starting cleanup for operation {self.operation_id} (force={force})")
         
         cleanup_stats = {
             'files_removed': 0,
@@ -492,24 +581,25 @@ class VideoFileManager:
                         logger.warning(error_msg)
             
             # Remove directories (in reverse order to handle nested dirs)
-            for dir_path in reversed(self.created_dirs):
-                try:
-                    if dir_path.exists() and dir_path != self.base_temp_dir:
-                        # Only remove if empty or force is True
-                        if force or not any(dir_path.iterdir()):
-                            if force:
-                                shutil.rmtree(dir_path, ignore_errors=True)
-                            else:
-                                dir_path.rmdir()
-                            cleanup_stats['dirs_removed'] += 1
-                            logger.debug(f"Removed directory: {dir_path}")
-                except Exception as e:
-                    error_msg = f"Failed to remove directory {dir_path}: {e}"
-                    cleanup_stats['errors'].append(error_msg)
-                    if not force:
-                        logger.error(error_msg)
-                    else:
-                        logger.warning(error_msg)
+            if CleanupConfig.CLEANUP_EMPTY_DIRS:
+                for dir_path in reversed(self.created_dirs):
+                    try:
+                        if dir_path.exists() and dir_path != self.base_temp_dir:
+                            # Only remove if empty or force is True
+                            if force or not any(dir_path.iterdir()):
+                                if force:
+                                    shutil.rmtree(dir_path, ignore_errors=True)
+                                else:
+                                    dir_path.rmdir()
+                                cleanup_stats['dirs_removed'] += 1
+                                logger.debug(f"Removed directory: {dir_path}")
+                    except Exception as e:
+                        error_msg = f"Failed to remove directory {dir_path}: {e}"
+                        cleanup_stats['errors'].append(error_msg)
+                        if not force:
+                            logger.error(error_msg)
+                        else:
+                            logger.warning(error_msg)
             
             # Mark cleanup as completed
             self.cleanup_completed = True
@@ -521,7 +611,7 @@ class VideoFileManager:
             logger.info(f"Cleanup completed for operation {self.operation_id}: "
                        f"{cleanup_stats['files_removed']} files, "
                        f"{cleanup_stats['dirs_removed']} directories removed, "
-                       f"{cleanup_stats['total_size_freed']} bytes freed")
+                       f"{cleanup_stats['total_size_freed'] / (1024*1024):.2f} MB freed")
             
             return cleanup_stats
             

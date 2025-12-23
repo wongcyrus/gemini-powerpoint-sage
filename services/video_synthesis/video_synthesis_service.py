@@ -82,6 +82,9 @@ class VideoSynthesisService:
         try:
             logger.info(f"Starting video synthesis: {operation_id}")
             
+            # Check available disk space before starting
+            self._check_disk_space(request, file_manager)
+            
             # Stage 1: Validation
             progress_tracker.update_stage(ProcessingStage.VALIDATING, "Validating input files and configuration")
             self._validate_request(request, progress_tracker)
@@ -189,12 +192,57 @@ class VideoSynthesisService:
             return result
         
         finally:
-            # Ensure cleanup happens
+            # Ensure cleanup happens immediately to free disk space
             try:
-                file_manager.cleanup()
+                logger.info("Ensuring cleanup of temporary files to prevent disk space issues")
+                file_manager.cleanup(force=True)
             except Exception as cleanup_error:
                 logger.warning(f"Error during cleanup: {cleanup_error}")
     
+    def _check_disk_space(self, request: VideoSynthesisRequest, file_manager: VideoFileManager) -> None:
+        """
+        Check available disk space before starting video synthesis.
+        
+        Args:
+            request: Video synthesis request
+            file_manager: File manager instance
+            
+        Raises:
+            VideoSynthesisError: If insufficient disk space
+        """
+        try:
+            import os
+            
+            # Check temp directory space
+            temp_dir = file_manager.temp_dir
+            statvfs = os.statvfs(temp_dir)
+            available_bytes = statvfs.f_frsize * statvfs.f_bavail
+            available_gb = available_bytes / (1024**3)
+            
+            # Estimate space needed (rough calculation)
+            # Assume each slide needs ~50MB for temp processing
+            estimated_space_needed = len(request.slide_images) * 50 * 1024 * 1024  # 50MB per slide
+            estimated_gb = estimated_space_needed / (1024**3)
+            
+            logger.info(f"Disk space check: {available_gb:.2f} GB available, ~{estimated_gb:.2f} GB estimated needed")
+            
+            # Warn if less than 2GB available or less than 3x estimated need
+            if available_gb < 2.0:
+                logger.warning(f"Low disk space: only {available_gb:.2f} GB available in {temp_dir}")
+            elif available_bytes < (estimated_space_needed * 3):
+                logger.warning(f"Tight disk space: {available_gb:.2f} GB available, {estimated_gb:.2f} GB estimated needed")
+            
+            # Error if less than 1GB available or less than estimated need
+            if available_gb < 1.0:
+                raise VideoSynthesisError(f"Insufficient disk space: only {available_gb:.2f} GB available in {temp_dir}")
+            elif available_bytes < estimated_space_needed:
+                raise VideoSynthesisError(f"Insufficient disk space: {available_gb:.2f} GB available, {estimated_gb:.2f} GB estimated needed")
+                
+        except Exception as e:
+            if isinstance(e, VideoSynthesisError):
+                raise
+            logger.warning(f"Could not check disk space: {e}")
+
     def _validate_request(self, request: VideoSynthesisRequest, progress_tracker: VideoProgressTracker) -> None:
         """
         Validate synthesis request.
