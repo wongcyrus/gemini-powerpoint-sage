@@ -112,6 +112,10 @@ class FFmpegVideoProcessor:
             segment_filename = f"segment_{segment.slide_index:03d}.{config.output_format}"
             segment_output_path = temp_dir / segment_filename
             
+            # Ensure the output directory exists before FFmpeg tries to write
+            # This is critical - FFmpeg will fail if the directory doesn't exist
+            segment_output_path.parent.mkdir(parents=True, exist_ok=True)
+            
             # Use direct FFmpeg command for segment creation
             logger.debug(f"Creating segment {segment.slide_index} using direct FFmpeg")
             
