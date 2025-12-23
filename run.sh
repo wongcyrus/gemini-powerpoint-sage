@@ -70,11 +70,13 @@ if [ $EXIT_CODE -eq 0 ]; then
     
     # If a specific style was processed, trigger batch synthesis using its YAML
     STYLE_CFG=""
+    FORCE_FLAG=""
     PREV=""
     for ARG in "$@"; do
         if [ "$PREV" = "--style-config" ]; then
             STYLE_CFG="$ARG"
-            break
+        elif [ "$ARG" = "--force" ]; then
+            FORCE_FLAG="--force"
         fi
         PREV="$ARG"
     done
@@ -82,8 +84,11 @@ if [ $EXIT_CODE -eq 0 ]; then
     if [ -n "$STYLE_CFG" ]; then
         echo ""
         echo "🎬 Starting YAML-driven video synthesis for style: $STYLE_CFG"
+        if [ -n "$FORCE_FLAG" ]; then
+            echo "🔄 Force mode enabled for video synthesis"
+        fi
         echo "=================================================="
-        python3 main.py --synthesize-style-videos --style-config "$STYLE_CFG"
+        python3 main.py --synthesize-style-videos --style-config "$STYLE_CFG" $FORCE_FLAG
         echo "=================================================="
     fi
 else

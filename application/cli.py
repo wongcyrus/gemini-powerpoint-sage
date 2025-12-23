@@ -569,9 +569,105 @@ class CLI:
                 continue
 
             if len(slide_images) != len(audio_files):
-                print(f"⚠️  Mismatch: {len(slide_images)} images vs {len(audio_files)} audio for {base} ({lang}). Skipping.")
-                failures += 1
-                continue
+                print(f"⚠️  Mismatch: {len(slide_images)} images vs {len(audio_files)} audio for {base} ({lang}).")
+                
+                if len(audio_files) > len(slide_images):
+                    # Too many audio files - clean up excess files
+                    print(f"🧹 Too many audio files ({len(audio_files)} > {len(slide_images)}). Cleaning up excess files...")
+                    
+                    # Sort audio files and keep only the first N that match slide count
+                    sorted_audio = natural_sort_files(list(speech_dir.glob("*.mp3")))
+                    excess_files = sorted_audio[len(slide_images):]
+                    
+                    print(f"�️U  Removing {len(excess_files)} excess audio files:")
+                    for excess_file in excess_files:
+                        print(f"   - {excess_file.name}")
+                        try:
+                            excess_file.unlink()
+                        except Exception as e:
+                            print(f"   ❌ Failed to remove {excess_file.name}: {e}")
+                    
+                    # Re-scan audio files after cleanup
+                    audio_files = natural_sort_files(list(speech_dir.glob("*.mp3")))
+                    print(f"✅ After cleanup: {len(audio_files)} audio files remain")
+                    
+                    if len(slide_images) == len(audio_files):
+                        print(f"✅ Mismatch resolved: {len(slide_images)} images = {len(audio_files)} audio")
+                    else:
+                        print(f"⚠️  Still mismatched after cleanup: {len(slide_images)} images vs {len(audio_files)} audio")
+                        failures += 1
+                        continue
+                        
+                elif len(audio_files) < len(slide_images):
+                    # Too few audio files - regenerate missing ones
+                    print(f"🔄 Too few audio files ({len(audio_files)} < {len(slide_images)}). Regenerating missing files...")
+                    
+                    # Try to find the presentation JSON file to regenerate TTS
+                    json_files = list(base_dir.glob(f"{base}*.json"))
+                    print(f"� Looking fo r JSON files with pattern: {base}*.json")
+                    print(f"🔍 Found JSON files: {[str(f) for f in json_files]}")
+                    
+                    if json_files:
+                        json_file = json_files[0]
+                        print(f"📄 Using presentation JSON: {json_file}")
+                        
+                        try:
+                            from utils.tts_cli_utils import TTSCLIUtility
+                            import asyncio
+                            
+                            print(f"🎤 Starting TTS regeneration for {lang}...")
+                            tts_cli = TTSCLIUtility()
+                            
+                            # Run TTS generation in async context
+                            async def regenerate_tts():
+                                print(f"🔧 Calling TTS generation for {json_file} in {lang}")
+                                return await tts_cli.generate_tts_for_presentation(
+                                    str(json_file), lang, str(base_dir)
+                                )
+                            
+                            # Get or create event loop
+                            try:
+                                loop = asyncio.get_event_loop()
+                                print("🔄 Using existing event loop")
+                            except RuntimeError:
+                                loop = asyncio.new_event_loop()
+                                asyncio.set_event_loop(loop)
+                                print("🔄 Created new event loop")
+                            
+                            print("🚀 Running TTS regeneration...")
+                            tts_result = loop.run_until_complete(regenerate_tts())
+                            print(f"📊 TTS result: {tts_result}")
+                            
+                            if tts_result.get('successful', 0) > 0:
+                                print(f"✅ Regenerated {tts_result['successful']} audio files")
+                                
+                                # Re-scan audio files after regeneration
+                                audio_files = natural_sort_files(list(speech_dir.glob("*.mp3")))
+                                print(f"🔍 Re-scanned audio files: {len(audio_files)} found")
+                                
+                                if len(slide_images) == len(audio_files):
+                                    print(f"✅ Mismatch resolved: {len(slide_images)} images = {len(audio_files)} audio")
+                                else:
+                                    print(f"⚠️  Still mismatched after regeneration: {len(slide_images)} images vs {len(audio_files)} audio")
+                                    failures += 1
+                                    continue
+                            else:
+                                print(f"❌ TTS regeneration failed: {tts_result}")
+                                failures += 1
+                                continue
+                                
+                        except Exception as e:
+                            print(f"❌ Failed to regenerate TTS: {e}")
+                            import traceback
+                            traceback.print_exc()
+                            failures += 1
+                            continue
+                    else:
+                        print(f"❌ No presentation JSON file found for regeneration")
+                        print(f"🔍 Searched in: {base_dir}")
+                        print(f"🔍 Pattern: {base}*.json")
+                        failures += 1
+                        continue
 
             # Output name: cleaned base + lang (style already indicated by folder structure)
             clean_base = "".join(ch if ch.isalnum() or ch == " " else "" for ch in base).strip().replace(" ", "_")

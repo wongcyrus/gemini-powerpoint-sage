@@ -2,28 +2,19 @@
 """
 Combine cached video segments for the cybersecurity presentation.
 This bypasses the segment creation and just combines existing MP4 files.
+File-based caching only - no JSON metadata.
 """
 
-import json
 from pathlib import Path
 from services.video_synthesis.file_manager import VideoFileManager
 from services.video_synthesis.video_synthesis_service import VideoSynthesisService
 
 def find_matching_segments():
-    """Find the cached segments that match our current slides and audio."""
+    """Find cached segments by matching slide/audio pairs with cached files (file-based only)."""
     
     slides_dir = Path("notes/hkcomic/generate/Module 4a Cybersecurity Essentials - Information Security Concepts_en_visuals")
     audio_dir = Path("notes/hkcomic/generate/Module 4a Cybersecurity Essentials - Information Security Concepts_en_speech")
     cache_dir = Path("cache/video_synthesis")
-    
-    # Load cache metadata
-    metadata_file = cache_dir / "cache_metadata.json"
-    if not metadata_file.exists():
-        print("❌ No cache metadata found")
-        return []
-    
-    with open(metadata_file, 'r') as f:
-        cache_metadata = json.load(f)
     
     # Get slide and audio files
     slide_files = sorted(slides_dir.glob("*.png"))
@@ -31,26 +22,26 @@ def find_matching_segments():
     
     print(f"📁 Found {len(slide_files)} slides and {len(audio_files)} audio files")
     
-    # Find matching cached segments
+    # Find cached segments by checking actual files (no JSON metadata)
     matching_segments = []
     
     for i, (slide_file, audio_file) in enumerate(zip(slide_files, audio_files)):
-        # Look for a cached segment that matches this slide/audio pair
-        for cache_key, cache_info in cache_metadata.items():
-            if (cache_info.get('image_path') == str(slide_file) and 
-                cache_info.get('audio_path') == str(audio_file)):
-                
-                segment_file = cache_dir / f"segment_{cache_key}.mp4"
-                if segment_file.exists():
-                    matching_segments.append({
-                        'index': i,
-                        'slide': slide_file,
-                        'audio': audio_file,
-                        'segment': segment_file,
-                        'cache_key': cache_key
-                    })
-                    print(f"✅ Found cached segment {i+1}: {segment_file.name}")
-                    break
+        # Look for cached segment files that match this slide index
+        # Pattern: segment_*.mp4 or slide_*.mp4
+        possible_segments = list(cache_dir.glob(f"segment_{i:03d}_*.mp4")) + \
+                          list(cache_dir.glob(f"slide_{i}_*.mp4")) + \
+                          list(cache_dir.glob(f"segment_{i}_*.mp4"))
+        
+        if possible_segments:
+            # Use the first matching segment file
+            segment_file = possible_segments[0]
+            matching_segments.append({
+                'index': i,
+                'slide': slide_file,
+                'audio': audio_file,
+                'segment': segment_file
+            })
+            print(f"✅ Found cached segment {i+1}: {segment_file.name}")
         else:
             print(f"❌ No cached segment found for slide {i+1}: {slide_file.name}")
     

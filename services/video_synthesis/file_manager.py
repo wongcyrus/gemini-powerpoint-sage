@@ -70,9 +70,6 @@ class VideoFileManager:
         self.created_dirs: List[Path] = [self.temp_dir]
         self.cleanup_completed = False
         
-        # Cache metadata
-        self.cache_metadata_file = self.cache_dir / "cache_metadata.json" if self.enable_cache else None
-        
         # Register this manager for cleanup
         with VideoFileManager._registry_lock:
             VideoFileManager._active_managers[self.operation_id] = self
@@ -185,7 +182,7 @@ class VideoFileManager:
     
     def get_cached_segment(self, cache_key: str, output_format: str = "mp4") -> Optional[Path]:
         """
-        Get cached video segment if it exists.
+        Get cached video segment if it exists (file-based check only).
         
         Args:
             cache_key: Cache key for the segment
@@ -199,7 +196,8 @@ class VideoFileManager:
         
         cached_file = self.cache_dir / f"slide_{cache_key}.{output_format}"
         
-        if cached_file.exists():
+        # Simple file existence check - ignore any JSON metadata
+        if cached_file.exists() and cached_file.is_file():
             logger.debug(f"Found cached segment: {cached_file}")
             return cached_file
         
@@ -207,7 +205,7 @@ class VideoFileManager:
     
     def cache_segment(self, segment_path: Path, cache_key: str) -> Path:
         """
-        Cache a video segment for future use.
+        Cache a video segment for future use (file-based only).
         
         Args:
             segment_path: Path to the segment to cache
@@ -225,9 +223,6 @@ class VideoFileManager:
             # Copy segment to cache
             shutil.copy2(segment_path, cached_file)
             
-            # Update cache metadata
-            self._update_cache_metadata(cache_key, cached_file)
-            
             logger.debug(f"Cached segment: {cached_file}")
             return cached_file
             
@@ -235,39 +230,7 @@ class VideoFileManager:
             logger.warning(f"Failed to cache segment {cache_key}: {e}")
             return segment_path
     
-    def _update_cache_metadata(self, cache_key: str, cached_file: Path) -> None:
-        """
-        Update cache metadata with new entry.
-        
-        Args:
-            cache_key: Cache key
-            cached_file: Path to cached file
-        """
-        if not self.cache_metadata_file:
-            return
-        
-        try:
-            # Load existing metadata
-            metadata = {}
-            if self.cache_metadata_file.exists():
-                with open(self.cache_metadata_file, 'r') as f:
-                    metadata = json.load(f)
-            
-            # Add new entry
-            metadata[cache_key] = {
-                'file_path': str(cached_file),
-                'file_size': cached_file.stat().st_size,
-                'created_time': cached_file.stat().st_ctime,
-                'last_accessed': cached_file.stat().st_atime
-            }
-            
-            # Save updated metadata
-            with open(self.cache_metadata_file, 'w') as f:
-                json.dump(metadata, f, indent=2)
-                
-        except Exception as e:
-            logger.warning(f"Failed to update cache metadata: {e}")
-    
+
     def get_cache_stats(self) -> Dict[str, Any]:
         """
         Get cache statistics.
@@ -319,6 +282,7 @@ class VideoFileManager:
             current_time = time.time()
             cutoff_time = current_time - (older_than_days * 24 * 3600) if older_than_days else 0
             
+            # Clear cache files only (no metadata file)
             cached_files = list(self.cache_dir.glob("slide_*"))
             
             for cached_file in cached_files:
@@ -333,10 +297,6 @@ class VideoFileManager:
                     
                 except Exception as e:
                     stats['errors'].append(f"Failed to remove {cached_file}: {e}")
-            
-            # Clear metadata file if clearing all
-            if not older_than_days and self.cache_metadata_file and self.cache_metadata_file.exists():
-                self.cache_metadata_file.unlink()
             
             logger.info(f"Cache cleanup: {stats['files_removed']} files removed, "
                        f"{stats['size_freed_bytes'] / (1024*1024):.2f} MB freed")
