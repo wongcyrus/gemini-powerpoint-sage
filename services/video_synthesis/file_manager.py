@@ -97,8 +97,8 @@ class VideoFileManager:
         else:
             file_path = self.temp_dir / filename
         
-        # Track file for cleanup
-        if file_path not in self.created_files:
+        # Only track files in temp directory for cleanup (not cached files)
+        if file_path.is_relative_to(self.temp_dir) and file_path not in self.created_files:
             self.created_files.append(file_path)
         
         return file_path
@@ -418,6 +418,7 @@ class VideoFileManager:
         """
         Immediately cleanup temporary files after successful video creation.
         This prevents disk space issues by removing temp files as soon as the final video is saved.
+        Does NOT clean cached segments which should be preserved for reuse.
         """
         if not CleanupConfig.should_cleanup_immediately():
             logger.debug("Immediate cleanup disabled by configuration")
@@ -430,10 +431,15 @@ class VideoFileManager:
             size_freed = 0
             large_files_found = []
             
-            # Clean up individual segment files first (usually the largest)
+            # Clean up individual temp files (but NOT cached segments)
             for file_path in self.created_files[:]:  # Copy list to avoid modification during iteration
                 try:
                     if file_path.exists():
+                        # Skip cached segments - only clean temp files
+                        if self.enable_cache and file_path.is_relative_to(self.cache_dir):
+                            logger.debug(f"Skipping cached segment: {file_path}")
+                            continue
+                        
                         file_size = file_path.stat().st_size
                         
                         # Log large files
@@ -454,11 +460,11 @@ class VideoFileManager:
                 for file_path, file_size in large_files_found:
                     logger.info(f"  - {file_path.name}: {file_size / (1024*1024):.2f} MB")
             
-            # Clean up temporary directories if they're empty
+            # Clean up temporary directories if they're empty (but not cache directory)
             if CleanupConfig.CLEANUP_EMPTY_DIRS:
                 for dir_path in reversed(self.created_dirs):
                     try:
-                        if dir_path.exists() and dir_path != self.base_temp_dir:
+                        if dir_path.exists() and dir_path != self.base_temp_dir and dir_path != self.cache_dir:
                             # Check if directory is empty
                             if not any(dir_path.iterdir()):
                                 dir_path.rmdir()
@@ -468,6 +474,7 @@ class VideoFileManager:
             
             logger.info(f"Immediate cleanup completed: {files_removed} files removed, "
                        f"{size_freed / (1024*1024):.2f} MB freed")
+            logger.info(f"Cached segments preserved in: {self.cache_dir}")
             
             # Log disk usage after cleanup if enabled
             if CleanupConfig.LOG_DISK_USAGE:

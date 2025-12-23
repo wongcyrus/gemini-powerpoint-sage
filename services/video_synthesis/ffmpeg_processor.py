@@ -77,16 +77,36 @@ class FFmpegVideoProcessor:
                 
                 cached_segment = file_manager.get_cached_segment(cache_key, config.output_format)
                 if cached_segment:
-                    # Copy cached segment to temp directory
-                    segment_filename = f"segment_{segment.slide_index:03d}.{config.output_format}"
-                    segment_output_path = temp_dir / segment_filename
-                    shutil.copy2(cached_segment, segment_output_path)
+                    # Use cached segment directly - no need to copy to temp
+                    segment.temp_video_path = cached_segment
                     
-                    # Update segment with temp video path
-                    segment.temp_video_path = segment_output_path
+                    logger.info(f"Using cached segment for slide {segment.slide_index}: {cached_segment}")
+                    return cached_segment
+            
+            # Check cache first if file manager is provided
+            if file_manager and file_manager.enable_cache:
+                config_dict = {
+                    'resolution': config.resolution,
+                    'fps': config.fps,
+                    'video_codec': config.video_codec,
+                    'audio_codec': config.audio_codec,
+                    'video_bitrate': config.video_bitrate,
+                    'audio_bitrate': config.audio_bitrate,
+                    'output_format': config.output_format,
+                    'fade_duration': config.fade_duration
+                }
+                
+                cache_key = file_manager.generate_segment_cache_key(
+                    segment.image_path, segment.audio_path, config_dict, segment.slide_index
+                )
+                
+                cached_segment = file_manager.get_cached_segment(cache_key, config.output_format)
+                if cached_segment:
+                    # Use cached segment directly - no need to copy to temp
+                    segment.temp_video_path = cached_segment
                     
-                    logger.info(f"Using cached segment for slide {segment.slide_index}")
-                    return segment_output_path
+                    logger.info(f"Using cached segment for slide {segment.slide_index}: {cached_segment}")
+                    return cached_segment
             
             # Generate output filename
             segment_filename = f"segment_{segment.slide_index:03d}.{config.output_format}"
@@ -150,7 +170,11 @@ class FFmpegVideoProcessor:
             # Cache the segment if file manager is provided
             if file_manager and file_manager.enable_cache:
                 try:
-                    file_manager.cache_segment(segment_output_path, cache_key)
+                    cached_path = file_manager.cache_segment(segment_output_path, cache_key)
+                    # Use the cached path as the segment path
+                    segment.temp_video_path = cached_path
+                    logger.debug(f"Successfully cached and using segment: {cached_path}")
+                    return cached_path
                 except Exception as e:
                     logger.warning(f"Failed to cache segment for slide {segment.slide_index}: {e}")
             

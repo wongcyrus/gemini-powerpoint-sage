@@ -18,6 +18,7 @@ from services.video_synthesis.file_manager import VideoFileManager
 from services.video_synthesis.progress_tracker import (
     VideoProgressTracker, ProcessingStage, ProgressReporter
 )
+from config.cleanup_config import CleanupConfig
 
 logger = logging.getLogger(__name__)
 
@@ -219,23 +220,39 @@ class VideoSynthesisService:
             available_bytes = statvfs.f_frsize * statvfs.f_bavail
             available_gb = available_bytes / (1024**3)
             
-            # Estimate space needed (rough calculation)
-            # Assume each slide needs ~50MB for temp processing
-            estimated_space_needed = len(request.slide_images) * 50 * 1024 * 1024  # 50MB per slide
+            # More accurate space estimation based on actual file sizes
+            total_audio_size = sum(f.stat().st_size for f in request.audio_files if f.exists())
+            total_image_size = sum(f.stat().st_size for f in request.slide_images if f.exists())
+            
+            # Estimate space needed:
+            # - Audio files: already counted
+            # - Video segments: ~3x audio size (video encoding overhead)
+            # - Final video: ~1x audio size (compressed)
+            # - Working space: ~1x for intermediate files
+            estimated_space_needed = total_audio_size * 5  # Conservative estimate
             estimated_gb = estimated_space_needed / (1024**3)
             
-            logger.info(f"Disk space check: {available_gb:.2f} GB available, ~{estimated_gb:.2f} GB estimated needed")
+            logger.info(f"Disk space check: {available_gb:.2f} GB available")
+            logger.info(f"Content size: audio {total_audio_size/(1024**3):.2f} GB, images {total_image_size/(1024**3):.2f} GB")
+            logger.info(f"Estimated space needed: ~{estimated_gb:.2f} GB")
             
-            # Warn if less than 2GB available or less than 3x estimated need
-            if available_gb < 2.0:
+            # For very large presentations (>200 slides), be more conservative
+            if len(request.slide_images) > 200:
+                safety_multiplier = 1.5
+                estimated_space_needed = int(estimated_space_needed * safety_multiplier)
+                estimated_gb = estimated_space_needed / (1024**3)
+                logger.warning(f"Large presentation ({len(request.slide_images)} slides) - using conservative estimate: {estimated_gb:.2f} GB")
+            
+            # Warn if less than 3GB available or less than 2x estimated need
+            if available_gb < 3.0:
                 logger.warning(f"Low disk space: only {available_gb:.2f} GB available in {temp_dir}")
-            elif available_bytes < (estimated_space_needed * 3):
+            elif available_bytes < (estimated_space_needed * 2):
                 logger.warning(f"Tight disk space: {available_gb:.2f} GB available, {estimated_gb:.2f} GB estimated needed")
             
-            # Error if less than 1GB available or less than estimated need
-            if available_gb < 1.0:
+            # Error if less than 1.5GB available or less than 1.2x estimated need
+            if available_gb < 1.5:
                 raise VideoSynthesisError(f"Insufficient disk space: only {available_gb:.2f} GB available in {temp_dir}")
-            elif available_bytes < estimated_space_needed:
+            elif available_bytes < (estimated_space_needed * 1.2):
                 raise VideoSynthesisError(f"Insufficient disk space: {available_gb:.2f} GB available, {estimated_gb:.2f} GB estimated needed")
                 
         except Exception as e:
@@ -347,6 +364,11 @@ class VideoSynthesisService:
         try:
             logger.info(f"Creating {len(segments)} video segments")
             
+            # For very large presentations, process in chunks to manage memory
+            if CleanupConfig.should_use_chunked_processing(len(segments)):
+                logger.info(f"Large presentation detected ({len(segments)} slides) - using chunked processing")
+                return self._create_video_segments_chunked(segments, config, file_manager, progress_tracker)
+            
             # Create segments directory
             segments_dir = file_manager.create_segment_temp_dir()
             
@@ -383,6 +405,77 @@ class VideoSynthesisService:
                 progress_tracker.report_error(e)
                 raise VideoProcessingError(f"Video segment creation failed: {e}") from e
             raise
+
+    def _create_video_segments_chunked(
+        self,
+        segments: list[SlideVideoSegment],
+        config: VideoConfig,
+        file_manager: VideoFileManager,
+        progress_tracker: VideoProgressTracker
+    ) -> list[SlideVideoSegment]:
+        """
+        Create video segments in chunks for large presentations to manage memory and disk space.
+        
+        Args:
+            segments: List of slide video segments
+            config: Video configuration
+            file_manager: File manager
+            progress_tracker: Progress tracker
+            
+        Returns:
+            List of segments with temp video paths
+        """
+        chunk_size = CleanupConfig.get_chunk_size()  # Use configurable chunk size
+        chunks = [segments[i:i + chunk_size] for i in range(0, len(segments), chunk_size)]
+        
+        logger.info(f"Processing {len(segments)} segments in {len(chunks)} chunks of {chunk_size}")
+        
+        # Create segments directory
+        segments_dir = file_manager.create_segment_temp_dir()
+        
+        # Initialize FFmpeg processor
+        ffmpeg_processor = FFmpegVideoProcessor(segments_dir)
+        
+        processed_segments = []
+        
+        for chunk_idx, chunk in enumerate(chunks):
+            logger.info(f"Processing chunk {chunk_idx + 1}/{len(chunks)} ({len(chunk)} segments)")
+            
+            chunk_processed = []
+            
+            for i, segment in enumerate(chunk):
+                global_idx = chunk_idx * chunk_size + i
+                progress_tracker.update_slide_progress(
+                    global_idx, ProcessingStage.CREATING_SEGMENTS,
+                    f"Creating video segment {global_idx+1}/{len(segments)}: {segment.image_path.name}"
+                )
+                
+                try:
+                    # Create video segment with caching support
+                    segment_path = ffmpeg_processor.create_video_segment(segment, config, segments_dir, file_manager)
+                    
+                    # Update segment with temp path
+                    segment.temp_video_path = segment_path
+                    chunk_processed.append(segment)
+                    
+                    logger.debug(f"Created video segment {global_idx+1}: {segment_path}")
+                    
+                except Exception as e:
+                    progress_tracker.report_error(e, global_idx)
+                    raise VideoProcessingError(f"Failed to create video segment {global_idx+1}: {e}") from e
+            
+            processed_segments.extend(chunk_processed)
+            
+            # After each chunk, do a mini cleanup to free space
+            if chunk_idx < len(chunks) - 1:  # Don't cleanup on last chunk
+                logger.info(f"Chunk {chunk_idx + 1} completed, performing mini cleanup...")
+                try:
+                    file_manager._cleanup_temp_files_immediately()
+                except Exception as e:
+                    logger.warning(f"Mini cleanup failed: {e}")
+        
+        logger.info(f"Successfully created {len(processed_segments)} video segments using chunked processing")
+        return processed_segments
     
     def _concatenate_segments(
         self,

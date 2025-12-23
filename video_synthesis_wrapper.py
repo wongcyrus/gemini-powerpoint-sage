@@ -134,6 +134,14 @@ def main():
     video_output = sys.argv[3]
     video_config = sys.argv[4]
     
+    # Check if video already exists
+    video_path = Path(video_output)
+    if video_path.exists():
+        file_size = video_path.stat().st_size / (1024 * 1024)
+        print(f"✅ Video already exists: {video_output} ({file_size:.2f} MB)")
+        print("🚀 Skipping video synthesis - file already created")
+        sys.exit(0)
+    
     # Calculate timeout based on number of slides
     try:
         slide_count = len(list(Path(slides_dir).glob("*.png"))) + len(list(Path(slides_dir).glob("*.jpg")))
