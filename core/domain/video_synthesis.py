@@ -186,10 +186,49 @@ class VideoSynthesisRequest:
         """Create video segments from slide images and audio files."""
         segments = []
         for i, (image_path, audio_path) in enumerate(zip(self.slide_images, self.audio_files)):
-            segment = SlideVideoSegment.from_files(i, image_path, audio_path)
+            # Extract slide number from filenames for proper indexing
+            slide_number = self._extract_slide_number_from_files(image_path, audio_path)
+            segment = SlideVideoSegment.from_files(slide_number, image_path, audio_path)
             segment.validate_formats()
             segments.append(segment)
         return segments
+    
+    def _extract_slide_number_from_files(self, image_path: Path, audio_path: Path) -> int:
+        """
+        Extract slide number from image and audio filenames.
+        
+        Args:
+            image_path: Path to slide image (e.g., slide_5_reimagined.png)
+            audio_path: Path to audio file (e.g., slide_5_abc123.mp3)
+            
+        Returns:
+            Slide number extracted from filenames
+            
+        Raises:
+            ValueError: If slide numbers don't match or can't be extracted
+        """
+        import re
+        
+        # Extract slide number from image filename
+        img_match = re.search(r'slide_(\d+)', image_path.name)
+        if not img_match:
+            raise ValueError(f"Cannot extract slide number from image filename: {image_path.name}")
+        img_slide_num = int(img_match.group(1))
+        
+        # Extract slide number from audio filename  
+        audio_match = re.search(r'slide_(\d+)', audio_path.name)
+        if not audio_match:
+            raise ValueError(f"Cannot extract slide number from audio filename: {audio_path.name}")
+        audio_slide_num = int(audio_match.group(1))
+        
+        # Verify they match
+        if img_slide_num != audio_slide_num:
+            raise ValueError(
+                f"Slide number mismatch: image has slide {img_slide_num}, "
+                f"audio has slide {audio_slide_num}"
+            )
+        
+        return img_slide_num
 
 
 @dataclass

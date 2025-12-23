@@ -461,6 +461,19 @@ The tool generates self-contained output folders with all files per language/sty
 2. `{filename}_{locale}_with_visuals.pptx` - Slides with notes and AI-generated visuals
 3. `{filename}_{locale}_progress.json` - Progress tracking for incremental processing
 4. `{filename}_{locale}_visuals/` - Directory containing AI-generated slide images (PNG)
+5. `{filename}_{locale}_speech/` - Directory containing TTS audio files (MP3)
+6. `{filename}_{locale}_segments/` - Directory containing cached video segments (MP4)
+
+### File Naming Logic
+
+The system uses systematic naming conventions for organization and caching:
+
+- **Language Suffixes**: All files include language codes (`_en`, `_zh-CN`, `_yue-HK`)
+- **Content Hashes**: Audio files include content hashes for cache invalidation (`slide_1_abc123.mp3`)
+- **Natural Sorting**: Slide numbers sort correctly (`slide_1.png`, `slide_2.png`, ..., `slide_10.png`)
+- **1:1:1 Correspondence**: Strict pairing between slides, audio, and video segments
+
+**See [File Naming Conventions](docs/FILE_NAMING_CONVENTIONS.md) for complete details.**
 
 **Example structure (single file):**
 ```
@@ -809,6 +822,7 @@ $env:TTS_TIMEOUT_SECONDS = '90'
 
 - **[Quick Start Guide](docs/QUICK_START.md)** - Get running in 3 steps
 - **[User Guide](QUICK_REFERENCE.md)** - Commands, styles, and workflows  
+- **[File Naming Conventions](docs/FILE_NAMING_CONVENTIONS.md)** - Complete guide to file naming logic and organization
 - **[Architecture Overview](docs/ARCHITECTURE.md)** - System design and agent relationships
 - **[Agent Flow Details](docs/AGENT_FLOW_DETAILED.md)** - Complete workflow trace
 - **[All Documentation](docs/README.md)** - Complete documentation index

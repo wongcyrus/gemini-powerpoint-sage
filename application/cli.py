@@ -572,31 +572,14 @@ class CLI:
                 print(f"⚠️  Mismatch: {len(slide_images)} images vs {len(audio_files)} audio for {base} ({lang}).")
                 
                 if len(audio_files) > len(slide_images):
-                    # Too many audio files - clean up excess files
-                    print(f"🧹 Too many audio files ({len(audio_files)} > {len(slide_images)}). Cleaning up excess files...")
+                    # Too many audio files - use only the first N that match slide count
+                    print(f"ℹ️  Extra audio files found ({len(audio_files)} > {len(slide_images)})")
+                    print(f"   This is normal if some slides were regenerated with different content hashes")
+                    print(f"   Using first {len(slide_images)} audio files that match slide order")
                     
-                    # Sort audio files and keep only the first N that match slide count
-                    sorted_audio = natural_sort_files(list(speech_dir.glob("*.mp3")))
-                    excess_files = sorted_audio[len(slide_images):]
-                    
-                    print(f"�️U  Removing {len(excess_files)} excess audio files:")
-                    for excess_file in excess_files:
-                        print(f"   - {excess_file.name}")
-                        try:
-                            excess_file.unlink()
-                        except Exception as e:
-                            print(f"   ❌ Failed to remove {excess_file.name}: {e}")
-                    
-                    # Re-scan audio files after cleanup
-                    audio_files = natural_sort_files(list(speech_dir.glob("*.mp3")))
-                    print(f"✅ After cleanup: {len(audio_files)} audio files remain")
-                    
-                    if len(slide_images) == len(audio_files):
-                        print(f"✅ Mismatch resolved: {len(slide_images)} images = {len(audio_files)} audio")
-                    else:
-                        print(f"⚠️  Still mismatched after cleanup: {len(slide_images)} images vs {len(audio_files)} audio")
-                        failures += 1
-                        continue
+                    # Use only the first N audio files - the core pipeline should ensure 1:1:1 correspondence
+                    audio_files = audio_files[:len(slide_images)]
+                    print(f"✅ Using {len(audio_files)} audio files for {len(slide_images)} slides")
                         
                 elif len(audio_files) < len(slide_images):
                     # Too few audio files - regenerate missing ones

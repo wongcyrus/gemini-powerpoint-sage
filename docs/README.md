@@ -17,6 +17,7 @@ Start here if you're new to the project:
 - **[Style Examples](STYLE_EXAMPLES.md)** - Apply themes like Gundam, Cyberpunk, etc.
 - **[Style Prompts Guide](STYLE_PROMPTS.md)** - Create detailed multi-line style prompts
 - **[Folder Structure](FOLDER_STRUCTURE.md)** - Understand output organization
+- **[File Naming Conventions](FILE_NAMING_CONVENTIONS.md)** - Complete guide to file naming logic and organization
 - **[Chinese Locale Support](CHINESE_LOCALE_SUPPORT.md)** - Traditional vs Simplified Chinese
 - **[Performance & Caching](PERFORMANCE_CACHING.md)** - High-speed caching and TTS integration
 - **[Video Synthesis Setup](../VIDEO_SYNTHESIS_SETUP.md)** - Video creation from slides and audio
@@ -62,8 +63,8 @@ For developers and contributors:
 **Process all styles at once**
 → `python main.py --styles`
 
-**Understand the output folder structure**
-→ [Folder Structure](FOLDER_STRUCTURE.md)
+**Understand the output folder structure and file naming**
+→ [Folder Structure](FOLDER_STRUCTURE.md) or [File Naming Conventions](FILE_NAMING_CONVENTIONS.md)
 
 **Troubleshoot errors or failed slides**
 → [Error Handling & Recovery](ERROR_HANDLING.md)
@@ -90,6 +91,7 @@ docs/
 ├── STYLE_EXAMPLES.md              # Style gallery and customization
 ├── STYLE_PROMPTS.md               # Detailed style prompt guide
 ├── FOLDER_STRUCTURE.md            # Output folder structure
+├── FILE_NAMING_CONVENTIONS.md    # File naming logic and organization
 ├── DEVELOPER_REFERENCE.md         # Developer reference
 ├── TESTING_GUIDE.md               # Testing guide
 ├── CHINESE_LOCALE_SUPPORT.md      # Chinese locale support

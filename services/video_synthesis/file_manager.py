@@ -195,12 +195,31 @@ class VideoFileManager:
         if not self.enable_cache:
             return None
         
+        # First try exact cache key match
         cached_file = self.cache_dir / f"slide_{cache_key}.{output_format}"
         
         # SOURCE OF TRUTH: Simple file existence check - no JSON metadata validation
         if cached_file.exists() and cached_file.is_file():
-            logger.debug(f"Found cached segment: {cached_file}")
+            logger.debug(f"Found cached segment with exact key: {cached_file}")
             return cached_file
+        
+        # Fallback: Try to find existing segment by slide index (more flexible)
+        if '_' in cache_key:
+            slide_index = cache_key.split('_')[0]
+            try:
+                slide_num = int(slide_index)
+                # Look for any existing segment for this slide index
+                pattern = f"slide_{slide_num}_*.{output_format}"
+                existing_segments = list(self.cache_dir.glob(pattern))
+                
+                if existing_segments:
+                    # Use the first matching segment (they should all be equivalent for same slide)
+                    existing_segment = existing_segments[0]
+                    logger.info(f"Reusing existing segment for slide {slide_num}: {existing_segment}")
+                    return existing_segment
+                    
+            except (ValueError, IndexError):
+                pass  # Cache key doesn't follow expected format
         
         return None
     
