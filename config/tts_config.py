@@ -111,7 +111,8 @@ class TTSCacheConfig:
     ttl_hours: int = 24
     max_cache_size_mb: int = 1000
     cache_directory: str = "cache/tts"
-    metadata_file: str = "cache_metadata.json"
+    # Note: TTS caching uses direct file existence checks, no metadata file needed
+    # Audio files are stored in output directories with hash-based filenames
     
     def __post_init__(self):
         """Validate cache configuration."""

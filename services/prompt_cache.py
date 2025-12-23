@@ -106,6 +106,9 @@ class PromptCache:
         """
         Retrieve a cached prompt if it exists and is valid.
         
+        This is the ONLY caching system that validates JSON content.
+        SOURCE OF TRUTH: Both file existence AND JSON content validation.
+        
         Args:
             cache_key: The cache key to look up
             

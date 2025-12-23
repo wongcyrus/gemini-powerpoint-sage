@@ -194,7 +194,8 @@ class TTSOrchestrator:
                     presentation_id, language_code, slide_number, cache_key
                 )
                 
-                # Check if output file already exists (hash suffix ensures uniqueness)
+                # Check if output file already exists (SOURCE OF TRUTH: file existence only)
+                # This is the authoritative cache check - no JSON metadata validation needed
                 if Path(output_file_path).exists():
                     try:
                         with open(output_file_path, 'rb') as f:

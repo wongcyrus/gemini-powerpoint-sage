@@ -1,4 +1,8 @@
-"""TTS cache management."""
+"""TTS cache management for statistics and cleanup only.
+
+Note: TTS caching is handled by direct file path checking in tts_orchestrator.py.
+This manager only provides statistics and cleanup functionality.
+"""
 
 import hashlib
 import json
@@ -15,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class CacheManager:
-    """Manages TTS audio file cleanup and statistics (caching now handled by direct file path checking)."""
+    """Manages TTS audio file cleanup and statistics (caching handled by direct file path checking)."""
     
     def __init__(self, cache_config: TTSCacheConfig):
         """Initialize cache manager with configuration."""

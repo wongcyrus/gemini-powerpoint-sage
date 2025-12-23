@@ -182,7 +182,7 @@ class VideoFileManager:
     
     def get_cached_segment(self, cache_key: str, output_format: str = "mp4") -> Optional[Path]:
         """
-        Get cached video segment if it exists (file-based check only).
+        Get cached video segment if it exists (SOURCE OF TRUTH: file existence only).
         
         Args:
             cache_key: Cache key for the segment
@@ -196,7 +196,7 @@ class VideoFileManager:
         
         cached_file = self.cache_dir / f"slide_{cache_key}.{output_format}"
         
-        # Simple file existence check - ignore any JSON metadata
+        # SOURCE OF TRUTH: Simple file existence check - no JSON metadata validation
         if cached_file.exists() and cached_file.is_file():
             logger.debug(f"Found cached segment: {cached_file}")
             return cached_file
