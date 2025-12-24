@@ -90,7 +90,7 @@ async def run_stateless_agent(
     
     try:
         # Run agent
-        for event in runner.run(
+        async for event in runner.run_async(
             user_id=user_id,
             session_id=resolved_session_id,
             new_message=content,
@@ -175,7 +175,7 @@ async def run_visual_agent(
 
     try:
         logger.debug("Running agent...")
-        for event in runner.run(
+        async for event in runner.run_async(
             user_id=user_id,
             session_id=resolved_session_id,
             new_message=content,

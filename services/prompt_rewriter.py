@@ -3,6 +3,7 @@
 import logging
 import uuid
 import time
+import asyncio
 from typing import Dict, Any
 from google.adk.runners import InMemoryRunner
 from .prompt_cache import PromptCache
@@ -44,7 +45,7 @@ class PromptRewriter:
         logger.info(f"Cache Status: {self.cache.get_cache_stats()}")
         logger.info("=" * 80)
     
-    def _run_rewriter_with_retry(self, rewrite_request: str, session_prefix: str) -> str:
+    async def _run_rewriter_with_retry(self, rewrite_request: str, session_prefix: str) -> str:
         """
         Run the rewriter agent with retry logic and fallback to simple concatenation.
         
@@ -77,7 +78,7 @@ class PromptRewriter:
                 logger.debug(f"Attempt {attempt + 1}/{max_retries}: Using session {session_id}")
                 
                 # Explicitly create session to avoid "Session not found" error
-                runner.session_service.create_session_sync(
+                await runner.session_service.create_session(
                     app_name="agents",
                     user_id=user_id,
                     session_id=session_id
@@ -86,7 +87,7 @@ class PromptRewriter:
                 # Run the agent and collect response
                 response_text = ""
                 try:
-                    for event in runner.run(
+                    async for event in runner.run_async(
                         user_id=user_id,
                         session_id=session_id,
                         new_message=content,
@@ -98,7 +99,7 @@ class PromptRewriter:
                 except Exception as run_error:
                     logger.warning(f"Runner execution failed on attempt {attempt + 1}: {run_error}")
                     if attempt < max_retries - 1:
-                        time.sleep(1)  # Brief delay before retry
+                        await asyncio.sleep(1)  # Brief delay before retry
                         continue
                     else:
                         raise run_error
@@ -112,7 +113,7 @@ class PromptRewriter:
                 else:
                     logger.warning(f"LLM returned insufficient content on attempt {attempt + 1}: {len(rewritten)} chars")
                     if attempt < max_retries - 1:
-                        time.sleep(2)  # Longer delay for empty responses
+                        await asyncio.sleep(2)  # Longer delay for empty responses
                         continue
                     else:
                         raise Exception(f"LLM returned insufficient content after {max_retries} attempts")
@@ -120,7 +121,7 @@ class PromptRewriter:
             except Exception as e:
                 logger.warning(f"Attempt {attempt + 1} failed: {e}")
                 if attempt < max_retries - 1:
-                    time.sleep(2)  # Delay before retry
+                    await asyncio.sleep(2)  # Delay before retry
                     continue
                 else:
                     logger.warning(f"All {max_retries} attempts failed, falling back to simple concatenation")
@@ -216,7 +217,7 @@ Apply these visual style guidelines throughout all design decisions and outputs.
         logger.info(f"Fallback concatenation: {len(base_prompt)} + {len(style_guidelines)} chars")
         return enhanced_prompt
     
-    def _rewrite_with_cache(self, base_prompt: str, style_guidelines: str, prompt_type: str) -> str:
+    async def _rewrite_with_cache(self, base_prompt: str, style_guidelines: str, prompt_type: str) -> str:
         """
         Rewrite a prompt with caching support and comprehensive error handling.
         
@@ -280,7 +281,7 @@ Please rewrite the base prompt to deeply integrate the style guidelines througho
             
             try:
                 # Perform LLM rewriting
-                rewritten = self._run_rewriter_with_retry(rewrite_request, f"{prompt_type}_rewriter")
+                rewritten = await self._run_rewriter_with_retry(rewrite_request, f"{prompt_type}_rewriter")
                 
                 # Store in cache (ignore cache failures)
                 try:
@@ -327,7 +328,7 @@ Apply these style guidelines throughout all operations."""
             logger.warning(f"✓ Emergency fallback completed for {prompt_type}: {elapsed:.3f}s")
             return emergency_result
     
-    def rewrite_designer_prompt(self, base_prompt: str) -> str:
+    async def rewrite_designer_prompt(self, base_prompt: str) -> str:
         """
         Rewrite designer prompt with visual style deeply integrated using LLM.
         
@@ -341,7 +342,7 @@ Apply these style guidelines throughout all operations."""
         logger.info("REWRITING DESIGNER PROMPT")
         logger.info("=" * 80)
         
-        rewritten = self._rewrite_with_cache(base_prompt, self.visual_style, "designer")
+        rewritten = await self._rewrite_with_cache(base_prompt, self.visual_style, "designer")
         
         logger.info(f"Original prompt length: {len(base_prompt)} chars")
         logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
@@ -357,7 +358,7 @@ Apply these style guidelines throughout all operations."""
         
         return rewritten
     
-    def rewrite_writer_prompt(self, base_prompt: str) -> str:
+    async def rewrite_writer_prompt(self, base_prompt: str) -> str:
         """
         Rewrite writer prompt with speaker style deeply integrated using LLM.
         
@@ -371,7 +372,7 @@ Apply these style guidelines throughout all operations."""
         logger.info("REWRITING WRITER PROMPT")
         logger.info("=" * 80)
         
-        rewritten = self._rewrite_with_cache(base_prompt, self.speaker_style, "writer")
+        rewritten = await self._rewrite_with_cache(base_prompt, self.speaker_style, "writer")
         
         logger.info(f"Original prompt length: {len(base_prompt)} chars")
         logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
@@ -386,7 +387,7 @@ Apply these style guidelines throughout all operations."""
         
         return rewritten
     
-    def rewrite_title_generator_prompt(self, base_prompt: str) -> str:
+    async def rewrite_title_generator_prompt(self, base_prompt: str) -> str:
         """
         Rewrite title generator prompt with speaker style integrated using LLM.
         
@@ -400,7 +401,7 @@ Apply these style guidelines throughout all operations."""
         logger.info("REWRITING TITLE GENERATOR PROMPT")
         logger.info("=" * 80)
         
-        rewritten = self._rewrite_with_cache(base_prompt, self.speaker_style, "title")
+        rewritten = await self._rewrite_with_cache(base_prompt, self.speaker_style, "title")
         
         logger.info(f"Original prompt length: {len(base_prompt)} chars")
         logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
@@ -415,7 +416,7 @@ Apply these style guidelines throughout all operations."""
         
         return rewritten
     
-    def rewrite_translator_prompt(self, base_prompt: str) -> str:
+    async def rewrite_translator_prompt(self, base_prompt: str) -> str:
         """
         Rewrite translator prompt with speaker style integrated using LLM.
         
@@ -429,7 +430,7 @@ Apply these style guidelines throughout all operations."""
         logger.info("REWRITING TRANSLATOR PROMPT")
         logger.info("=" * 80)
         
-        rewritten = self._rewrite_with_cache(base_prompt, self.speaker_style, "translator")
+        rewritten = await self._rewrite_with_cache(base_prompt, self.speaker_style, "translator")
         
         logger.info(f"Original prompt length: {len(base_prompt)} chars")
         logger.info(f"Rewritten prompt length: {len(rewritten)} chars")
@@ -460,7 +461,7 @@ Apply these style guidelines throughout all operations."""
             "cache_stats": cache_stats,
         }
     
-    def rewrite_tts_prompt(self, base_prompt: str, style_guidelines: str) -> str:
+    async def rewrite_tts_prompt(self, base_prompt: str, style_guidelines: str) -> str:
         """
         Rewrite TTS prompt with style guidelines integrated using LLM with caching.
         
@@ -476,7 +477,7 @@ Apply these style guidelines throughout all operations."""
         logger.info("=" * 80)
         
         # Use the centralized caching method with TTS-specific customization
-        rewritten = self._rewrite_with_cache(base_prompt, style_guidelines, "tts")
+        rewritten = await self._rewrite_with_cache(base_prompt, style_guidelines, "tts")
         
         # Apply TTS-specific post-processing
         rewritten = self._validate_and_fix_tts_tone(rewritten)

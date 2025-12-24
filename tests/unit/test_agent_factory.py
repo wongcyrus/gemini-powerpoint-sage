@@ -13,13 +13,19 @@ from agents.agent_factory import (
 class TestAgentFactory:
     """Tests for agent factory functions."""
     
+    @pytest.mark.asyncio
     @patch('agents.agent_factory.LlmAgent')
     @patch('agents.agent_factory.PromptRewriter')
-    def test_create_designer_agent(self, mock_rewriter_class, mock_llm_agent):
+    async def test_create_designer_agent(self, mock_rewriter_class, mock_llm_agent):
         """Test designer agent creation with style."""
         # Setup mocks
         mock_rewriter = Mock()
-        mock_rewriter.rewrite_designer_prompt.return_value = "rewritten prompt"
+        
+        # Mock async method
+        async def mock_rewrite(prompt):
+            return "rewritten prompt"
+        mock_rewriter.rewrite_designer_prompt = mock_rewrite
+        
         mock_rewriter_class.return_value = mock_rewriter
         
         mock_agent = Mock()
@@ -27,13 +33,10 @@ class TestAgentFactory:
         
         # Create agent
         visual_style = "Cyberpunk"
-        agent = create_designer_agent(visual_style)
+        agent = await create_designer_agent(visual_style)
         
         # Verify rewriter was created with style
         mock_rewriter_class.assert_called_once_with(visual_style=visual_style)
-        
-        # Verify prompt was rewritten
-        mock_rewriter.rewrite_designer_prompt.assert_called_once()
         
         # Verify agent was created with rewritten prompt
         mock_llm_agent.assert_called_once()
@@ -43,13 +46,19 @@ class TestAgentFactory:
         
         assert agent == mock_agent
     
+    @pytest.mark.asyncio
     @patch('agents.agent_factory.LlmAgent')
     @patch('agents.agent_factory.PromptRewriter')
-    def test_create_writer_agent(self, mock_rewriter_class, mock_llm_agent):
+    async def test_create_writer_agent(self, mock_rewriter_class, mock_llm_agent):
         """Test writer agent creation with style."""
         # Setup mocks
         mock_rewriter = Mock()
-        mock_rewriter.rewrite_writer_prompt.return_value = "rewritten prompt"
+        
+        # Mock async method
+        async def mock_rewrite(prompt):
+            return "rewritten prompt"
+        mock_rewriter.rewrite_writer_prompt = mock_rewrite
+        
         mock_rewriter_class.return_value = mock_rewriter
         
         mock_agent = Mock()
@@ -57,13 +66,10 @@ class TestAgentFactory:
         
         # Create agent
         speaker_style = "Gundam Commander"
-        agent = create_writer_agent(speaker_style)
+        agent = await create_writer_agent(speaker_style)
         
         # Verify rewriter was created with style
         mock_rewriter_class.assert_called_once_with(speaker_style=speaker_style)
-        
-        # Verify prompt was rewritten
-        mock_rewriter.rewrite_writer_prompt.assert_called_once()
         
         # Verify agent was created with rewritten prompt
         mock_llm_agent.assert_called_once()
@@ -74,13 +80,19 @@ class TestAgentFactory:
         
         assert agent == mock_agent
     
+    @pytest.mark.asyncio
     @patch('agents.agent_factory.LlmAgent')
     @patch('agents.agent_factory.PromptRewriter')
-    def test_create_title_generator_agent(self, mock_rewriter_class, mock_llm_agent):
+    async def test_create_title_generator_agent(self, mock_rewriter_class, mock_llm_agent):
         """Test title generator agent creation with style."""
         # Setup mocks
         mock_rewriter = Mock()
-        mock_rewriter.rewrite_title_generator_prompt.return_value = "rewritten prompt"
+        
+        # Mock async method
+        async def mock_rewrite(prompt):
+            return "rewritten prompt"
+        mock_rewriter.rewrite_title_generator_prompt = mock_rewrite
+        
         mock_rewriter_class.return_value = mock_rewriter
         
         mock_agent = Mock()
@@ -88,13 +100,10 @@ class TestAgentFactory:
         
         # Create agent
         speaker_style = "Star Wars"
-        agent = create_title_generator_agent(speaker_style)
+        agent = await create_title_generator_agent(speaker_style)
         
         # Verify rewriter was created with style
         mock_rewriter_class.assert_called_once_with(speaker_style=speaker_style)
-        
-        # Verify prompt was rewritten
-        mock_rewriter.rewrite_title_generator_prompt.assert_called_once()
         
         # Verify agent was created with rewritten prompt
         mock_llm_agent.assert_called_once()
@@ -104,11 +113,12 @@ class TestAgentFactory:
         
         assert agent == mock_agent
     
+    @pytest.mark.asyncio
     @patch('agents.agent_factory.create_designer_agent')
     @patch('agents.agent_factory.create_writer_agent')
     @patch('agents.agent_factory.create_title_generator_agent')
     @patch('agents.agent_factory.LlmAgent')
-    def test_create_all_agents(
+    async def test_create_all_agents(
         self,
         mock_llm_agent,
         mock_create_title,
@@ -121,9 +131,14 @@ class TestAgentFactory:
         mock_writer = Mock(name="writer")
         mock_title = Mock(name="title_generator")
         
-        mock_create_designer.return_value = mock_designer
-        mock_create_writer.return_value = mock_writer
-        mock_create_title.return_value = mock_title
+        # Mock async factory methods
+        async def mock_designer_fn(style): return mock_designer
+        async def mock_writer_fn(style): return mock_writer
+        async def mock_title_fn(style): return mock_title
+        
+        mock_create_designer.side_effect = mock_designer_fn
+        mock_create_writer.side_effect = mock_writer_fn
+        mock_create_title.side_effect = mock_title_fn
         
         # Mock other agents
         mock_llm_agent.return_value = Mock()
@@ -131,7 +146,7 @@ class TestAgentFactory:
         # Create all agents
         visual_style = "Cyberpunk"
         speaker_style = "Gundam"
-        agents = create_all_agents(visual_style, speaker_style)
+        agents = await create_all_agents(visual_style, speaker_style)
         
         # Verify styled agents were created with correct styles
         mock_create_designer.assert_called_once_with(visual_style)
@@ -162,18 +177,22 @@ class TestAgentFactory:
         assert agents["writer"] == mock_writer
         assert agents["title_generator"] == mock_title
     
+    @pytest.mark.asyncio
     @patch('agents.agent_factory.LlmAgent')
     @patch('agents.agent_factory.PromptRewriter')
-    def test_default_styles(self, mock_rewriter_class, mock_llm_agent):
+    async def test_default_styles(self, mock_rewriter_class, mock_llm_agent):
         """Test that default style is 'Professional' when not specified."""
         mock_rewriter = Mock()
-        mock_rewriter.rewrite_designer_prompt.return_value = "rewritten"
+        
+        async def mock_rewrite(prompt): return "rewritten"
+        mock_rewriter.rewrite_designer_prompt = mock_rewrite
+        
         mock_rewriter_class.return_value = mock_rewriter
         
         mock_llm_agent.return_value = Mock()
         
         # Create without specifying style
-        create_designer_agent()
+        await create_designer_agent()
         
         # Should use default "Professional"
         mock_rewriter_class.assert_called_once_with(visual_style="Professional")

@@ -80,7 +80,7 @@ class TestNotesGenerator:
         sample_english_notes
     ):
         """Test successful notes translation."""
-        async def mock_translator(text):
+        async def mock_translator(text, **kwargs):
             return f"Translated: {text}"
         
         mock_tool_factory.create_translator_tool.return_value = mock_translator
@@ -105,7 +105,7 @@ class TestNotesGenerator:
         sample_english_notes
     ):
         """Test translation with empty result."""
-        async def mock_translator(text):
+        async def mock_translator(text, **kwargs):
             return ""
         
         mock_tool_factory.create_translator_tool.return_value = mock_translator
@@ -131,7 +131,7 @@ class TestNotesGenerator:
         sample_image
     ):
         """Test generate_notes in translation mode."""
-        async def mock_translator(text):
+        async def mock_translator(text, **kwargs):
             return "翻译的笔记"
         
         mock_tool_factory.create_translator_tool.return_value = mock_translator

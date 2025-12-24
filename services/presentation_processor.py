@@ -969,7 +969,7 @@ class PresentationProcessor:
         for attempt in range(max_retries):
             try:
                 final_response = ""
-                for event in supervisor_runner.run(
+                async for event in supervisor_runner.run_async(
                     user_id=user_id,
                     session_id=session_id,
                     new_message=content,

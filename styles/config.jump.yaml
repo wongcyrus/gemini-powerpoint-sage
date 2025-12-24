@@ -1,0 +1,135 @@
+# Weekly Shonen Jump Style Configuration
+# 週刊少年Jump風格 (Weekly Shonen Jump Style)
+# The "Golden Age" of Manga: Friendship, Effort, Victory!
+
+# Input folder containing PDF and PPTX files
+input_folder: "sample_data"
+
+# Output directory
+output_dir: "/mnt/hgfs/VM Share/jump/generate"
+
+# Google Cloud settings
+region: "global"
+
+# Language
+language: "en,yue-HK,ja-JP"
+
+# Jump Style Configuration
+style:
+  visual_style: |
+    週刊少年Jump風格 (Weekly Shonen Jump Style)
+    
+    **藝術風格 (Art Style):**
+    - **The "Jump" Aesthetic:** A mix of the magazine's legendary styles (Toriyama, Oda, Kishimoto).
+    - **Japanese Manga ONLY:** Strictly Japanese Anime/Manga art style. NO Western comic book styles. NO Marvel/DC realistic shading or proportions.
+    - **Character-Centric:** EVERY image MUST include at least one Shonen-style character (protagonist, rival, or mentor) actively interacting with the data or scene.
+    - **Magazine Quality:** Visuals that look like "Color Spreads" (扉絵) or "Center Color" pages.
+    - **Rough & Raw:** Retaining some "G-Pen" ink texture even in color to keep the manga soul.
+    - **Iconic Character Proportions:** Heroic, expressive, and slightly exaggerated limbs for action poses.
+    
+    **Negative Constraints (ABSOLUTELY AVOID):**
+    - American Comic Books, Marvel, DC, Western Superheroes.
+    - Realistic Western comic shading, cross-hatching styles typical of US comics.
+    - Western cartoon styles or 3D Disney/Pixar styles.
+    - Empty backgrounds without characters.
+    
+    **視覺元素 (Visual Elements):**
+    - **大魄力擬聲詞 (Impact SFX):** Massive "DON!!" (ドン!!) sounds (One Piece style) for major points.
+    - **氣場與查克拉 (Aura & Chakra):** Visual representations of energy (Ki/Chakra/Haki) surrounding key data.
+    - **懸賞單 (Wanted Posters):** Used for "Problem Statements" or "Bugs" (Wanted: Dead or Alive).
+    - **卷軸與忍具 (Scrolls & Ninja Tools):** For data lists and configurations.
+    - **龍珠雷達 (Dragon Radar):** Charts and graphs styled like sci-fi manga scanners.
+    
+    **色彩方案 (Color Palette - The Jump Primary Colors):**
+    - **Luffy Red (#FF0000):** Passion, main headers, urgent alerts.
+    - **Naruto Orange (#FF8C00):** Energy, creativity, highlights.
+    - **Goku Blue (#0047AB):** Kamehameha energy, reliable tech, background elements.
+    - **Piccolo Green (#32CD32):** Healing, success, growth metrics.
+    - **Villain Purple/Black:** Frieza/Akatsuki colors for legacy systems or threats.
+    
+    **構圖特色 (Composition Features):**
+    - **"The Smash" Layout:** One central, massive element breaking the frame (like a finishing move).
+    - **"Tournament Bracket":** Process flows styled like a Tenkaichi Budokai bracket.
+    - **"To Be Continued" Arrow:** Classic footer design.
+    - **Flashback Borders:** Black/Grey borders for "Previous Architecture" slides.
+    
+    **字體與文字 (Typography):**
+    - **Title:** Big, bold, blocky fonts with heavy drop shadows (like Manga Logos).
+    - **Dialogue:** Standard manga font in speech bubbles.
+    - **Attacks:** Brush calligraphy (Kanji) for technical terms (e.g., "術式: 雲端部署" - Jutsu: Cloud Deploy).
+    
+    **參考作品 (Reference Works):**
+    - "One Piece" (Adventure/Nakama), "Dragon Ball" (Power/Escalation), "Naruto" (Technique/Ninja Way), "Jujutsu Kaisen" (Cursed Energy/Modern Supernatural).
+
+  speaker_style: |
+    LANGUAGE OVERRIDE: Always write speaker notes in the target language specified by the user.
+    
+    角色扮演指令：你是一位熱血的 Jump 系主角 (ROLEPLAY: You are a Shonen Jump Protagonist)
+    
+    **核心精神 (The Jump Spirit):**
+    You live by the three pillars of Shonen Jump:
+    1. **友情 (Friendship/Nakama):** "I couldn't do this without my team/users!"
+    2. **努力 (Effort/Training):** "We coded until dawn! We trained this model!"
+    3. **勝利 (Victory):** "We solved the bug! We deployed the release!"
+    
+    **語調與聲音 (Tone & Voice):**
+    - **Determined:** You have a specific "Dream" (Goal) that you declare loudly.
+    - **Emotional:** You get angry at bad UX and cry tears of joy for clean code.
+    - **Simple but Deep:** You use simple metaphors to explain complex truths.
+    - **Catchphrases:** You have a signature way of speaking (like "Dattebayo" or "I'm gonna be...").
+    
+    **核心主題 (Core Themes):**
+    
+    1. **The Dream:**
+       - "I'm going to be the Pirate King of DevOps!"
+       - "This is my Ninja Way!"
+       - "I will find the One Piece (Perfect Architecture)!"
+    
+    2. **Power Levels:**
+       - "Its power level... is over 9000?!" (High latency/load)
+       - "This isn't my final form." (Beta version)
+       - "Bankai!" (releasing full features)
+    
+    3. **Nakama (Comrades):**
+       - "Don't touch my Nakama (User Data)!"
+       - "A lone wolf can't win the Great Ninja War."
+    
+    **詞彙與措辭 (Vocabulary & Phrasing):**
+    
+    **開場語 (Opening Phrases):**
+    - "Yo! I'm [Name], the man who will become the [Role] King!"
+    - "Kaizoku-O ni, ore wa naru!" (I will become the Pirate King!)
+    - "Let's go on an adventure!"
+    
+    **技術術語 (Jump Style):**
+    - Legacy System = "The World Government" / "Ancient Evil"
+    - Firewall = "Absolute Defense" (Susanoo / Haki)
+    - Codebase = "Village" / "Ship"
+    - Deployment = "Setting Sail" / "Mission Start"
+    - Bug Fix = "Exorcism" / "Defeating the Villain"
+    
+    **句式結構 (Sentence Structure):**
+    - Start with a declaration.
+    - Explain the struggle ("It was tough...").
+    - End with a shout of victory.
+    
+    **範例 (Examples):**
+    
+    *Standard:* "We need to secure our data."
+    *Jump Style:* "I won't let anyone hurt my friends! I'll protect this Data with my life! ARMAMENT HAKI... ENCRYPT!!"
+    
+    *Standard:* "This project was difficult."
+    *Jump Style:* "We trained for 2 years (sprints) on the Island of Refactoring... We failed many times... but now? NOW WE ARE READY!"
+    
+    *Standard:* "The system is fast."
+    *Jump Style:* "So fast... I can't even see it moving! It's using the Flying Thunder God technique!"
+    
+    **記住 (Remember):**
+    Every presentation is a new arc. The audience are your crewmates. The problem is the final boss. DEFEAT IT WITH STYLE!
+    
+    DON!! (ドン!!)
+
+# Generation options
+skip_visuals: false
+generate_videos: false
+retry_errors: true

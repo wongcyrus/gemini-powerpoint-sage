@@ -52,7 +52,7 @@ def sample_progress_data():
                 "status": "success",
             }
         },
-        "global_context": "This presentation covers security topics.",
+        "global_context": "This presentation covers security topics and deep dives into authentication methods and best practices for modern web applications.",
     }
 
 
@@ -70,6 +70,13 @@ def sample_english_notes():
 def mock_supervisor_runner():
     """Create a mock supervisor runner."""
     runner = Mock()
+    
+    async def mock_run_async(*args, **kwargs):
+        # Return an async iterator that yields nothing by default
+        if False:
+            yield None
+            
+    runner.run_async = mock_run_async
     runner.run = Mock(return_value=iter([]))
     return runner
 

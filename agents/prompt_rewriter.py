@@ -27,6 +27,7 @@ REWRITING PRINCIPLES:
 3. **Emphasis**: Make style adherence feel mandatory, not optional
 4. **Clarity**: Keep the original structure and logic intact
 5. **Specificity**: Translate abstract style descriptions into concrete instructions
+6. **Strict Exclusions**: Pay EXTRA attention to "Negative Constraints" or "DO NOT" instructions in the style guidelines. Explicitly forbid these styles or elements in the rewritten prompt.
 
 ═══════════════════════════════════════════════════════════════════════════════
 VISUAL STYLE REWRITING STRATEGY:
@@ -39,6 +40,7 @@ When STYLE_TYPE is "visual":
 4. **VISUAL CHECKPOINTS**: Insert style validation requirements in output sections
 5. **CONCRETE EXAMPLES**: Provide specific visual implementation examples
 6. **BRAND CONSISTENCY**: Make visual coherence a mandatory requirement
+7. **NEGATIVE CONSTRAINTS**: Explicitly list and forbid any styles, themes, or elements that the style guidelines say to AVOID (e.g., "NO Marvel/DC style", "NO Western comics").
 
 VISUAL ENHANCEMENT AREAS:
 - Design generation sections → Add color palette requirements

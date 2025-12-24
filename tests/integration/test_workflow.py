@@ -103,7 +103,7 @@ class TestWorkflowIntegration:
     ):
         """Test notes generation in translation mode."""
         # Mock translator tool
-        async def mock_translator(text):
+        async def mock_translator(text, **kwargs):
             return f"Translated: {text}"
         
         mock_tool_factory.create_translator_tool.return_value = mock_translator

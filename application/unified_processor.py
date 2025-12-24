@@ -313,7 +313,7 @@ class UnifiedProcessor:
         config.validate()
         
         # Create agents with styles
-        agents = create_all_agents(
+        agents = await create_all_agents(
             visual_style=config.visual_style,
             speaker_style=config.speaker_style
         )
@@ -380,7 +380,7 @@ class UnifiedProcessor:
         config_obj.validate()
         
         # Create agents with styles
-        agents = create_all_agents(
+        agents = await create_all_agents(
             visual_style=config_obj.visual_style,
             speaker_style=config_obj.speaker_style
         )

@@ -28,7 +28,7 @@ from services.prompt_rewriter import PromptRewriter
 logger = logging.getLogger(__name__)
 
 
-def create_designer_agent(visual_style: str = "Professional") -> LlmAgent:
+async def create_designer_agent(visual_style: str = "Professional") -> LlmAgent:
     """
     Create designer agent with rewritten prompt including visual style.
     
@@ -39,7 +39,7 @@ def create_designer_agent(visual_style: str = "Professional") -> LlmAgent:
         Designer agent with rewritten instruction
     """
     rewriter = PromptRewriter(visual_style=visual_style)
-    instruction = rewriter.rewrite_designer_prompt(DESIGNER_PROMPT)
+    instruction = await rewriter.rewrite_designer_prompt(DESIGNER_PROMPT)
     
     return LlmAgent(
         name="slide_designer",
@@ -49,7 +49,7 @@ def create_designer_agent(visual_style: str = "Professional") -> LlmAgent:
     )
 
 
-def create_writer_agent(speaker_style: str = "Professional") -> LlmAgent:
+async def create_writer_agent(speaker_style: str = "Professional") -> LlmAgent:
     """
     Create writer agent with rewritten prompt including speaker style.
     
@@ -60,7 +60,7 @@ def create_writer_agent(speaker_style: str = "Professional") -> LlmAgent:
         Writer agent with rewritten instruction
     """
     rewriter = PromptRewriter(speaker_style=speaker_style)
-    instruction = rewriter.rewrite_writer_prompt(WRITER_PROMPT)
+    instruction = await rewriter.rewrite_writer_prompt(WRITER_PROMPT)
     
     return LlmAgent(
         name="speech_writer",
@@ -71,7 +71,7 @@ def create_writer_agent(speaker_style: str = "Professional") -> LlmAgent:
     )
 
 
-def create_title_generator_agent(speaker_style: str = "Professional") -> LlmAgent:
+async def create_title_generator_agent(speaker_style: str = "Professional") -> LlmAgent:
     """
     Create title generator agent with rewritten prompt including speaker style.
     
@@ -82,7 +82,7 @@ def create_title_generator_agent(speaker_style: str = "Professional") -> LlmAgen
         Title generator agent with rewritten instruction
     """
     rewriter = PromptRewriter(speaker_style=speaker_style)
-    instruction = rewriter.rewrite_title_generator_prompt(TITLE_GENERATOR_PROMPT)
+    instruction = await rewriter.rewrite_title_generator_prompt(TITLE_GENERATOR_PROMPT)
     
     return LlmAgent(
         name="title_generator",
@@ -92,7 +92,7 @@ def create_title_generator_agent(speaker_style: str = "Professional") -> LlmAgen
     )
 
 
-def create_translator_agent(speaker_style: str = "Professional") -> LlmAgent:
+async def create_translator_agent(speaker_style: str = "Professional") -> LlmAgent:
     """
     Create translator agent with rewritten prompt including speaker style.
     
@@ -103,7 +103,7 @@ def create_translator_agent(speaker_style: str = "Professional") -> LlmAgent:
         Translator agent with rewritten instruction for style-aware translation
     """
     rewriter = PromptRewriter(speaker_style=speaker_style)
-    instruction = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
+    instruction = await rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
     
     return LlmAgent(
         name="translator_styled",
@@ -113,7 +113,7 @@ def create_translator_agent(speaker_style: str = "Professional") -> LlmAgent:
     )
 
 
-def create_all_agents(visual_style: str = "Professional", speaker_style: str = "Professional") -> dict:
+async def create_all_agents(visual_style: str = "Professional", speaker_style: str = "Professional") -> dict:
     """
     Create all agents with custom styles using prompt rewriter.
     
@@ -142,10 +142,10 @@ def create_all_agents(visual_style: str = "Professional", speaker_style: str = "
     rewriter.log_rewrite_summary()
     
     # Create styled agents with rewritten prompts
-    designer = create_designer_agent(visual_style)
-    writer = create_writer_agent(speaker_style)
-    title_generator = create_title_generator_agent(speaker_style)
-    translator = create_translator_agent(speaker_style)
+    designer = await create_designer_agent(visual_style)
+    writer = await create_writer_agent(speaker_style)
+    title_generator = await create_title_generator_agent(speaker_style)
+    translator = await create_translator_agent(speaker_style)
     
     # Create supervisor (tools will be configured dynamically by PresentationProcessor)
     supervisor = LlmAgent(

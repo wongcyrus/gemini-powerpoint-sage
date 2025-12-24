@@ -183,7 +183,6 @@ class NotesGenerator:
                 parts=[types.Part.from_text(text=prompt)]
             )
             
-        try:
             # Execute with retry
             result = await self.retry_strategy.execute(
                 self._run_supervisor,
@@ -225,7 +224,7 @@ class NotesGenerator:
         """
         final_response = ""
         
-        for event in self.supervisor_runner.run(
+        async for event in self.supervisor_runner.run_async(
             user_id=user_id,
             session_id=session_id,
             new_message=content,

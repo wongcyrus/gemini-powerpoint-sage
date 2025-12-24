@@ -64,7 +64,7 @@ class TestContextService:
             mock_page.get_pixmap.return_value = mock_pix
             mock_pdf.__getitem__ = Mock(return_value=mock_page)
             
-            with patch('services.context_service.run_stateless_agent') as mock_run:
+            with patch('services.context_service.run_stateless_agent', new_callable=AsyncMock) as mock_run:
                 mock_run.return_value = "Generated global context"
                 
                 service = ContextService(overviewer_agent=mock_agent)
@@ -183,7 +183,7 @@ class TestContextService:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create English progress file
             en_progress = {
-                "global_context": "English global context for the presentation."
+                "global_context": "English global context for the presentation. This text must be at least 50 characters long to be considered valid context."
             }
             
             import json
@@ -194,7 +194,7 @@ class TestContextService:
             with patch('services.context_service.get_progress_file_path') as mock_path:
                 mock_path.return_value = en_progress_file
                 
-                with patch('services.context_service.run_stateless_agent') as mock_run:
+                with patch('services.context_service.run_stateless_agent', new_callable=AsyncMock) as mock_run:
                     mock_run.return_value = "翻译的全局上下文"
                     
                     service = ContextService(

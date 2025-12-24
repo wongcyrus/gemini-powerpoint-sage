@@ -112,11 +112,10 @@ class TestRetryStrategy:
             exceptions=(ValueError,)
         )
         
-        result = await strategy.execute(custom_exception_func)
+        with pytest.raises(TypeError):
+            await strategy.execute(custom_exception_func)
         
-        # Should fail on TypeError without retrying
-        assert result is None
-        assert call_count == 2  # First ValueError, then TypeError
+        assert call_count == 2  # First ValueError (retried), then TypeError (not retried)
 
 
 class TestWithRetryDecorator:
