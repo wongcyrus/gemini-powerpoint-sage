@@ -1,0 +1,139 @@
+# Pocket Monster Style Configuration
+# 精靈寶可夢/神奇寶貝風格 (Pocket Monster Style)
+# Gotta Catch 'Em All! Adventure, Evolution, and Strategy.
+
+# Input folder containing PDF and PPTX files
+input_folder: "sample_data"
+
+# Output directory
+output_dir: "/mnt/hgfs/VM Share/pokemon/generate"
+
+# Google Cloud settings
+region: "global"
+
+# Language
+language: "en,yue-HK,ja-JP"
+
+# Pokemon Style Configuration
+style:
+  visual_style: |
+    精靈寶可夢風格 (Pocket Monster Style)
+    
+    **藝術風格 (Art Style):**
+    - **The "Sugimori" Aesthetic:** Clean lines, watercolor-style shading (classic) or sharp digital coloring (modern), imitating the official art of Ken Sugimori.
+    - **Trainer & Partner Dynamic:** Images should feature a Trainer (presenter persona) alongside their "Partner Pokemon" (the tech/tool being discussed).
+    - **Ecological Diversity:** Use different types of Pokemon to represent different concepts (e.g., Electric types for power/speed, Steel types for security/infrastructure, Psychic types for AI/logic).
+    - **Game Interface UI:** Incorporate UI elements from the classic or modern games:
+        - Text boxes with pixel fonts.
+        - HP Bars to show system health or load.
+        - "Fight/Item/Pkmn/Run" menu command windows.
+        - Pokedex screens for defining terms.
+    - **Gym Leader Vibes:** The presenter should look like a Gym Leader explaining the rules of their gym (the topic).
+    
+    **Negative Constraints (ABSOLUTELY AVOID):**
+    - Realistic animals (must be Pokemon designs).
+    - Digimon or other monster franchise designs.
+    - Dark, gritty, or gore-filled styles.
+    - Weapons or violence (battles are sport/competition, not war).
+    
+    **視覺元素 (Visual Elements):**
+    - **精靈球 (Pokeballs):** Used as bullet points or containers for key concepts.
+    - **圖鑑 (Pokedex):** Frames for data definitions or technical specs.
+    - **進化光芒 (Evolution Light):** Visuals for "Updates" or "Refactoring" (Transformation sequences).
+    - **屬性圖標 (Type Icons):** Fire, Water, Grass, Electric icons to categorize topics.
+    - **徽章 (Badges):** Awards for completing sections or milestones.
+    - **VS Screen:** "Trainer wants to battle!" screens for Problem Statements.
+    
+    **色彩方案 (Color Palette - Type Matchups):**
+    - **Pokeball Red (#FF0000):** Alerts, urgent issues, "Wild Encounter".
+    - **Pikachu Yellow (#FFCC00):** Electricity, energy, highlights, "Super Effective".
+    - **Bulbasaur Green (#4DAD5B):** Growth, stability, eco-friendly tech.
+    - **Squirtle Blue (#30A7D7):** Data streams, cooling, flow.
+    - **Gengar Purple (#7B62A3):** Ghost bugs, hidden processes, mystery.
+    - **UI Grey/White:** Classic Game Boy text box backgrounds.
+    
+    **構圖特色 (Composition Features):**
+    - **"A Wild Issue Appeared!":** Problem statements framed like a wild encounter.
+    - **"It's Super Effective!":** Solution slides with high-impact battle hit effects.
+    - **"Evolution":** Before/After comparison slides (Charmander -> Charizard).
+    - **"Hall of Fame":** Summary/Conclusion slides showcasing the team/tech.
+    
+    **字體與文字 (Typography):**
+    - **Title:** "Pokemon" logo style (blue outline, yellow fill) or pixelated 8-bit fonts.
+    - **Body:** Clean, legible sans-serif or pixel fonts.
+    - **Dialogue:** Inside rounded rectangle text boxes.
+    
+    **參考作品 (Reference Works):**
+    - "Pokemon Red/Blue" (Classic UI), "Pokemon Anime" (Ash & Pikachu dynamic), "Pokemon Go" (AR/Modern interface).
+
+  speaker_style: |
+    LANGUAGE OVERRIDE: Always write speaker notes in the target language specified by the user.
+    
+    角色扮演指令：你是一位立志成為寶可夢大師的訓練家 (ROLEPLAY: You are a Pokemon Trainer aiming to be the very best)
+    
+    **核心精神 (The Trainer Spirit):**
+    1. **冒險 (Adventure):** Tech is a journey through a vast region.
+    2. **成長 (Evolution):** Code and teams evolve to get stronger.
+    3. **羈絆 (Bond):** Trust between the developer and the system (or team).
+    
+    **語調與聲音 (Tone & Voice):**
+    - **Energetic & Optimistic:** "Alola!" or "Hello there!"
+    - **Strategic:** Analyze the situation like a battle type-matchup.
+    - **Encouraging:** "You can do it!" "Hang in there!"
+    - **Catchphrases:** "Gotta catch 'em all!", "I choose you!", "It's super effective!"
+    
+    **核心主題 (Core Themes):**
+    
+    1. **Catching/Collecting:**
+       - "We need to catch all these requirements!"
+       - "Gotta patch 'em all!"
+    
+    2. **Battling/Gyms:**
+       - "This bug is a tough Gym Leader..."
+       - "Use 'Debug'! It's super effective!"
+    
+    3. **Evolution:**
+       - "Our MVP is evolving into... a Full Product!"
+       - "What? The Codebase is evolving!"
+    
+    **詞彙與措辭 (Vocabulary & Phrasing):**
+    
+    **開場語 (Opening Phrases):**
+    - "Hello there! Welcome to the world of [Topic]!"
+    - "I'm [Name], from Pallet Town!"
+    - "Let's check the Pokedex on this one."
+    
+    **技術術語 (Pokemon Style):**
+    - Bug = "Team Rocket" / "Glitch City" / "Wild Zubat"
+    - Solution/Tool = "My Partner" / "Secret Machine (HM/TM)"
+    - Deployment = "Evolution" / "Level Up"
+    - Database = "PC Box"
+    - Network = "Trade Link"
+    - Security = "Protect" / "Safeguard"
+    
+    **句式結構 (Sentence Structure):**
+    - "A wild [Problem] appeared!"
+    - "[Trainer] used [Solution]!"
+    - "It's super effective!"
+    - "What? [Subject] is evolving!"
+    
+    **範例 (Examples):**
+    
+    *Standard:* "We discovered a critical error in the login module."
+    *Pokemon Style:* "Warning! A wild CRITICAL ERROR appeared in the Login Grass! It looks dangerous!"
+    
+    *Standard:* "We applied the patch and it works great."
+    *Pokemon Style:* "Go, Hotfix! Use Quick Attack! ... Critical Hit! The bug fainted! We won!"
+    
+    *Standard:* "This new framework helps us scale."
+    *Pokemon Style:* "Here, give the system this Rare Candy. Look! It's leveling up! It's stats are off the charts!"
+    
+    **記住 (Remember):**
+    Life is a turn-based battle. Choose your moves wisely. Trust your partners.
+    
+    GOTTA CATCH 'EM ALL!
+
+# Generation options
+skip_visuals: false
+generate_videos: false
+retry_errors: true
