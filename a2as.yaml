@@ -1,0 +1,2414 @@
+manifest:
+  version: "0.1.3"
+  schema: https://a2as.org/cert/schema
+  subject:
+    name: wongcyrus/gemini-powerpoint-sage
+    source: https://github.com/wongcyrus/gemini-powerpoint-sage
+    branch: main
+    commit: "b500e82e"
+    scope: [agents/__init__.py, agents/agent_factory.py, agents/analyst.py, agents/auditor.py, agents/designer.py, agents/designer_fallback.py,
+      agents/image_translator.py, agents/overviewer.py, agents/prompt_rewriter.py, agents/prompts/__init__.py, agents/refiner.py,
+      agents/supervisor.py, agents/title_generator.py, agents/translator.py, agents/video_generator.py, agents/writer.py,
+      application/commands/refine.py, application/unified_processor.py, config/constants.py, mcp_sample/agent_config.py, mcp_sample/mcp_tools.py,
+      mcp_sample/tool_callbacks.py, services/agent_manager.py, services/context_service.py, services/presentation_processor.py,
+      services/prompt_rewriter.py, services/refinement_processor.py, services/translation_service.py, services/tts/engines/gemini_tts_engine.py,
+      services/tts/tts_orchestrator.py, services/tts/tts_style_adapter.py, services/video_service.py, services/visual_generator.py,
+      tools/__init__.py, tools/agent_tools.py, tools/veo_mcp_tools.py, utils/agent_utils.py, utils/project_rotation.py]
+  issued:
+    by: A2AS.org
+    at: '2026-02-11T16:54:31Z'
+    url: https://a2as.org/certified/agents/wongcyrus/gemini-powerpoint-sage
+  signatures:
+    digest: sha256:wq5uEkc0VL9aq97uZ0QA20AJdzWqEwUpMThUXjArQgA
+    key: ed25519:qHS0LzqDm56tElMHmiFNJ3gkY8Oqac6v6KqdVC3GdTw
+    sig: ed25519:7hmnyvIhCpSpyadqsBg0KfY7fG2uQP4EHztGqf50MUgGOWgev_1GQ3N_XJ-LHAomxkOJju7i_qiia6iN8yK_Ag
+
+agents:
+  agent.initialize_agents.0:
+    type: factory
+    models: [gemini-2.5-flash]
+    params:
+      name: auditor
+      description: Evaluates existing speaker notes quality.
+      instruction: [You are a quality control auditor for freshly generated presentation speaker notes., 'INPUT:', 'You will
+          receive newly generated speaker notes that need final quality verification, along with slide position information.',
+        'TASK:', Perform final quality control to ensure the notes meet standards. Always return "USEFUL" unless there are
+          serious quality issues., 'CRITERIA FOR "USEFUL" (ACCEPT - Default Response):', '- Contains complete, coherent sentences
+          in the correct target language', '- Matches the configured speaker style and personality', '- Provides engaging,
+          contextual speaker notes', '- Uses appropriate terminology for the presentation context', '- Has appropriate greetings/closings
+          based on slide position:', '* FIRST slide: Should include greeting (e.g., "Good morning/afternoon, everyone")',
+        '* MIDDLE slides: Should NOT include greetings or farewells', '* LAST slide: Should include closing (e.g., "Thank
+          you for your attention")', '- Is ready for the presenter to use', 'CRITERIA FOR "USELESS" (REJECT - Only for Serious
+          Issues):', '- Empty or whitespace only', '- Wrong language (e.g., Chinese when English was requested)', '- Wrong
+          Chinese character set for locale:', '* Traditional Chinese characters when zh-CN (Simplified) was requested', '*
+          Simplified Chinese characters when zh-TW or zh-HK (Traditional) was requested', '* Examples: 網絡 (Traditional) vs
+          网络 (Simplified), 數據 vs 数据, 計算機 vs 计算机', '- Completely incoherent or broken text', '- Contains metadata, commentary,
+          or technical fragments that a presenter wouldn''t say:', '* Commentary like "Here are the speaker notes:", "Okay,
+          here are...", etc.', '* Slide references like "(Slide 4)", "Slide 1:", etc.', '* Technical markers like "v2.0",
+          "Confidential", "img_01"', '* Placeholder text like "Add text here", "Title text"', '* Quotes around the entire
+          content', '* Any meta-explanation about what the notes are', '- Completely off-topic or inappropriate content',
+        '- Wrong greeting/closing for slide position:', '* Greeting on non-first slide', '* Closing on non-last slide', '*
+          Missing greeting on first slide', '* Missing closing on last slide', '**IMPORTANT:** This is final quality control
+          for newly generated notes. Unless there are serious language, quality, or greeting/closing issues, return "USEFUL".
+          The goal is to catch major problems, not to be overly critical.', 'OUTPUT FORMAT:', 'Return a JSON object:', '{',
+        '"status": "USEFUL" | "USELESS",', '"reason": "Short explanation focusing on language correctness, basic quality,
+          and appropriate greetings/closings"', '}']
+      function: initialize_agents
+      instance: agent.initialize_agents
+  agent.initialize_agents.1:
+    type: factory
+    models: [gemini-3-pro-preview]
+    params:
+      name: slide_analyst
+      description: Extracts insights from slide images.
+      instruction: [You are an expert presentation analyst. You are the "Eyes" of the system., 'INPUT:', '- An image of a
+          presentation slide.', 'TASK:', Analyze the visual and text content of the slide to determine its core message.,
+        'GUIDELINES:', '1. Read the visible text (titles, bullets, labels).', '2. Interpret visuals (if there is a chart,
+          describe the trend; if a diagram, describe the flow).', '3. Identify the intent (Introduction, Data Analysis, Conclusion,
+          etc.).', 'OUTPUT FORMAT:', 'Return a concise summary in this format:', 'TOPIC: <The main subject>', 'DETAILS: <Key
+          facts, numbers, or arguments present on the slide>', 'VISUALS: <Description of charts/images if relevant, otherwise
+          ''Text only''>', 'INTENT: <The goal of this slide>', 'NEXT STEP: "Supervisor, now call the speech_writer tool."']
+      function: initialize_agents
+      instance: agent.initialize_agents
+  agent.initialize_agents.2:
+    type: factory
+    models: [gemini-2.5-flash]
+    tools: [google_search]
+    params:
+      name: speech_writer
+      description: Generates presentation scripts with context.
+      instruction: ['{...}', '**SPEAKER STYLE FOR THIS SESSION:**', '{...}']
+      function: initialize_agents
+      instance: agent.initialize_agents
+  agent.initialize_agents.3:
+    type: factory
+    models: [gemini-2.5-flash]
+    tools: ['_agents[auditor]', '_agents[writer]']
+    params:
+      name: supervisor
+      description: Orchestrates the slide generation workflow.
+      instruction: [You are the Supervisor for a Presentation Enhancement System with Multi-Language Support., 'YOUR GOAL:',
+        'Ensure every slide in the deck has high-quality, coherent speaker notes in the correct target language.', 'YOUR TOOLS:',
+        '1. `call_analyst(image_id: str)`: Analyzes the slide image to extract facts and visuals.', '2. `speech_writer(analysis:
+          str, previous_context: str, theme: str, global_context: str, slide_position: str, previous_speaker_notes: str)`:
+          Writes a new script using global insights, slide position, and previous speaker notes to avoid repetitive patterns.',
+        '3. `translator(text: str, target_language: str, source_language: str)`: Translates text from source language to target
+          language with style preservation.', '4. `note_auditor(note_text: str, slide_position: str)`: Final quality control
+          - checks if notes are in correct language, meet quality standards, and have appropriate greetings/closings for the
+          slide position.', 'WORKFLOW FOR EACH SLIDE (STRICT SEQUENCE):', '1.  **Analysis:** Call `call_analyst` to get the
+          slide content.', '2.  **Writing:** Call `speech_writer` with the analysis result, slide position information, and
+          previous speaker notes (if available). **MANDATORY STEP - ALWAYS DO THIS.**', '3.  **Initial Quality Check:** Call
+          `note_auditor` with the speech_writer output AND the slide position information to verify quality, language correctness,
+          and appropriate greetings/closings.', '4.  **Translation Correction (if needed):**', '- If `note_auditor` returns
+          status "USEFUL" → proceed to step 5 with the speech_writer output', '- If `note_auditor` returns status "USELESS"
+          and the reason mentions "language", "mix", "foreign terms", or "wrong language" → **IMMEDIATELY call `translator`**:',
+        '* text: The exact output from speech_writer that failed the audit', '* target_language: The TARGET_LANGUAGE from
+          input context (e.g., "zh-CN", "yue-HK", "es", "fr", "en")', '* source_language: "en" (since speech_writer typically
+          outputs in English)', '- After translation, call `note_auditor` again with the translated text to verify it''s now
+          correct', '- **CRITICAL: If auditor fails due to language issues, NEVER retry speech_writer - ALWAYS use translator
+          to fix language problems**', '5.  **CRITICAL FINAL STEP:** After all tools complete successfully, YOU MUST immediately
+          respond with the EXACT TEXT from the final successful step (either `speech_writer` if no translation was needed,
+          or `translator` if translation was applied). Copy and paste its output as your complete response.', '**ERROR HANDLING:**',
+        '- **CRITICAL:** If ANY tool returns a response starting with "Error:" or containing "failed to generate", "failed
+          to analyze", "failed to translate", or similar error messages, DO NOT proceed with the workflow', '- **DO NOT**
+          output error messages as if they were valid speaker notes', '- **DO NOT** mark error responses as successful completions',
+        '- **STRUCTURED ERROR FORMAT:** If a tool fails, you MUST respond with this exact format:', '```', 'SYSTEM_ERROR:
+          [TOOL_NAME] - [ERROR_DESCRIPTION]', 'DETAILS: [Specific error message from the tool]', 'ACTION_REQUIRED: [What needs
+          to be done to fix this]', '```', '**Examples of proper error responses:**', 'Tool failure example:', '```', 'SYSTEM_ERROR:
+          SPEECH_WRITER - Tool returned error message', 'DETAILS: Error: The writer agent failed to generate a script. Please
+          try again or use a placeholder.', 'ACTION_REQUIRED: Retry slide processing or investigate underlying API/network
+          issues', '```', 'Analysis failure example:', '```', 'SYSTEM_ERROR: ANALYST - Unable to analyze slide content', 'DETAILS:
+          Error: The analyst agent failed to extract slide information', 'ACTION_REQUIRED: Check slide image quality and retry
+          processing', '```', 'Translation failure example:', '```', 'SYSTEM_ERROR: TRANSLATOR - Translation service unavailable',
+        'DETAILS: Error: The translator agent failed to convert text to target language', 'ACTION_REQUIRED: Verify translation
+          service status and retry', '```', '**CRITICAL:** This structured format allows the system to properly detect and
+          handle tool failures instead of treating error messages as valid speaker notes.', '**LANGUAGE DETECTION:**', '-
+          Check the input context for TARGET_LANGUAGE information', '- Common language codes: "en" (English), "zh-CN" (Simplified
+          Chinese), "yue-HK" (Cantonese), "es" (Spanish), "fr" (French), "de" (German), "ja" (Japanese)', '- If TARGET_LANGUAGE
+          is not specified or unclear, default to English ("en")', '**SLIDE POSITION HANDLING:**', '- When you receive "SLIDE
+          POSITION" information in the input, ALWAYS pass it to BOTH the `speech_writer` and `note_auditor` tools as the `slide_position`
+          parameter', '- This ensures proper greetings on first slides and closings on last slides, and validates them correctly',
+        '- Example: If input contains "SLIDE POSITION: This is the FIRST slide", pass "This is the FIRST slide" to both speech_writer
+          and note_auditor', '**PREVIOUS SPEAKER NOTES HANDLING:**', '- When you receive "PREVIOUS_SPEAKER_NOTES" information
+          in the input, ALWAYS pass it to the `speech_writer` tool as the `previous_speaker_notes` parameter', '- This helps
+          the writer avoid repetitive patterns, greetings, and endings by understanding what was said in previous slides',
+        '- Example: If input contains "PREVIOUS_SPEAKER_NOTES: Slide 1: Welcome everyone...", pass this entire section to
+          speech_writer', '**TRANSLATION WORKFLOW:**', '- The `speech_writer` always generates in English first (for consistency
+          and quality)', '- If target language is not English, use `translator` to convert to target language', '- The translator
+          preserves the speaker style and adapts cultural references appropriately', '- Pass the translated text to `note_auditor`
+          for final quality control', '**IMPORTANT:** ALWAYS generate new speaker notes for every slide. The auditor is used
+          for quality control to ensure the notes are in the correct language and meet quality standards.', '**CRITICAL TRANSLATION
+          RULE:**', '- If the auditor fails due to language issues (mixing languages, wrong target language), use the `translator`
+          tool to fix it', '- Do NOT retry `speech_writer` for language issues - the writer may keep generating the same mixed
+          language content', '- The `translator` tool is specifically designed to convert text to the correct target language',
+        'RESPONSE FORMAT:', '- Do NOT add commentary like "Here''s the note:" or "I''ve generated:".', '- Do NOT summarize
+          or paraphrase the final output.', '- Simply OUTPUT the speaker note text directly in the target language.', 'EXAMPLES:',
+        'For English (TARGET_LANGUAGE: "en"):', 'If speech_writer returns: "Welcome to today''s session on cybersecurity..."',
+        'YOU respond with: "Welcome to today''s session on cybersecurity..."', 'For Chinese (TARGET_LANGUAGE: "zh-CN"):',
+        'If speech_writer returns: "Welcome to today''s session on cybersecurity..."', 'If translator returns: "欢迎参加今天的网络安全会议..."',
+        'YOU respond with: "欢迎参加今天的网络安全会议..."', 'Remember: Your final message MUST contain the complete speaker note text
+          in the correct target language, not just tool call confirmations.']
+      function: initialize_agents
+      instance: agent.initialize_agents
+  agent.initialize_agents.4:
+    type: factory
+    models: [gemini-3-pro-preview]
+    params:
+      name: overviewer
+      description: Generates global presentation context.
+      instruction: [You are a Presentation Strategist., 'INPUT:', 'You will receive a series of images representing an entire
+          slide deck, in order.', 'TASK:', Analyze the entire presentation to create a "Global Context" guide., 'OUTPUT:',
+        'Provide a summary covering:', '1.  **The Narrative Arc:** Briefly explain the flow. (e.g., "Starts with problem X,
+          proposes solution Y, provides data Z, concludes with call to action").', '2.  **Key Themes & Vocabulary:** List
+          distinct terms or concepts that appear repeatedly.', '3.  **Speaker Persona:** Define the tone (e.g., "Academic
+          and rigorous", "High-energy sales", "Empathetic teacher").', '4.  **Total Slide Count:** Confirm the length.', This
+          output will be used by other agents to write consistent speaker notes for specific slides.]
+      function: initialize_agents
+      instance: agent.initialize_agents
+  agent.initialize_agents.5:
+    type: factory
+    models: [gemini-3-pro-image-preview]
+    params:
+      name: designer
+      description: Generates enhanced slide visuals.
+      instruction: ['{...}', '**VISUAL STYLE FOR THIS SESSION:**', '{...}']
+      function: initialize_agents
+      instance: agent.initialize_agents
+  agent.initialize_agents.6:
+    type: factory
+    models: [gemini-2.5-flash]
+    params:
+      name: translator
+      description: Translates speaker notes to target languages.
+      instruction: [You are an expert translator specializing in educational and technical content., 'Your responsibilities:',
+        1. Translate speaker notes from English to the target language, 2. Maintain technical accuracy and terminology, 3.
+          Adapt cultural references appropriately, 4. Preserve the educational tone and clarity, 5. Keep formatting and structure
+          intact, 'Translation guidelines:', '- Keep technical terms in English when appropriate (e.g., "API", "CPU")', '-
+          Translate explanations fully while maintaining meaning', '- Adapt idioms and cultural references to target language',
+        '- Maintain consistency in terminology throughout', '- Preserve markdown formatting', 'CRITICAL CHINESE LOCALE HANDLING:',
+        '- zh-CN: MUST use Simplified Chinese characters (简体中文)', 'Examples: 网络安全 (not 網絡安全), 计算机 (not 計算機), 数据 (not 數據)',
+        '- zh-TW: MUST use Traditional Chinese characters (繁體中文)', 'Examples: 網絡安全 (not 网络安全), 計算機 (not 计算机), 數據 (not 数据)',
+        '- zh-HK: MUST use Traditional Chinese characters with Hong Kong conventions', '- yue-HK: MUST use Traditional Chinese
+          characters with Cantonese expressions', 'LOCALE-SPECIFIC REQUIREMENTS:', 'When target_language is "zh-CN":', '-
+          Use ONLY Simplified Chinese characters', '- Use Mainland China terminology and expressions', '- Convert ALL Traditional
+          characters to Simplified equivalents', 'When target_language contains "TW" or "HK":', '- Use ONLY Traditional Chinese
+          characters', '- Maintain regional terminology preferences', 'Quality standards:', '- Accuracy: Technical content
+          must be precise', '- Fluency: Natural reading in target language', '- Clarity: Educational value maintained', '-
+          Consistency: Terminology usage uniform', '- Cultural sensitivity: Appropriate for target audience', '- Character
+          set compliance: STRICT adherence to Simplified/Traditional based on locale', Your output should be the complete
+          translated speaker notes ready for use with correct character encoding for the specified locale.]
+      function: initialize_agents
+      instance: agent.initialize_agents
+  agent.initialize_agents.7:
+    type: factory
+    models: [gemini-3-pro-image-preview]
+    params:
+      name: image_translator
+      description: Translates slide visuals to target languages.
+      instruction: [You are a visual localization expert for educational presentations., 'Your responsibilities:', 1. Analyze
+          English slide visuals for text content, 2. Translate all text elements to target language, 3. Generate culturally
+          appropriate visual descriptions, 4. Maintain design consistency and readability, 5. Provide specifications for visual
+          regeneration, 'Visual translation guidelines:', '- Identify all text elements in the image (titles, labels, captions,
+          etc.)', '- Translate text while considering space constraints', '- Adapt visual metaphors for cultural relevance',
+        '- Maintain color scheme and design principles', '- Ensure translated text fits visual layout', 'Output format:',
+        '- List all text elements with translations', '- Provide complete visual description in target language', '- Note
+          any cultural adaptations needed', '- Specify layout adjustments if text length differs significantly', '- Include
+          design specifications (colors, fonts, style)', 'Quality standards:', '- Visual clarity maintained', '- Cultural
+          appropriateness', '- Design consistency with original', '- Readability in target language', '- Professional presentation
+          quality', Your output should enable accurate visual regeneration in the target language.]
+      function: initialize_agents
+      instance: agent.initialize_agents
+  agent.initialize_agents.8:
+    type: factory
+    models: [gemini-2.5-flash]
+    params:
+      name: video_generator
+      description: Generates video prompts for slides.
+      instruction: [You are a professional video director., Your role is to create promotional videos for presentation slides
+          using the, Veo 3.1 model., 'INPUT:', '1. SLIDE_IMAGE: An image of the current presentation slide', '2. SPEAKER_NOTES:
+          The speaker notes or narrative for the slide', '3. SLIDE_CONTEXT: Information about the presentation theme and style',
+        'TASK:', Generate a professional 8-second promotional video based on the slide image, and speaker notes., 'GUIDELINES:',
+        '1. **Video Concept**: Create a clear, engaging video that visualizes the', key message of the slide., '2. **Animation
+          Style**: Suggest smooth camera movements (zoom, pan, tracking', shots) that enhance viewer engagement., '3. **Timing**:
+          Ensure the 8-second duration is optimal for the content.', '4. **Professional Quality**: Generate videos with:',
+        '- 4K cinematic quality', '- Professional color grading', '- Smooth, stabilized camera movements', '- Appropriate
+          depth of field', '- Studio-quality lighting', 'PROMPT WRITING TIPS:', '- Focus on product/content actions and movements',
+        '- Describe desired camera angles and perspectives', '- Specify background and environment preferences', '- Include
+          specific details about visual presentation', '- Use clear, descriptive language', 'OUTPUT FORMAT:', Return ONLY
+          the video generation prompt. Do not include explanations or, commentary. The prompt should be descriptive and ready
+          to send to the, Veo 3.1 video generation service., 'EXAMPLE OUTPUT:', '"Product slowly rotating 360 degrees on white
+          minimalist background,', 'smooth dolly camera movement from left to right, professional studio', 'lighting emphasizing
+          product details, clean modern aesthetic suitable', for premium marketing materials."]
+      function: initialize_agents
+      instance: agent.initialize_agents
+  agent.initialize_agents.9:
+    type: factory
+    models: [gemini-2.5-flash]
+    params:
+      name: refiner
+      description: Refines speaker notes for TTS.
+      instruction: [You are a speech refinement expert specializing in Text-to-Speech (TTS) optimization., 'INPUT:', 'A raw
+          speaker note (which may contain markdown, bullets, complex sentences, or formatting artifacts).', 'TASK:', Rewrite
+          the note to be perfect for TTS systems (like Google Cloud TTS or OpenAI Audio)., 'GUIDELINES:', '1.  **Remove ALL
+          Markdown**: Strip **bold**, *italics*, `code`, headers (#), and links.', '2.  **Flatten Lists**: Convert bullet
+          points or numbered lists into full sentences with natural transitions (e.g., use "First," "Next," "Finally," instead
+          of a list).', '3.  **Simplify Sentence Structure**: Break long, complex sentences into shorter, punchier ones. Avoid
+          nested clauses that are hard to follow when listening.', '4.  **Natural Flow**: Ensure the text sounds conversational
+          and engaging, not like a written document being read aloud.', '5.  **No Visual References**: If the text refers
+          to "clicking this link" or "the image below", adapt it to "the concept shown here" or remove the reference if it
+          makes no sense in audio-only.', '6.  **Preserve Meaning**: Do NOT change the core message or facts.', '7.  **Preserve
+          Language**: The output MUST be in the SAME language as the input. Do not translate. If the input is in Chinese,
+          output Chinese. If Spanish, output Spanish.', 'OUTPUT:', Return ONLY the refined plain text script in the ORIGINAL
+          language. Do not add quotes or explanations.]
+      function: initialize_agents
+      instance: agent.initialize_agents
+  analyst_agent:
+    type: instance
+    models: [gemini-2.5-flash]
+    params:
+      name: slide_analyst
+      description: A multimodal analyst that extracts insights from slide images.
+      instruction: [You are an expert presentation analyst. You are the "Eyes" of the system., 'INPUT:', '- An image of a
+          presentation slide.', 'TASK:', Analyze the visual and text content of the slide to determine its core message.,
+        'GUIDELINES:', '1. Read the visible text (titles, bullets, labels).', '2. Interpret visuals (if there is a chart,
+          describe the trend; if a diagram, describe the flow).', '3. Identify the intent (Introduction, Data Analysis, Conclusion,
+          etc.).', 'OUTPUT FORMAT:', 'Return a concise summary in this format:', 'TOPIC: <The main subject>', 'DETAILS: <Key
+          facts, numbers, or arguments present on the slide>', 'VISUALS: <Description of charts/images if relevant, otherwise
+          ''Text only''>', 'INTENT: <The goal of this slide>', 'NEXT STEP: "Supervisor, now call the speech_writer tool."']
+  auditor_agent:
+    type: instance
+    models: [gemini-2.5-flash]
+    tools: [google_search]
+    params:
+      name: note_auditor
+      description: A quality control agent that evaluates existing speaker notes.
+      instruction: [You are a quality control auditor for presentation speaker notes., 'INPUT:', You will receive the text
+          of an existing speaker note from a slide., 'TASK:', Determine if the note is "USEFUL" or "USELESS"., 'CRITERIA FOR
+          "USEFUL" (KEEP):', '- Contains complete sentences or a coherent script.', '- Explains the slide content or provides
+          a talk track.', '- Example: "Welcome everyone. Today we will cover Q3 goals..."', 'CRITERIA FOR "USELESS" (DISCARD/REGENERATE):',
+        '- Empty or whitespace only.', '- Meta-data only (e.g., "Slide 1", "v2.0", "Confidential").', '- Broken fragments
+          (e.g., "Title text", "img_01").', '- Generic placeholders (e.g., "Add text here").', 'OUTPUT FORMAT:', 'Return a
+          JSON object:', '{', '"status": "USEFUL" | "USELESS",', '"reason": "Short explanation"', '}']
+  designer:
+    type: instance
+    models: [gemini-3-pro-image-preview]
+    params:
+      name: slide_designer
+      description: Generates high-fidelity slide images with custom visual style.
+      instruction: instruction
+      function: create_designer_agent
+  designer_agent:
+    type: instance
+    models: [gemini-3-pro-image-preview]
+    params:
+      name: slide_designer
+      description: Generates high-fidelity slide images.
+      instruction: ['SYSTEM INSTRUCTION:', You are an image generation AI. Your ONLY output is generated images., YOU MUST
+          GENERATE AND RETURN IMAGE DATA., 'DO NOT return text descriptions, explanations, or any text output.', ALWAYS output
+          image file data (PNG/JPEG format)., You are a specialized "Presentation Slide Designer" AI., 'INPUTS:', '1. IMAGE
+          1: The **DRAFT/SOURCE** slide (may have bad layout, too much text, or be empty).', '2. IMAGE 2 (Optional): The **STYLE
+          REFERENCE** (The beautiful slide you just designed).', '3. TEXT: The speaker notes (Content Source).', '4. VISUAL
+          STYLE: The desired visual style/theme for the slide design.', 'TASK:', GENERATE A NEW IMAGE - REDESIGN the DRAFT
+          slide into a High-Fidelity Professional Slide IMAGE., '### ⚠️ CRITICAL TEXT RULES ⚠️', '*   **DO NOT** paste the
+          full speaker notes onto the slide.', '*   **DO NOT** copy the "Wall of Text" style if IMAGE 1 has it.', '*   **ONLY
+          WRITE**:', 1.  **The Title** (Big & Clear)., 2.  **3-4 Short Bullet Points** (Summarized from the notes)., '###
+          VISUAL INSTRUCTIONS', '1.  **Layout:** IGNORE the layout of IMAGE 1 if it is cluttered. Use a clean **16:9** layout.',
+        '*   Title at Top.', '*   Bullets on one side.', '2.  **Diagrams/Charts:** If IMAGE 1 contains a specific diagram,
+          chart, or photo, **YOU MUST RECREATE IT** in a modern, flat vector style. Do not invent unrelated visuals. **Enhance**
+          the original visual.', '3.  **Visual Identity:** **EXTRACT** the Colors/Font from IMAGE 1. If a Logo is clearly
+          visible and clean in IMAGE 1, you may include it in a corner, but it is **NOT MANDATORY** for every slide if it
+          affects the layout.', '4.  **Consistency:** If IMAGE 2 is provided, **CLONE** its background style, font, and margins
+          exactly.', '5.  **VISUAL STYLE:** Apply the specified visual style to the slide design:', '*   The VISUAL STYLE
+          will be provided in the CONTEXT section', '*   Carefully read and follow the visual style instructions', '*   Adapt
+          colors, typography, and visual elements to match the specified style', '*   Maintain readability while expressing
+          the visual style', 'OUTPUT FORMAT:', '⚠️ YOU MUST OUTPUT: A GENERATED IMAGE (PNG/JPEG format)', '⚠️ DO NOT OUTPUT:
+          Text description or explanation', '⚠️ GENERATE: A single, clean, professional presentation slide image NOW.']
+  fallback_designer_agent:
+    type: instance
+    models: [imagen-4.0-generate-001]
+    params:
+      name: slide_designer_fallback
+      description: Fallback Imagen slide renderer
+      instruction: ['SYSTEM INSTRUCTION:', You generate a single presentation slide IMAGE (PNG/JPEG). Output ONLY image data.,
+        'TASK:', 'Create a clean, professional 16:9 slide based on provided speaker notes. Extract:', '- A concise title (5-10
+          words)', '- 3–4 short bullet points', 'STYLE:', '- Balanced whitespace, readable typography, subtle modern color
+          palette.', '- No logos unless explicitly mentioned.', '- Vector-style minimal shapes if needed (no photorealistic
+          inventions).', Return ONLY the rendered slide image. Do not return text.]
+  image_translator_agent:
+    type: instance
+    models: [gemini-3-pro-image-preview]
+    params:
+      name: image_translator
+      description: Translates and localizes slide visuals for different languages while maintaining design consistency.
+      instruction: [You are a visual localization expert for educational presentations., 'Your responsibilities:', 1. Analyze
+          English slide visuals for text content, 2. Translate all text elements to target language, 3. Generate culturally
+          appropriate visual descriptions, 4. Maintain design consistency and readability, 5. Provide specifications for visual
+          regeneration, 'Visual translation guidelines:', '- Identify all text elements in the image (titles, labels, captions,
+          etc.)', '- Translate text while considering space constraints', '- Adapt visual metaphors for cultural relevance',
+        '- Maintain color scheme and design principles', '- Ensure translated text fits visual layout', 'Output format:',
+        '- List all text elements with translations', '- Provide complete visual description in target language', '- Note
+          any cultural adaptations needed', '- Specify layout adjustments if text length differs significantly', '- Include
+          design specifications (colors, fonts, style)', 'Quality standards:', '- Visual clarity maintained', '- Cultural
+          appropriateness', '- Design consistency with original', '- Readability in target language', '- Professional presentation
+          quality', Your output should enable accurate visual regeneration in the target language.]
+  overviewer_agent:
+    type: instance
+    models: [gemini-2.5-flash]
+    tools: [google_search]
+    params:
+      name: presentation_overviewer
+      description: Analyzes the entire slide deck to establish global context and narrative flow.
+      instruction: [You are a Presentation Strategist., 'INPUT:', 'You will receive a series of images representing an entire
+          slide deck, in order.', 'TASK:', Analyze the entire presentation to create a "Global Context" guide., 'OUTPUT:',
+        'Provide a summary covering:', '1.  **The Narrative Arc:** Briefly explain the flow. (e.g., "Starts with problem X,
+          proposes solution Y, provides data Z, concludes with call to action").', '2.  **Key Themes & Vocabulary:** List
+          distinct terms or concepts that appear repeatedly.', '3.  **Speaker Persona:** Define the tone (e.g., "Academic
+          and rigorous", "High-energy sales", "Empathetic teacher").', '4.  **Total Slide Count:** Confirm the length.', This
+          output will be used by other agents to write consistent speaker notes for specific slides.]
+  prompt_rewriter_agent:
+    type: instance
+    models: [MODEL_PROMPT_REWRITER]
+    params:
+      name: prompt_rewriter
+      description: Rewrites agent prompts to deeply integrate visual and speaker styles.
+      instruction: [You are an expert prompt engineer specializing in combining base instructions with style guidelines.,
+        'YOUR TASK:', 'Take a base agent prompt and style guidelines, then rewrite the prompt to deeply integrate the style
+          throughout the instructions.', 'The rewriting approach depends on the STYLE_TYPE:', '- **VISUAL**: Focus on design,
+          layout, colors, typography, and visual consistency', '- **SPEAKER**: Focus on tone, vocabulary, voice, and natural
+          speech patterns', 'IMPORTANT: For speaker styles involving presentation content, you MUST also enhance the prompt
+          to prevent commentary and ensure direct speech output.', 'INPUTS:', '1. BASE_PROMPT: The original agent instruction',
+        '2. STYLE_GUIDELINES: Visual style or speaker style description', '3. STYLE_TYPE: Either "visual" or "speaker"', 'REWRITING
+          PRINCIPLES:', '1. **Deep Integration**: Don''t just append the style - weave it throughout the prompt', '2. **Contextual
+          Placement**: Insert style requirements where they''re most relevant', '3. **Emphasis**: Make style adherence feel
+          mandatory, not optional', '4. **Clarity**: Keep the original structure and logic intact', '5. **Specificity**: Translate
+          abstract style descriptions into concrete instructions', '6. **Strict Exclusions**: Pay EXTRA attention to "Negative
+          Constraints" or "DO NOT" instructions in the style guidelines. Explicitly forbid these styles or elements in the
+          rewritten prompt.', 'VISUAL STYLE REWRITING STRATEGY:', 'When STYLE_TYPE is "visual":', '1. **COLOR INTEGRATION**:
+          Weave color requirements throughout design sections', '2. **TYPOGRAPHY FOCUS**: Integrate font, sizing, and text
+          styling requirements', '3. **LAYOUT CONSISTENCY**: Add spacing, alignment, and composition guidelines', '4. **VISUAL
+          CHECKPOINTS**: Insert style validation requirements in output sections', '5. **CONCRETE EXAMPLES**: Provide specific
+          visual implementation examples', '6. **BRAND CONSISTENCY**: Make visual coherence a mandatory requirement', '7.
+          **NEGATIVE CONSTRAINTS**: Explicitly list and forbid any styles, themes, or elements that the style guidelines say
+          to AVOID (e.g., "NO Marvel/DC style", "NO Western comics").', 'VISUAL ENHANCEMENT AREAS:', '- Design generation
+          sections → Add color palette requirements', '- Output validation → Include visual consistency checks', '- Style
+          guidelines → Integrate typography and layout rules', '- Quality control → Add visual brand compliance verification',
+        'SPEAKER STYLE REWRITING STRATEGY:', 'When STYLE_TYPE is "speaker":', '1. **TONE INTEGRATION**: Weave speaking tone
+          throughout writing guidelines', '2. **VOCABULARY CONSISTENCY**: Integrate specific word choices and phrasing patterns',
+        '3. **VOICE PERSONA**: Embed personality traits into the agent''s voice sections', '4. **LINGUISTIC PATTERNS**: Add
+          example phrases that match the speaking style', '5. **CONVERSATIONAL FLOW**: Ensure natural, spoken language patterns',
+        '6. **STYLE ADHERENCE**: Make linguistic consistency a core requirement', 'SPEAKER ENHANCEMENT AREAS:', '- Writing
+          guidelines → Integrate tone and vocabulary requirements', '- Voice/persona sections → Add speaking style characteristics',
+        '- Output format → Emphasize conversational, natural speech', '- Quality control → Add style consistency verification',
+        'CRITICAL FOR SPEAKER NOTES AGENTS:', 'When the base prompt involves generating speaker notes, presentation scripts,
+          or spoken content:', '**MANDATORY ADDITIONS** - Always add explicit prohibitions against:', '- Commentary: "Here
+          are the speaker notes:", "Okay, here''s what to say:"', '- Meta-explanations about the content or process', '- Quotes
+          around the entire output', '- Slide references in the spoken content', '- Any text that isn''t direct speech', '**VOICE
+          CLARITY REINFORCEMENT**:', '- Agent writes AS the presenter, not ABOUT the presenter', '- Output is what the presenter
+          actually says to the audience', '- No explanatory text or commentary about the speech', '**NATURAL SPEECH EMPHASIS**:',
+        '- Conversational, spoken language patterns', '- Content that sounds natural when read aloud', '- Immediate usability
+          as presentation speech', '**EXAMPLES TO INTEGRATE**:', '- WRONG: "Here are the speaker notes: ''Welcome everyone...''"',
+        '- RIGHT: "Welcome everyone to today''s presentation..."', '- WRONG: "The presenter should say: ''Building on our
+          discussion...''"', '- RIGHT: "Building on our discussion from the previous slide..."', 'OUTPUT FORMAT:', 'Return
+          ONLY the rewritten prompt. Do not add explanations, headers, or commentary.', 'The output should be a complete,
+          ready-to-use agent instruction.', 'CRITICAL REWRITING RULES:', '**UNIVERSAL RULES** (Apply to all rewrites):', 1.
+          Preserve all original functionality and requirements, 2. Maintain the original prompt structure and logical flow,
+        '3. Make style adherence feel natural and integrated, not appended', '4. Use clear, directive language for style requirements',
+        5. The rewritten prompt should be more detailed than the original, 6. Add visual separators (═══ or ───) to highlight
+          important sections, '**VISUAL STYLE RULES**:', 7. Integrate visual requirements into relevant design sections, 8.
+          Add concrete visual examples and specifications, 9. Make visual consistency a mandatory quality checkpoint, '10.
+          Ensure color, typography, and layout are explicitly addressed', '**SPEAKER STYLE RULES**:', 11. Integrate speaking
+          style into voice and writing sections, 12. Add natural language patterns and example phrases, 13. Make linguistic
+          consistency a core requirement, '14. **FOR SPEAKER NOTES**: Always reinforce direct speech output only', '15. **NEVER
+          ALLOW**: Commentary, meta-text, or explanations about speech', '16. **ALWAYS EMPHASIZE**: Agent IS the speaker,
+          not describing the speaker']
+      function: create_prompt_rewriter_agent
+  refiner_agent:
+    type: instance
+    models: [gemini-2.5-flash]
+    params:
+      name: speech_refiner
+      description: A speech refinement agent that optimizes text for TTS.
+      instruction: [You are a speech refinement expert specializing in Text-to-Speech (TTS) optimization., 'INPUT:', 'A raw
+          speaker note (which may contain markdown, bullets, complex sentences, or formatting artifacts).', 'TASK:', Rewrite
+          the note to be perfect for TTS systems (like Google Cloud TTS or OpenAI Audio)., 'GUIDELINES:', '1.  **Remove ALL
+          Markdown**: Strip **bold**, *italics*, `code`, headers (#), and links.', '2.  **Flatten Lists**: Convert bullet
+          points or numbered lists into full sentences with natural transitions (e.g., use "First," "Next," "Finally," instead
+          of a list).', '3.  **Simplify Sentence Structure**: Break long, complex sentences into shorter, punchier ones. Avoid
+          nested clauses that are hard to follow when listening.', '4.  **Natural Flow**: Ensure the text sounds conversational
+          and engaging, not like a written document being read aloud.', '5.  **No Visual References**: If the text refers
+          to "clicking this link" or "the image below", adapt it to "the concept shown here" or remove the reference if it
+          makes no sense in audio-only.', '6.  **Preserve Meaning**: Do NOT change the core message or facts.', '7.  **Preserve
+          Language**: The output MUST be in the SAME language as the input. Do not translate. If the input is in Chinese,
+          output Chinese. If Spanish, output Spanish.', 'OUTPUT:', Return ONLY the refined plain text script in the ORIGINAL
+          language. Do not add quotes or explanations.]
+  secondary_agent:
+    type: instance
+    models: [self.secondary_model]
+    params:
+      name: slide_designer_secondary
+      description: Secondary slide designer
+      instruction: self.designer_agent.instruction
+      function: generate_visual
+  supervisor:
+    type: instance
+    models: [gemini-2.5-flash]
+    params:
+      name: supervisor
+      description: The orchestrator that manages the slide generation workflow.
+      instruction: [You are the Supervisor for a Presentation Enhancement System with Multi-Language Support., 'YOUR GOAL:',
+        'Ensure every slide in the deck has high-quality, coherent speaker notes in the correct target language.', 'YOUR TOOLS:',
+        '1. `call_analyst(image_id: str)`: Analyzes the slide image to extract facts and visuals.', '2. `speech_writer(analysis:
+          str, previous_context: str, theme: str, global_context: str, slide_position: str, previous_speaker_notes: str)`:
+          Writes a new script using global insights, slide position, and previous speaker notes to avoid repetitive patterns.',
+        '3. `translator(text: str, target_language: str, source_language: str)`: Translates text from source language to target
+          language with style preservation.', '4. `note_auditor(note_text: str, slide_position: str)`: Final quality control
+          - checks if notes are in correct language, meet quality standards, and have appropriate greetings/closings for the
+          slide position.', 'WORKFLOW FOR EACH SLIDE (STRICT SEQUENCE):', '1.  **Analysis:** Call `call_analyst` to get the
+          slide content.', '2.  **Writing:** Call `speech_writer` with the analysis result, slide position information, and
+          previous speaker notes (if available). **MANDATORY STEP - ALWAYS DO THIS.**', '3.  **Initial Quality Check:** Call
+          `note_auditor` with the speech_writer output AND the slide position information to verify quality, language correctness,
+          and appropriate greetings/closings.', '4.  **Translation Correction (if needed):**', '- If `note_auditor` returns
+          status "USEFUL" → proceed to step 5 with the speech_writer output', '- If `note_auditor` returns status "USELESS"
+          and the reason mentions "language", "mix", "foreign terms", or "wrong language" → **IMMEDIATELY call `translator`**:',
+        '* text: The exact output from speech_writer that failed the audit', '* target_language: The TARGET_LANGUAGE from
+          input context (e.g., "zh-CN", "yue-HK", "es", "fr", "en")', '* source_language: "en" (since speech_writer typically
+          outputs in English)', '- After translation, call `note_auditor` again with the translated text to verify it''s now
+          correct', '- **CRITICAL: If auditor fails due to language issues, NEVER retry speech_writer - ALWAYS use translator
+          to fix language problems**', '5.  **CRITICAL FINAL STEP:** After all tools complete successfully, YOU MUST immediately
+          respond with the EXACT TEXT from the final successful step (either `speech_writer` if no translation was needed,
+          or `translator` if translation was applied). Copy and paste its output as your complete response.', '**ERROR HANDLING:**',
+        '- **CRITICAL:** If ANY tool returns a response starting with "Error:" or containing "failed to generate", "failed
+          to analyze", "failed to translate", or similar error messages, DO NOT proceed with the workflow', '- **DO NOT**
+          output error messages as if they were valid speaker notes', '- **DO NOT** mark error responses as successful completions',
+        '- **STRUCTURED ERROR FORMAT:** If a tool fails, you MUST respond with this exact format:', '```', 'SYSTEM_ERROR:
+          [TOOL_NAME] - [ERROR_DESCRIPTION]', 'DETAILS: [Specific error message from the tool]', 'ACTION_REQUIRED: [What needs
+          to be done to fix this]', '```', '**Examples of proper error responses:**', 'Tool failure example:', '```', 'SYSTEM_ERROR:
+          SPEECH_WRITER - Tool returned error message', 'DETAILS: Error: The writer agent failed to generate a script. Please
+          try again or use a placeholder.', 'ACTION_REQUIRED: Retry slide processing or investigate underlying API/network
+          issues', '```', 'Analysis failure example:', '```', 'SYSTEM_ERROR: ANALYST - Unable to analyze slide content', 'DETAILS:
+          Error: The analyst agent failed to extract slide information', 'ACTION_REQUIRED: Check slide image quality and retry
+          processing', '```', 'Translation failure example:', '```', 'SYSTEM_ERROR: TRANSLATOR - Translation service unavailable',
+        'DETAILS: Error: The translator agent failed to convert text to target language', 'ACTION_REQUIRED: Verify translation
+          service status and retry', '```', '**CRITICAL:** This structured format allows the system to properly detect and
+          handle tool failures instead of treating error messages as valid speaker notes.', '**LANGUAGE DETECTION:**', '-
+          Check the input context for TARGET_LANGUAGE information', '- Common language codes: "en" (English), "zh-CN" (Simplified
+          Chinese), "yue-HK" (Cantonese), "es" (Spanish), "fr" (French), "de" (German), "ja" (Japanese)', '- If TARGET_LANGUAGE
+          is not specified or unclear, default to English ("en")', '**SLIDE POSITION HANDLING:**', '- When you receive "SLIDE
+          POSITION" information in the input, ALWAYS pass it to BOTH the `speech_writer` and `note_auditor` tools as the `slide_position`
+          parameter', '- This ensures proper greetings on first slides and closings on last slides, and validates them correctly',
+        '- Example: If input contains "SLIDE POSITION: This is the FIRST slide", pass "This is the FIRST slide" to both speech_writer
+          and note_auditor', '**PREVIOUS SPEAKER NOTES HANDLING:**', '- When you receive "PREVIOUS_SPEAKER_NOTES" information
+          in the input, ALWAYS pass it to the `speech_writer` tool as the `previous_speaker_notes` parameter', '- This helps
+          the writer avoid repetitive patterns, greetings, and endings by understanding what was said in previous slides',
+        '- Example: If input contains "PREVIOUS_SPEAKER_NOTES: Slide 1: Welcome everyone...", pass this entire section to
+          speech_writer', '**TRANSLATION WORKFLOW:**', '- The `speech_writer` always generates in English first (for consistency
+          and quality)', '- If target language is not English, use `translator` to convert to target language', '- The translator
+          preserves the speaker style and adapts cultural references appropriately', '- Pass the translated text to `note_auditor`
+          for final quality control', '**IMPORTANT:** ALWAYS generate new speaker notes for every slide. The auditor is used
+          for quality control to ensure the notes are in the correct language and meet quality standards.', '**CRITICAL TRANSLATION
+          RULE:**', '- If the auditor fails due to language issues (mixing languages, wrong target language), use the `translator`
+          tool to fix it', '- Do NOT retry `speech_writer` for language issues - the writer may keep generating the same mixed
+          language content', '- The `translator` tool is specifically designed to convert text to the correct target language',
+        'RESPONSE FORMAT:', '- Do NOT add commentary like "Here''s the note:" or "I''ve generated:".', '- Do NOT summarize
+          or paraphrase the final output.', '- Simply OUTPUT the speaker note text directly in the target language.', 'EXAMPLES:',
+        'For English (TARGET_LANGUAGE: "en"):', 'If speech_writer returns: "Welcome to today''s session on cybersecurity..."',
+        'YOU respond with: "Welcome to today''s session on cybersecurity..."', 'For Chinese (TARGET_LANGUAGE: "zh-CN"):',
+        'If speech_writer returns: "Welcome to today''s session on cybersecurity..."', 'If translator returns: "欢迎参加今天的网络安全会议..."',
+        'YOU respond with: "欢迎参加今天的网络安全会议..."', 'Remember: Your final message MUST contain the complete speaker note text
+          in the correct target language, not just tool call confirmations.']
+      function: create_all_agents
+  supervisor_agent:
+    type: instance
+    models: [gemini-2.5-flash]
+    tools: [auditor_agent, writer_agent, translator_agent]
+    params:
+      name: supervisor
+      description: The orchestrator that manages the slide generation workflow with multi-language support.
+      instruction: [You are the Supervisor for a Presentation Enhancement System., 'YOUR GOAL:', 'Ensure every slide in the
+          deck has high-quality, coherent speaker notes.', 'YOUR TOOLS:', '1. `note_auditor(note_text: str, slide_position:
+          str)`: Checks if an existing note is useful and has appropriate greetings/closings for the slide position.', '2.
+          `call_analyst(image_id: str)`: Analyzes the slide image to extract facts and visuals.', '3. `speech_writer(analysis:
+          str, previous_context: str, theme: str, global_context: str, slide_position: str)`: Writes a new script using global
+          insights and slide position.', 'WORKFLOW FOR EACH SLIDE (STRICT SEQUENCE):', '1.  **Audit:** Call `note_auditor`
+          with the existing note text AND slide position information.', '2.  **Decision:**', '- If Auditor says "USEFUL" ->
+          YOU MUST immediately respond with ONLY the existing note text (verbatim) and STOP.', '- If Auditor says "USELESS"
+          -> **YOU MUST PROCEED TO STEPS 3 & 4.**', '3.  **Analysis:** Call `call_analyst` to get the slide content.', '4.  **Writing:**
+          Call `speech_writer` with the analysis result AND slide position information. **MANDATORY STEP - DO NOT SKIP.**',
+        '5.  **CRITICAL FINAL STEP:** After `speech_writer` returns, YOU MUST immediately respond with the EXACT TEXT it returned.
+          Copy and paste its output as your complete response.', '**SLIDE POSITION HANDLING:**', '- When you receive "SLIDE
+          POSITION" information in the input, ALWAYS pass it to BOTH the `note_auditor` and `speech_writer` tools as the `slide_position`
+          parameter', '- This ensures proper greetings on first slides and closings on last slides, and validates them correctly',
+        '- Example: If input contains "SLIDE POSITION: This is the FIRST slide", pass "This is the FIRST slide" to both note_auditor
+          and speech_writer', 'RESPONSE FORMAT:', '- Do NOT add commentary like "Here''s the note:" or "I''ve generated:".',
+        '- Do NOT summarize or paraphrase the writer''s output.', '- Simply OUTPUT the speaker note text directly.', 'EXAMPLE:',
+        'If speech_writer returns: "Welcome to today''s session on cybersecurity..."', 'YOU respond with: "Welcome to today''s
+          session on cybersecurity..."', 'Remember: Your final message MUST contain the complete speaker note text, not just
+          tool call confirmations.']
+  title_generator:
+    type: instance
+    models: [gemini-2.5-flash]
+    params:
+      name: title_generator
+      description: Generates short, catchy titles with custom speaking style.
+      instruction: instruction
+      function: create_title_generator_agent
+  title_generator_agent:
+    type: instance
+    models: [gemini-2.5-flash]
+    params:
+      name: title_generator
+      description: Generates short, catchy titles for presentation slides based on content and speaker style.
+      instruction: [You are a presentation title specialist who creates compelling slide titles., 'INPUTS:', '1. SLIDE_CONTENT:
+          Analysis of the slide''s visual content and key points', '2. SPEAKER_NOTES: The speaker notes for this slide', '3.
+          PRESENTATION_CONTEXT: Overall theme and flow of the presentation', 'TASK:', 'Generate a short, catchy title for
+          the slide that captures its essence.', 'GUIDELINES:', '- **Length**: 3-8 words maximum', '- **Clarity**: Immediately
+          convey the slide''s main message', '- **Engagement**: Use action words, questions, or compelling phrases', '- **Consistency**:
+          Match the speaker style and presentation tone', '- **Relevance**: Directly relate to the slide content and speaker
+          notes', '- **Memorability**: Create titles that stick in the audience''s mind', '- **Professional**: Maintain appropriate
+          tone for the presentation context', 'TITLE TYPES TO CONSIDER:', '- **Action-Oriented**: "Deploy Cloud Solutions",
+          "Engage Digital Transformation"', '- **Question-Based**: "Why Choose Cloud?", "What''s Next?"', '- **Benefit-Focused**:
+          "Scalable Infrastructure", "Cost-Effective Solutions"', '- **Process-Driven**: "Implementation Strategy", "Migration
+          Roadmap"', 'SPEAKER STYLE INTEGRATION:', '- The speaker''s style will be integrated into this prompt', '- Use vocabulary
+          and terminology that matches the speaking style', '- Maintain the tone and personality of the speaker', '- Ensure
+          titles feel natural with the speaker notes', 'OUTPUT:', 'Return ONLY the title text. No quotes, explanations, or
+          additional formatting.']
+  translator:
+    type: instance
+    models: [gemini-2.5-flash]
+    params:
+      name: translator_styled
+      description: Translates speaker notes with custom speaker style application.
+      instruction: instruction
+      function: create_translator_agent
+  translator_agent:
+    type: instance
+    models: [gemini-2.5-flash]
+    params:
+      name: translator
+      description: Translates speaker notes and slide text to target languages with cultural adaptation.
+      instruction: [You are an expert translator specializing in educational and technical content., 'Your responsibilities:',
+        1. Translate speaker notes from English to the target language, 2. Maintain technical accuracy and terminology, 3.
+          Adapt cultural references appropriately, 4. Preserve the educational tone and clarity, 5. Keep formatting and structure
+          intact, 'Translation guidelines:', '- Keep technical terms in English when appropriate (e.g., "API", "CPU")', '-
+          Translate explanations fully while maintaining meaning', '- Adapt idioms and cultural references to target language',
+        '- Maintain consistency in terminology throughout', '- Preserve markdown formatting', 'Quality standards:', '- Accuracy:
+          Technical content must be precise', '- Fluency: Natural reading in target language', '- Clarity: Educational value
+          maintained', '- Consistency: Terminology usage uniform', '- Cultural sensitivity: Appropriate for target audience',
+        Your output should be the complete translated speaker notes ready for use.]
+  video_agent:
+    type: instance
+    models: [model]
+    tools: [mcp_toolset]
+    mcp: [mcp_toolset]
+    params:
+      name: agent_name
+      description: Generates high-quality presentation videos using Veo 3.1
+      instruction: [You are a professional video generation assistant., 'Your role is to help users create high-quality presentation
+          videos by:', 1. Understanding their video requirements, 2. Describing the video content in detail, 3. Specifying
+          camera movements and visual style, 4. Calling the video generation tool with optimized prompts, 'IMPORTANT - Artifact
+          Handling:', 'When you need to use an image as the starting frame for a video:', '- Use the artifact_id (filename)
+          provided by the user or system', '- NEVER ask for base64 data or raw binary', '- The system automatically converts
+          artifact_id to base64 before sending to the MCP tool', '- After the tool returns, the video is automatically saved
+          as an artifact', 'PROMPT OPTIMIZATION TIPS:', '- Be specific about camera movements: "slow zoom in", "rotating view",
+          "tracking shot"', '- Describe timing: "gradually appear", "fade smoothly", "transition quickly"', '- Mention visual
+          style: "professional blue theme", "minimalist", "corporate"', '- Include duration: typically 8-15 seconds for presentation
+          videos', 'Example workflow:', 'User: "Create a video of a rotating chart from slide 1"', 'You: "I''ll generate a
+          video showing a rotating 3D chart with smooth transitions.', I'll use the chart image from your slide as the starting
+          frame.", 'System: Calls video tool with artifact_id from user''s image', 'Result: Video saved as artifact, ready
+          to use in presentation']
+      before_tool_callback: before_tool_modifier
+      after_tool_callback: after_tool_modifier
+      function: create_video_agent
+  video_generator_agent:
+    type: instance
+    models: [gemini-2.5-flash]
+    params:
+      name: video_generator
+      description: Generates video prompts from slide speaker notes.
+      instruction: [You are a professional video director., Your role is to create promotional videos for presentation slides
+          using the, Veo 3.1 model., 'INPUT:', '1. SLIDE_IMAGE: An image of the current presentation slide', '2. SPEAKER_NOTES:
+          The speaker notes or narrative for the slide', '3. SLIDE_CONTEXT: Information about the presentation theme and style',
+        'TASK:', Generate a professional 8-second promotional video based on the slide image, and speaker notes., 'GUIDELINES:',
+        '1. **Video Concept**: Create a clear, engaging video that visualizes the', key message of the slide., '2. **Animation
+          Style**: Suggest smooth camera movements (zoom, pan, tracking', shots) that enhance viewer engagement., '3. **Timing**:
+          Ensure the 8-second duration is optimal for the content.', '4. **Professional Quality**: Generate videos with:',
+        '- 4K cinematic quality', '- Professional color grading', '- Smooth, stabilized camera movements', '- Appropriate
+          depth of field', '- Studio-quality lighting', 'PROMPT WRITING TIPS:', '- Focus on product/content actions and movements',
+        '- Describe desired camera angles and perspectives', '- Specify background and environment preferences', '- Include
+          specific details about visual presentation', '- Use clear, descriptive language', 'OUTPUT FORMAT:', Return ONLY
+          the video generation prompt. Do not include explanations or, commentary. The prompt should be descriptive and ready
+          to send to the, Veo 3.1 video generation service., 'EXAMPLE OUTPUT:', '"Product slowly rotating 360 degrees on white
+          minimalist background,', 'smooth dolly camera movement from left to right, professional studio', 'lighting emphasizing
+          product details, clean modern aesthetic suitable', for premium marketing materials."]
+  writer:
+    type: instance
+    models: [gemini-2.5-flash]
+    tools: [google_search]
+    params:
+      name: speech_writer
+      description: Generates presentation scripts with custom speaking style.
+      instruction: instruction
+      function: create_writer_agent
+  writer_agent:
+    type: instance
+    models: [gemini-2.5-flash]
+    tools: [google_search]
+    params:
+      name: speech_writer
+      description: A speech writer agent that generates presentation scripts with context.
+      instruction: [You are a professional speech writer. You generate "Speaker Notes" for a presenter., 'INPUTS:', '1. SLIDE_ANALYSIS:
+          The content of the current slide (Topic, Details, Visuals).', '2. PRESENTATION_THEME: The overall topic of the deck.',
+        '3. PREVIOUS_CONTEXT: A summary of what was discussed in the previous slide (for transitions).', '4. GLOBAL_CONTEXT:
+          The overall narrative arc, vocabulary, and speaker persona for the entire deck.', '5. SPEAKER STYLE: The desired
+          speaking style/tone for the speaker notes.', 'TASK:', 'Write a natural, 1st-person script for the presenter to say
+          while showing this slide.', 'GUIDELINES:', '- Consistency: Adhere to the "Speaker Persona" and "Vocabulary" defined
+          in GLOBAL_CONTEXT.', '- Context: Use GLOBAL_CONTEXT to understand where this slide fits in the bigger picture (e.g.,
+          is this the climax? the setup?).', '- Transitions: Use the PREVIOUS_CONTEXT to bridge the gap.', '- Tone: Professional,
+          confident, and engaging.', '- Content: Elaborate on the "DETAILS" and explain the "VISUALS".', '- Length: 3-5 sentences.
+          Concise but impactful.', '- SPEAKER STYLE: Adapt the speaking style and vocabulary to match the SPEAKER STYLE provided:',
+        '* The SPEAKER STYLE will be provided as input', '* Carefully read and follow the speaking style instructions', '*
+          Adapt your language, tone, and vocabulary to match the specified style', '* If the style includes example phrases,
+          use similar phrasing patterns', '* Maintain clarity and professionalism while expressing the speaking style', 'OUTPUT:',
+        Return ONLY the spoken text. Do not use markdown formatting or headers.]
+
+models:
+  gemini-2.5-flash:
+    type: literal
+    agents: [overviewer_agent, supervisor_agent, title_generator_agent, video_generator_agent, writer, title_generator, translator,
+      supervisor, analyst_agent, auditor_agent, translator_agent, writer_agent, refiner_agent, agent.initialize_agents.0,
+      agent.initialize_agents.2, agent.initialize_agents.3, agent.initialize_agents.6, agent.initialize_agents.8, agent.initialize_agents.9]
+  gemini-3-pro-image-preview:
+    type: literal
+    agents: [designer, designer_agent, image_translator_agent, agent.initialize_agents.5, agent.initialize_agents.7]
+  gemini-3-pro-preview:
+    type: literal
+    agents: [agent.initialize_agents.1, agent.initialize_agents.4]
+  imagen-4.0-generate-001:
+    type: literal
+    agents: [fallback_designer_agent]
+  model:
+    type: literal
+    agents: [video_agent]
+  MODEL_PROMPT_REWRITER:
+    type: literal
+    agents: [prompt_rewriter_agent]
+  self.secondary_model:
+    type: literal
+    agents: [secondary_agent]
+
+tools:
+  auditor_agent:
+    type: agent
+    agents: [supervisor_agent]
+    params:
+      wrapper: AgentTool
+      agent: auditor_agent
+  google_search:
+    type: module
+    agents: [overviewer_agent, writer, auditor_agent, writer_agent, agent.initialize_agents.2]
+  mcp_toolset:
+    type: mcp
+    agents: [video_agent]
+    params:
+      class: MCPToolset
+      mcp_server: mcp_toolset
+  translator_agent:
+    type: agent
+    agents: [supervisor_agent]
+    params:
+      wrapper: AgentTool
+      agent: translator_agent
+  writer_agent:
+    type: agent
+    agents: [supervisor_agent]
+    params:
+      wrapper: AgentTool
+      agent: writer_agent
+
+mcp:
+  mcp_toolset:
+    type: process
+    agents: [agent.create_video_agent, video_agent]
+    params:
+      class: MCPToolset
+      connection_type: StdioConnectionParams
+      command: uv
+      args: [run, veo_mcp_path]
+      timeout: "300"
+  MCPToolset.0:
+    type: process
+    params:
+      class: MCPToolset
+      connection_type: StdioConnectionParams
+      command: python
+      args: [-m, mcp_sample.veo_server]
+      timeout: "180"
+      function: create_stdio_mcp_toolset
+      instance: MCPToolset
+  MCPToolset.1:
+    type: network
+    url: url
+    params:
+      class: MCPToolset
+      connection_type: StreamableHTTPConnectionParams
+      timeout: "180"
+      function: create_http_mcp_toolset
+
+imports:
+  after_tool_modifier: mcp_sample.tool_callbacks.after_tool_modifier
+  Agent: google.adk.agents.llm_agent.Agent
+  AgentTool: google.adk.tools.agent_tool.AgentTool
+  AgentToolFactory: tools.agent_tools.AgentToolFactory
+  analyst_agent: analyst.analyst_agent
+  ANALYST_PROMPT: agents.prompts.ANALYST_PROMPT
+  Any: typing.Any
+  argparse: argparse
+  asdict: dataclasses.asdict
+  asyncio: asyncio
+  auditor_agent: auditor.auditor_agent
+  AUDITOR_PROMPT: agents.prompts.AUDITOR_PROMPT
+  base64: base64
+  BaseTool: google.adk.tools.base_tool.BaseTool
+  before_tool_modifier: mcp_sample.tool_callbacks.before_tool_modifier
+  CacheManager: services.tts.cache_manager.CacheManager
+  Callable: typing.Callable
+  CallToolResult: mcp.types.CallToolResult
+  check_gemini_tts_size_limit: utils.text_processing.check_gemini_tts_size_limit
+  CLI: cli.CLI
+  Command: base.Command
+  Config: config.Config
+  ConfigFileLoader: config.config_loader.ConfigFileLoader
+  create_all_agents: agents.agent_factory.create_all_agents
+  create_gemini_tts_engine: gemini_tts_engine.create_gemini_tts_engine
+  create_image_part: image_utils.create_image_part
+  create_slide_key: utils.progress_utils.create_slide_key
+  create_traditional_tts_engine: traditional_tts_engine.create_traditional_tts_engine
+  create_tts_orchestrator: services.tts.tts_orchestrator.create_tts_orchestrator
+  dataclass: dataclasses.dataclass
+  datetime: datetime.datetime
+  designer_agent: designer.designer_agent
+  DESIGNER_PROMPT: agents.prompts.DESIGNER_PROMPT
+  Dict: typing.Dict
+  EngineSelector: services.tts.engine_selector.EngineSelector
+  ensure_pptx_path: utils.pptx_utils.ensure_pptx_path
+  EnvironmentVars: config.constants.EnvironmentVars
+  ET: xml.etree.ElementTree
+  FilePatterns: config.constants.FilePatterns
+  FileSet: input_scanner.FileSet
+  Final: typing.Final
+  gcp_exceptions: google.api_core.exceptions
+  GeminiTTSConfig: config.tts_config.GeminiTTSConfig
+  GeminiTTSEngine: gemini_tts_engine.GeminiTTSEngine
+  genai: google.genai
+  get_current_project: utils.project_rotation.get_current_project
+  get_image: utils.image_utils.get_image
+  get_progress_file_path: utils.progress_utils.get_progress_file_path
+  get_project_count: utils.project_rotation.get_project_count
+  get_slide_notes: utils.pptx_utils.get_slide_notes
+  get_tts_config: config.tts_config.get_tts_config
+  google_search: google.adk.tools.google_search
+  hashlib: hashlib
+  Image: PIL.Image
+  IMAGE_REGISTRY: utils.image_utils.IMAGE_REGISTRY
+  image_translator_agent: image_translator.image_translator_agent
+  IMAGE_TRANSLATOR_PROMPT: agents.prompts.IMAGE_TRANSLATOR_PROMPT
+  Inches: pptx.util.Inches
+  InMemoryRunner: google.adk.runners.InMemoryRunner
+  InputScanner: application.input_scanner.InputScanner
+  io: io
+  json: json
+  LanguageConfig: config.constants.LanguageConfig
+  List: typing.List
+  LlmAgent: google.adk.agents.LlmAgent
+  load_dotenv: dotenv.load_dotenv
+  load_progress: utils.progress_utils.load_progress
+  logging: logging
+  mcp_toolset: veo_mcp_tools.mcp_toolset
+  McpTool: google.adk.tools.mcp_tool.mcp_tool.McpTool
+  MCPToolset: google.adk.tools.mcp_tool.mcp_toolset.MCPToolset
+  ModelConfig: config.constants.ModelConfig
+  natural_sort_files: utils.file_sorting.natural_sort_files
+  Optional: typing.Optional
+  os: os
+  overviewer_agent: overviewer.overviewer_agent
+  OVERVIEWER_PROMPT: agents.prompts.OVERVIEWER_PROMPT
+  parse_languages: utils.cli_utils.parse_languages
+  Part: google.genai.types.Part
+  Path: pathlib.Path
+  PP_ALIGN: pptx.enum.text.PP_ALIGN
+  prepare_text_for_tts: utils.text_processing.prepare_text_for_tts
+  Presentation: pptx.Presentation
+  PresentationProcessor: services.presentation_processor.PresentationProcessor
+  PresentationType: core.domain.tts.PresentationType
+  print_file_pairing_preview: utils.file_sorting.print_file_pairing_preview
+  ProcessingConfig: config.constants.ProcessingConfig
+  ProcessingError: utils.error_handling.ProcessingError
+  ProgressReporter: services.video_synthesis.progress_tracker.ProgressReporter
+  prompt: prompt
+  prompt_rewriter_agent: prompt_rewriter.prompt_rewriter_agent
+  PromptCache: prompt_cache.PromptCache
+  PromptRewriter: services.prompt_rewriter.PromptRewriter
+  Pt: pptx.util.Pt
+  pymupdf: pymupdf
+  re: re
+  RefineCommand: commands.RefineCommand
+  RefinementProcessor: services.refinement_processor.RefinementProcessor
+  refiner_agent: agents.refiner.refiner_agent
+  REFINER_PROMPT: agents.prompts.REFINER_PROMPT
+  register_image: utils.image_utils.register_image
+  reload_projects: utils.project_rotation.reload_projects
+  resolve_pdf_path: utils.cli_utils.resolve_pdf_path
+  resolve_pptx_path: utils.cli_utils.resolve_pptx_path
+  restore_vba_project: utils.pptx_utils.restore_vba_project
+  RetryStrategy: utils.error_handling.RetryStrategy
+  rotate_project: utils.project_rotation.rotate_project
+  run_stateless_agent: utils.agent_utils.run_stateless_agent
+  run_visual_agent: utils.agent_utils.run_visual_agent
+  save_progress: utils.progress_utils.save_progress
+  setup_logging: logging_setup.setup_logging
+  should_retry_errors: utils.progress_utils.should_retry_errors
+  shutil: shutil
+  Slide: pptx.slide.Slide
+  SlideData: core.domain.tts.SlideData
+  SlideProcessingError: utils.error_handling.SlideProcessingError
+  StdioConnectionParams: google.adk.tools.mcp_tool.mcp_session_manager.StdioConnectionParams
+  StdioServerParameters: mcp.StdioServerParameters
+  StorageManager: services.tts.storage_manager.StorageManager
+  StreamableHTTPConnectionParams: google.adk.tools.mcp_tool.mcp_session_manager.StreamableHTTPConnectionParams
+  strip_markdown: utils.text_processing.strip_markdown
+  struct: struct
+  StyleContext: core.domain.tts.StyleContext
+  supervisor_agent: supervisor.supervisor_agent
+  SUPERVISOR_PROMPT: agents.prompts.SUPERVISOR_PROMPT
+  sys: sys
+  tempfile: tempfile
+  texttospeech: google.cloud.texttospeech
+  threading: threading
+  time: time
+  timedelta: datetime.timedelta
+  title_generator_agent: title_generator.title_generator_agent
+  TITLE_GENERATOR_PROMPT: title_generator.TITLE_GENERATOR_PROMPT
+  ToolContext: google.adk.tools.tool_context.ToolContext
+  traceback: traceback
+  TraditionalTTSEngine: traditional_tts_engine.TraditionalTTSEngine
+  TranslationError: utils.error_handling.TranslationError
+  translator_agent: translator.translator_agent
+  TRANSLATOR_PROMPT: agents.prompts.TRANSLATOR_PROMPT
+  TTSCLIUtility: utils.tts_cli_utils.TTSCLIUtility
+  TTSConfig: config.tts_config.TTSConfig
+  TTSEngineError: core.domain.tts.TTSEngineError
+  TTSEngineType: core.domain.tts.TTSEngineType
+  TTSOrchestrator: services.tts.tts_orchestrator.TTSOrchestrator
+  TTSResult: core.domain.tts.TTSResult
+  TTSStyleAdapter: services.tts.tts_style_adapter.TTSStyleAdapter
+  Tuple: typing.Tuple
+  types: google.genai.types
+  UnifiedProcessor: unified_processor.UnifiedProcessor
+  unregister_image: utils.image_utils.unregister_image
+  update_slide_notes: utils.pptx_utils.update_slide_notes
+  uuid: uuid
+  video_generator_agent: video_generator.video_generator_agent
+  VIDEO_GENERATOR_PROMPT: agents.prompts.VIDEO_GENERATOR_PROMPT
+  VideoConfig: core.domain.video_synthesis.VideoConfig
+  VideoConfigManager: services.video_synthesis.video_config_manager.VideoConfigManager
+  VideoFileManager: services.video_synthesis.file_manager.VideoFileManager
+  VideoGenerationError: utils.error_handling.VideoGenerationError
+  VideoSynthesisRequest: core.domain.video_synthesis.VideoSynthesisRequest
+  VideoSynthesisService: services.video_synthesis.video_synthesis_service.VideoSynthesisService
+  VideoValidator: utils.video_validator.VideoValidator
+  VisualGenerator: services.visual_generator.VisualGenerator
+  VoiceConfig: core.domain.tts.VoiceConfig
+  writer_agent: writer.writer_agent
+  WRITER_PROMPT: agents.prompts.WRITER_PROMPT
+  zipfile: zipfile
+
+functions:
+  __init__:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, client, config]
+  _analyze_speaker_notes_to_style:
+    type: sync
+    module: services.tts.tts_style_adapter
+    args: [self, speaker_notes, slide_content]
+    params:
+      returns: str
+  _async_synthesize_speech:
+    type: async
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, request]
+    params:
+      returns: texttospeech.SynthesizeSpeechResponse
+  _build_designer_prompt:
+    type: sync
+    module: services.visual_generator
+    args: [self, speaker_notes, logo_instruction, language]
+    params:
+      returns: str
+  _build_fallback_prompt:
+    type: sync
+    module: services.visual_generator
+    args: [self, speaker_notes, language]
+    params:
+      returns: str
+  _build_supervisor_prompt:
+    type: sync
+    module: services.presentation_processor
+    args: [self, slide_idx, image_id, existing_notes, previous_slide_summary, presentation_theme, global_context, total_slides,
+      previous_speaker_notes]
+    params:
+      returns: str
+  _build_synthesis_request:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, text, style_prompt, voice_config, language_code, model]
+    params:
+      returns: texttospeech.SynthesizeSpeechRequest
+  _call_tts_api_with_retry:
+    type: async
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, request]
+    params:
+      returns: texttospeech.SynthesizeSpeechResponse
+  _check_and_adjust_engine_for_size:
+    type: sync
+    module: services.tts.tts_orchestrator
+    args: [self, text_content, speaker_notes, original_engine, slide_number]
+    params:
+      returns: TTSEngineType
+  _cleanup_cache_if_needed:
+    type: sync
+    module: services.prompt_cache
+    args: [self]
+    params:
+      returns: None
+  _compute_image_placement:
+    type: sync
+    module: services.visual_generator
+    args: [self, img_width_px, img_height_px, slide_width, slide_height, dpi, mode]
+  _configure_supervisor_tools:
+    type: sync
+    module: services.presentation_processor
+    args: [self, presentation_theme, global_context, english_notes]
+    params:
+      returns: None
+  _create_base_tts_prompt:
+    type: sync
+    module: services.tts.tts_style_adapter
+    args: [self, language_code]
+    params:
+      returns: str
+  _create_concise_prompt:
+    type: sync
+    module: services.tts.tts_style_adapter
+    args: [self, style_guidelines, language_code]
+    params:
+      returns: str
+  _create_concise_tts_prompt:
+    type: sync
+    module: services.prompt_rewriter
+    args: [self, style_guidelines]
+    params:
+      returns: str
+  _create_fallback_prompt:
+    type: sync
+    module: services.tts.tts_style_adapter
+    args: [self, style_guidelines, language_code]
+    params:
+      returns: str
+  _create_gemini_engine:
+    type: sync
+    module: services.tts.tts_orchestrator
+    args: [self]
+    params:
+      returns: GeminiTTSEngine
+  _create_parser:
+    type: sync
+    module: application.cli
+    args: [self]
+    params:
+      returns: argparse.ArgumentParser
+  _create_traditional_engine:
+    type: sync
+    module: services.tts.tts_orchestrator
+    args: [self]
+    params:
+      returns: TraditionalTTSEngine
+  _create_tts_fallback_prompt:
+    type: sync
+    module: services.prompt_rewriter
+    args: [self, base_prompt, style_guidelines]
+    params:
+      returns: str
+  _detect_presentation_type:
+    type: sync
+    module: services.tts.tts_style_adapter
+    args: [self, notes, content]
+    params:
+      returns: PresentationType
+  _ensure_initialized:
+    type: sync
+    module: utils.project_rotation
+    args: [self]
+    params:
+      returns: None
+  _estimate_duration:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, text]
+    params:
+      returns: float
+  _extract_all_images:
+    type: sync
+    module: services.context_service
+    args: [self, pdf_doc, limit]
+    params:
+      returns: list[Image.Image]
+  _extract_artifact_id:
+    type: sync
+    module: services.presentation_processor
+    args: [self, agent_response]
+    params:
+      returns: str
+  _extract_audio_duration:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, audio_data, text]
+    params:
+      returns: float
+  _extract_slide_image:
+    type: sync
+    module: services.presentation_processor
+    args: [self, pdf_page]
+    params:
+      returns: Image.Image
+  _extract_style_indicators:
+    type: sync
+    module: services.tts.tts_style_adapter
+    args: [self, speaker_notes, slide_content]
+    params:
+      returns: Dict
+  _extract_video_prompt:
+    type: sync
+    module: services.presentation_processor
+    args: [self, slide_idx, speaker_notes]
+    params:
+      returns: str
+  _fallback_to_simple_concatenation:
+    type: sync
+    module: services.prompt_rewriter
+    args: [self, rewrite_request, session_prefix]
+    params:
+      returns: str
+  _find_json_files:
+    type: sync
+    module: application.commands.refine
+    args: [self]
+    params:
+      returns: List[Tuple]
+  _find_mp3_frame_start:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, audio_data]
+    params:
+      returns: int
+  _generate_imagen_directly:
+    type: async
+    module: services.visual_generator
+    args: [self, prompt]
+    params:
+      returns: Optional[bytes]
+  _generate_style_prompt_from_context:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, style_context]
+    params:
+      returns: str
+  _generate_videos_for_slides:
+    type: async
+    module: services.presentation_processor
+    args: [self, slide_data, _presentation_theme, _global_context]
+    params:
+      returns: None
+  _generate_with_gemini:
+    type: async
+    module: services.tts.tts_orchestrator
+    args: [self, slide_data, style_context, voice_config, cache_key]
+    params:
+      returns: TTSResult
+  _generate_with_supervisor:
+    type: async
+    module: services.notes_generator
+    args: [self, slide_idx, slide_image, existing_notes, previous_slide_summary, presentation_theme, global_context, user_id,
+      session_id]
+    params:
+      returns: tuple
+  _generate_with_traditional:
+    type: async
+    module: services.tts.tts_orchestrator
+    args: [self, slide_data, style_context, voice_config, cache_key]
+    params:
+      returns: TTSResult
+  _get_default_professional_style:
+    type: sync
+    module: services.tts.tts_style_adapter
+    args: [self]
+    params:
+      returns: str
+  _get_global_context:
+    type: async
+    module: services.presentation_processor
+    args: [self, pdf_doc, limit, progress]
+    params:
+      returns: str
+  _get_logo_instruction:
+    type: sync
+    module: services.visual_generator
+    args: [self, slide_idx]
+    params:
+      returns: str
+  _get_session_id:
+    type: sync
+    module: utils.agent_utils
+    args: [session]
+    params:
+      returns: str
+  _get_ssml_gender:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, gender]
+    params:
+      returns: texttospeech.SsmlVoiceGender
+  _handle_processing:
+    type: async
+    module: application.cli
+    args: [self, args]
+    params:
+      returns: None
+  _handle_refine:
+    type: async
+    module: application.cli
+    args: [self, args]
+    params:
+      returns: None
+  _handle_synthesize_style_videos:
+    type: async
+    module: application.cli
+    args: [self, args]
+    params:
+      returns: None
+  _handle_tts_only:
+    type: async
+    module: application.cli
+    args: [self, args]
+    params:
+      returns: None
+  _handle_video_cache_stats:
+    type: async
+    module: application.cli
+    args: [self, args]
+    params:
+      returns: None
+  _handle_video_clear_cache:
+    type: async
+    module: application.cli
+    args: [self, args]
+    params:
+      returns: None
+  _handle_video_synthesis:
+    type: async
+    module: application.cli
+    args: [self, args]
+    params:
+      returns: None
+  _has_cached_context:
+    type: sync
+    module: services.context_service
+    args: [self, progress, retry_errors]
+    params:
+      returns: bool
+  _increment_cache_hits:
+    type: sync
+    module: services.prompt_cache
+    args: [self]
+    params:
+      returns: None
+  _increment_cache_misses:
+    type: sync
+    module: services.prompt_cache
+    args: [self]
+    params:
+      returns: None
+  _initialize_cache:
+    type: sync
+    module: services.prompt_cache
+    args: [self]
+    params:
+      returns: None
+  _initialize_supervisor:
+    type: async
+    module: services.presentation_processor
+    args: [self]
+    params:
+      returns: InMemoryRunner
+  _is_entry_expired:
+    type: sync
+    module: services.prompt_cache
+    args: [self, entry]
+    params:
+      returns: bool
+  _is_error_response:
+    type: sync
+    module: services.presentation_processor
+    args: [self, response]
+    params:
+      returns: bool
+  _load_config_file:
+    type: sync
+    module: application.cli
+    args: [self, args]
+    params:
+      returns: None
+  _load_metadata:
+    type: sync
+    module: services.prompt_cache
+    args: [self]
+    params:
+      returns: CacheMetadata
+  _load_projects:
+    type: sync
+    module: utils.project_rotation
+    args: [self]
+    params:
+      returns: None
+  _parse_languages:
+    type: sync
+    module: application.unified_processor
+    args: [self, languages]
+    params:
+      returns: List[str]
+  _parse_mp3_duration:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, audio_data]
+    params:
+      returns: float
+  _phase_generate_notes:
+    type: async
+    module: services.presentation_processor
+    args: [self, prs_notes, prs_visuals, pdf_doc, limit, progress, supervisor_runner, presentation_theme, global_context]
+    params:
+      returns: list
+  _phase_generate_tts:
+    type: async
+    module: services.presentation_processor
+    args: [self, slide_data, progress]
+    params:
+      returns: None
+  _phase_generate_videos:
+    type: async
+    module: services.presentation_processor
+    args: [self, slide_data, presentation_theme, global_context]
+    params:
+      returns: None
+  _phase_generate_visuals:
+    type: async
+    module: services.presentation_processor
+    args: [self, prs_visuals, slide_data]
+    params:
+      returns: int
+  _process_file_set_with_config:
+    type: async
+    module: application.unified_processor
+    args: [self, file_set, language, config]
+    params:
+      returns: Tuple
+  _process_file_sets_with_config:
+    type: async
+    module: application.unified_processor
+    args: [self, file_sets, config]
+    params:
+      returns: Dict
+  _process_single_file_set:
+    type: async
+    module: application.unified_processor
+    args: [self, file_set, language, style, output_dir]
+    params:
+      returns: Tuple
+  _process_slide_notes:
+    type: async
+    module: services.presentation_processor
+    args: [self, slide_idx, image_id, existing_notes, previous_slide_summary, presentation_theme, global_context, entry, supervisor_runner,
+      user_id, session_id, total_slides, previous_speaker_notes]
+    params:
+      returns: tuple
+  _rewrite_with_cache:
+    type: async
+    module: services.prompt_rewriter
+    args: [self, base_prompt, style_guidelines, prompt_type]
+    params:
+      returns: str
+  _run_rewriter_with_retry:
+    type: async
+    module: services.prompt_rewriter
+    args: [self, rewrite_request, session_prefix]
+    params:
+      returns: str
+  _run_supervisor:
+    type: async
+    module: services.notes_generator
+    args: [self, slide_idx, content, user_id, session_id]
+    params:
+      returns: tuple
+  _save_cache_entry:
+    type: sync
+    module: services.prompt_cache
+    args: [self, entry]
+    params:
+      returns: None
+  _save_metadata:
+    type: sync
+    module: services.prompt_cache
+    args: [self, metadata]
+    params:
+      returns: None
+  _save_outputs:
+    type: sync
+    module: services.presentation_processor
+    args: [self, prs_notes, prs_visuals, missing_visuals_count]
+    params:
+      returns: tuple
+  _select_model:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, style_prompt]
+    params:
+      returns: str
+  _select_voice:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, available_voices, preferred_gender]
+    params:
+      returns: Optional[str]
+  _setup_environment:
+    type: sync
+    module: application.cli
+    args: [self, args]
+    params:
+      returns: None
+  _should_translate:
+    type: sync
+    module: services.notes_generator
+    args: [self, slide_idx]
+    params:
+      returns: bool
+  _translate_from_english:
+    type: async
+    module: services.context_service
+    args: [self, pptx_path, target_language, output_dir]
+    params:
+      returns: Optional[str]
+  _translate_notes:
+    type: async
+    module: services.presentation_processor
+    args: [self, english_note, slide_idx]
+    params:
+      returns: Optional[str]
+  _translate_visual:
+    type: async
+    module: services.presentation_processor
+    args: [self, english_visual, english_note, translated_note, slide_idx]
+    params:
+      returns: Optional[bytes]
+  _update_previous_image:
+    type: sync
+    module: services.visual_generator
+    args: [self, img_bytes]
+    params:
+      returns: None
+  _update_total_entries:
+    type: sync
+    module: services.prompt_cache
+    args: [self]
+    params:
+      returns: None
+  _validate_and_fix_tts_tone:
+    type: sync
+    module: services.prompt_rewriter
+    args: [self, tts_prompt]
+    params:
+      returns: str
+  _validate_mp3_format:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, audio_data]
+    params:
+      returns: bool
+  add_visual_to_presentation:
+    type: sync
+    module: services.visual_generator
+    args: [self, prs, slide_idx, img_path, speaker_notes, mode, target_dpi]
+    params:
+      returns: bool
+  after_tool_modifier:
+    type: async
+    module: mcp_sample.tool_callbacks
+    args: [tool, args, tool_context, tool_response]
+    params:
+      returns: dict
+  analyze_presentation_style:
+    type: sync
+    module: services.tts.tts_style_adapter
+    args: [self, slides_data, language_code, presentation_id]
+    params:
+      returns: str
+  analyze_speaker_notes:
+    type: sync
+    module: services.tts.tts_style_adapter
+    args: [self, speaker_notes, slide_content]
+    params:
+      returns: StyleContext
+  before_tool_modifier:
+    type: async
+    module: mcp_sample.tool_callbacks
+    args: [tool, args, tool_context]
+    params:
+      returns: None
+  call_analyst:
+    type: async
+    module: tools.agent_tools
+    args: [image_id]
+    params:
+      returns: str
+  call_image_translator:
+    type: async
+    module: tools.agent_tools
+    args: [slide_image, english_description]
+    params:
+      returns: str
+  cleanup_cache:
+    type: async
+    module: utils.tts_cli_utils
+    args: [self, max_age_days]
+    params:
+      returns: Dict
+  cleanup_temp_files:
+    type: sync
+    module: services.visual_generator
+    args: [self, prs]
+    params:
+      returns: None
+  clear_cache:
+    type: sync
+    module: services.prompt_cache
+    args: [self]
+    params:
+      returns: None
+  clear_registry:
+    type: sync
+    module: utils.image_utils
+    params:
+      returns: None
+  clear_style_cache:
+    type: sync
+    module: services.tts.tts_style_adapter
+    args: [self, presentation_id]
+  create_all_agents:
+    type: async
+    module: agents.agent_factory
+    args: [visual_style, speaker_style]
+    params:
+      returns: dict
+  create_analyst_tool:
+    type: sync
+    module: tools.agent_tools
+    args: [self]
+    params:
+      returns: Callable
+  create_auditor_tool:
+    type: sync
+    module: tools.agent_tools
+    args: [self, language]
+    params:
+      returns: Callable
+  create_designer_agent:
+    type: async
+    module: agents.agent_factory
+    args: [visual_style]
+    params:
+      returns: LlmAgent
+  create_gemini_tts_engine:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [client, config]
+    params:
+      returns: GeminiTTSEngine
+  create_http_mcp_toolset:
+    type: sync
+    module: mcp_sample.mcp_tools
+    args: [url]
+    params:
+      returns: MCPToolset
+  create_image_part:
+    type: sync
+    module: utils.image_utils
+    args: [image]
+    params:
+      returns: types.Part
+  create_image_translator_tool:
+    type: sync
+    module: tools.agent_tools
+    args: [self, target_language]
+    params:
+      returns: Callable
+  create_prompt_rewriter_agent:
+    type: sync
+    module: agents.prompt_rewriter
+    params:
+      returns: LlmAgent
+  create_stdio_mcp_toolset:
+    type: sync
+    module: mcp_sample.mcp_tools
+    params:
+      returns: MCPToolset
+  create_style_enhanced_request:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, text, style_context, voice_config, language_code]
+    params:
+      returns: Dict
+  create_title_generator_agent:
+    type: async
+    module: agents.agent_factory
+    args: [speaker_style]
+    params:
+      returns: LlmAgent
+  create_translator_agent:
+    type: async
+    module: agents.agent_factory
+    args: [speaker_style]
+    params:
+      returns: LlmAgent
+  create_translator_tool:
+    type: sync
+    module: tools.agent_tools
+    args: [self]
+    params:
+      returns: Callable
+  create_tts_cli_parser:
+    type: sync
+    module: utils.tts_cli_utils
+    params:
+      returns: argparse.ArgumentParser
+  create_tts_orchestrator:
+    type: sync
+    module: services.tts.tts_orchestrator
+    args: [tts_config, tts_style_adapter, main_config]
+    params:
+      returns: TTSOrchestrator
+  create_video_agent:
+    type: sync
+    module: mcp_sample.agent_config
+    args: [agent_name, model]
+    params:
+      returns: Agent
+  create_writer_agent:
+    type: async
+    module: agents.agent_factory
+    args: [speaker_style]
+    params:
+      returns: LlmAgent
+  create_writer_tool:
+    type: sync
+    module: tools.agent_tools
+    args: [self, presentation_theme, global_context, language, english_notes, speaker_style]
+    params:
+      returns: Callable
+  execute:
+    type: async
+    module: application.commands.refine
+    args: [self]
+    params:
+      returns: None
+  generate_cache_key:
+    type: sync
+    module: services.prompt_cache
+    args: [self, base_prompt, style, prompt_type]
+    params:
+      returns: str
+  generate_notes:
+    type: async
+    module: services.notes_generator
+    args: [self, slide_idx, slide_image, existing_notes, previous_slide_summary, presentation_theme, global_context, user_id,
+      session_id]
+    params:
+      returns: tuple
+  generate_speech_for_slide:
+    type: async
+    module: services.tts.tts_orchestrator
+    args: [self, slide_number, text_content, speaker_notes, language_code, presentation_id, title]
+    params:
+      returns: TTSResult
+  generate_tts_for_presentation:
+    type: async
+    module: utils.tts_cli_utils
+    args: [self, presentation_path, language, output_dir]
+    params:
+      returns: Dict
+  generate_tts_style_prompt:
+    type: sync
+    module: services.tts.tts_style_adapter
+    args: [self, speaker_notes, slide_content, language_code, presentation_id, base_tts_prompt]
+    params:
+      returns: str
+  generate_video:
+    type: async
+    module: services.video_service
+    args: [self, slide_idx, speaker_notes, slide_image]
+    params:
+      returns: Optional[str]
+  generate_video_prompt:
+    type: async
+    module: services.video_service
+    args: [self, slide_idx, speaker_notes, slide_image]
+    params:
+      returns: str
+  generate_visual:
+    type: async
+    module: services.visual_generator
+    args: [self, slide_idx, slide_image, speaker_notes, retry_errors, language]
+    params:
+      returns: Optional[bytes]
+  get_agent:
+    type: sync
+    module: services.agent_manager
+    args: [self, role]
+    params:
+      returns: Optional[LlmAgent]
+  get_analyst:
+    type: sync
+    module: services.agent_manager
+    args: [self]
+    params:
+      returns: LlmAgent
+  get_auditor:
+    type: sync
+    module: services.agent_manager
+    args: [self]
+    params:
+      returns: LlmAgent
+  get_available_voices:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, language_code]
+    params:
+      returns: List[str]
+  get_cache_stats:
+    type: sync
+    module: services.tts.tts_style_adapter
+    args: [self]
+    params:
+      returns: Dict
+  get_cached_prompt:
+    type: sync
+    module: services.prompt_cache
+    args: [self, cache_key]
+    params:
+      returns: Optional[str]
+  get_current_project:
+    type: sync
+    module: utils.project_rotation
+    params:
+      returns: Optional[str]
+  get_designer:
+    type: sync
+    module: services.agent_manager
+    args: [self]
+    params:
+      returns: LlmAgent
+  get_global_context:
+    type: async
+    module: services.context_service
+    args: [self, pdf_doc, limit, progress_file, language, pptx_path, retry_errors, output_dir]
+    params:
+      returns: str
+  get_image:
+    type: sync
+    module: utils.image_utils
+    args: [image_id]
+    params:
+      returns: Image.Image
+  get_image_translator:
+    type: sync
+    module: services.agent_manager
+    args: [self]
+    params:
+      returns: LlmAgent
+  get_language_name:
+    type: sync
+    module: config.constants
+    args: [cls, locale]
+    params:
+      returns: str
+  get_next_project:
+    type: sync
+    module: utils.project_rotation
+    args: [self]
+    params:
+      returns: Optional[str]
+  get_orchestrator_stats:
+    type: sync
+    module: services.tts.tts_orchestrator
+    args: [self]
+    params:
+      returns: Dict
+  get_overviewer:
+    type: sync
+    module: services.agent_manager
+    args: [self]
+    params:
+      returns: LlmAgent
+  get_project_count:
+    type: sync
+    module: utils.project_rotation
+    params:
+      returns: int
+  get_refiner:
+    type: sync
+    module: services.agent_manager
+    args: [self]
+    params:
+      returns: LlmAgent
+  get_rewrite_summary:
+    type: sync
+    module: services.prompt_rewriter
+    args: [self]
+    params:
+      returns: Dict
+  get_supervisor:
+    type: sync
+    module: services.agent_manager
+    args: [self]
+    params:
+      returns: LlmAgent
+  get_translator:
+    type: sync
+    module: services.agent_manager
+    args: [self]
+    params:
+      returns: LlmAgent
+  get_tts_stats:
+    type: sync
+    module: utils.tts_cli_utils
+    args: [self]
+    params:
+      returns: Dict
+  get_video_generator:
+    type: sync
+    module: services.agent_manager
+    args: [self]
+    params:
+      returns: LlmAgent
+  get_writer:
+    type: sync
+    module: services.agent_manager
+    args: [self]
+    params:
+      returns: LlmAgent
+  initialize:
+    type: async
+    module: utils.tts_cli_utils
+    args: [self]
+  initialize_agents:
+    type: sync
+    module: services.agent_manager
+    args: [self]
+    params:
+      returns: None
+  is_available:
+    type: sync
+    module: services.video_service
+    args: [self]
+    params:
+      returns: bool
+  is_cache_valid:
+    type: sync
+    module: services.prompt_cache
+    args: [self, cache_key]
+    params:
+      returns: bool
+  is_initialized:
+    type: sync
+    module: services.agent_manager
+    args: [self]
+    params:
+      returns: bool
+  is_language_supported:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, language_code]
+    params:
+      returns: bool
+  is_translation_available:
+    type: sync
+    module: services.translation_service
+    args: [self]
+    params:
+      returns: bool
+  is_visual_translation_available:
+    type: sync
+    module: services.translation_service
+    args: [self]
+    params:
+      returns: bool
+  last_writer_output:
+    type: sync
+    module: tools.agent_tools
+    args: [self]
+    params:
+      returns: str
+  load_english_notes:
+    type: sync
+    module: services.context_service
+    args: [self, pptx_path, language]
+    params:
+      returns: dict
+  log_performance_metrics:
+    type: sync
+    module: services.prompt_rewriter
+    args: [self]
+  log_performance_summary:
+    type: sync
+    module: services.prompt_cache
+    args: [self]
+  log_rewrite_summary:
+    type: sync
+    module: services.prompt_rewriter
+    args: [self]
+  main:
+    type: async
+    module: utils.tts_cli_utils
+  note_auditor:
+    type: async
+    module: tools.agent_tools
+    args: [existing_notes, slide_position]
+    params:
+      returns: str
+  process:
+    type: async
+    module: services.presentation_processor
+    args: [self]
+    params:
+      returns: tuple
+  process_presentation_batch:
+    type: async
+    module: services.tts.tts_orchestrator
+    args: [self, slides_data, languages, presentation_id]
+    params:
+      returns: Dict
+  process_single_file:
+    type: async
+    module: application.unified_processor
+    args: [self, pptx_path, pdf_path, language, style, output_dir]
+    params:
+      returns: Tuple
+  process_single_language_batch:
+    type: async
+    module: services.tts.tts_orchestrator
+    args: [self, slides_data, language_code, presentation_id]
+    params:
+      returns: List[TTSResult]
+  process_single_style:
+    type: async
+    module: application.unified_processor
+    args: [self, style_identifier]
+    params:
+      returns: Dict
+  process_styles_directory:
+    type: async
+    module: application.unified_processor
+    args: [self]
+    params:
+      returns: Dict
+  refine:
+    type: async
+    module: services.refinement_processor
+    args: [self, input_path, output_path]
+  regenerate_slide_audio:
+    type: async
+    module: services.tts.tts_orchestrator
+    args: [self, slide_number, text_content, speaker_notes, language_code, presentation_id, force_regenerate]
+    params:
+      returns: TTSResult
+  regenerate_tts:
+    type: async
+    module: application.cli
+  register_image:
+    type: sync
+    module: utils.image_utils
+    args: [image_id, image]
+    params:
+      returns: None
+  reload_projects:
+    type: sync
+    module: utils.project_rotation
+    params:
+      returns: None
+  replace_slide_with_visual:
+    type: sync
+    module: services.visual_generator
+    args: [self, prs, slide, img_path, speaker_notes, mode, target_dpi]
+    params:
+      returns: bool
+  reset_project_rotation:
+    type: sync
+    module: utils.project_rotation
+    params:
+      returns: None
+  reset_rotation:
+    type: sync
+    module: utils.project_rotation
+    args: [self]
+    params:
+      returns: None
+  reset_style_context:
+    type: sync
+    module: services.visual_generator
+    args: [self]
+    params:
+      returns: None
+  reset_writer_output:
+    type: sync
+    module: tools.agent_tools
+    args: [self]
+    params:
+      returns: None
+  resize_image_if_needed:
+    type: sync
+    module: utils.image_utils
+    args: [image]
+    params:
+      returns: Image.Image
+  rewrite_designer_prompt:
+    type: async
+    module: services.prompt_rewriter
+    args: [self, base_prompt]
+    params:
+      returns: str
+  rewrite_title_generator_prompt:
+    type: async
+    module: services.prompt_rewriter
+    args: [self, base_prompt]
+    params:
+      returns: str
+  rewrite_translator_prompt:
+    type: async
+    module: services.prompt_rewriter
+    args: [self, base_prompt]
+    params:
+      returns: str
+  rewrite_tts_prompt:
+    type: async
+    module: services.prompt_rewriter
+    args: [self, base_prompt, style_guidelines]
+    params:
+      returns: str
+  rewrite_writer_prompt:
+    type: async
+    module: services.prompt_rewriter
+    args: [self, base_prompt]
+    params:
+      returns: str
+  rotate_project:
+    type: sync
+    module: utils.project_rotation
+    params:
+      returns: Optional[str]
+  run:
+    type: sync
+    module: application.cli
+    args: [self, argv]
+    params:
+      returns: int
+  run_stateless_agent:
+    type: async
+    module: utils.agent_utils
+    args: [agent, prompt, images]
+    params:
+      returns: str
+  run_visual_agent:
+    type: async
+    module: utils.agent_utils
+    args: [agent, prompt, images]
+    params:
+      returns: Optional[bytes]
+  save_video_prompt:
+    type: async
+    module: services.video_service
+    args: [self, slide_idx, video_prompt, speaker_notes, video_artifact]
+    params:
+      returns: str
+  speech_writer:
+    type: async
+    module: tools.agent_tools
+    args: [analysis, previous_context, theme, global_ctx, slide_idx, slide_position, previous_speaker_notes]
+    params:
+      returns: str
+  store_prompt:
+    type: sync
+    module: services.prompt_cache
+    args: [self, cache_key, rewritten_prompt, prompt_type, base_prompt, style]
+    params:
+      returns: bool
+  synthesize_speech:
+    type: async
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, text, style_prompt, voice_config, language_code]
+    params:
+      returns: TTSResult
+  test_tts_engines:
+    type: async
+    module: utils.tts_cli_utils
+    args: [self]
+    params:
+      returns: Dict
+  translate_notes:
+    type: async
+    module: services.translation_service
+    args: [self, english_notes, target_language, slide_idx]
+    params:
+      returns: str
+  translate_visual:
+    type: async
+    module: services.translation_service
+    args: [self, english_visual, target_language, speaker_notes, slide_idx]
+    params:
+      returns: Optional[bytes]
+  translator:
+    type: async
+    module: tools.agent_tools
+    args: [text, target_language, source_language]
+    params:
+      returns: str
+  unregister_image:
+    type: sync
+    module: utils.image_utils
+    args: [image_id]
+    params:
+      returns: None
+  validate:
+    type: sync
+    module: application.commands.refine
+    args: [self]
+    params:
+      returns: None
+  validate_audio_quality:
+    type: sync
+    module: services.tts.engines.gemini_tts_engine
+    args: [self, audio_data]
+    params:
+      returns: Dict
+
+variables:
+  EnvironmentVars.FORCE_FALLBACK_IMAGE_GEN:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [services.visual_generator]
+  FALLBACK_IMAGEN_MODEL:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [services.presentation_processor]
+  GOOGLE_CLOUD_LOCATION:
+    type: env
+    params:
+      caller: [os.environ.get, os.environ]
+      path: [services.presentation_processor]
+  GOOGLE_CLOUD_PROJECT:
+    type: env
+    params:
+      caller: [os.getenv, os.environ]
+      path: [utils.project_rotation]
+  GOOGLE_CLOUD_PROJECTS:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [utils.project_rotation]
+  MODEL_DESIGNER:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.agent_factory]
+  MODEL_DESIGNER_SECONDARY:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [services.visual_generator]
+  MODEL_PROMPT_REWRITER:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.prompt_rewriter]
+  MODEL_TITLE_GENERATOR:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.agent_factory]
+  MODEL_TRANSLATOR:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.agent_factory]
+  MODEL_WRITER:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.agent_factory]
+  PROMPT_CACHE_DIR:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [services.prompt_cache]
+  PROMPT_CACHE_ENABLED:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [services.prompt_cache]
+  PROMPT_CACHE_MAX_SIZE_MB:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [services.prompt_cache]
+  PROMPT_CACHE_TTL_DAYS:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [services.prompt_cache]
+  SPEAKER_NOTE_PROGRESS_FILE:
+    type: env
+    params:
+      caller: [os.environ]
+  SPEAKER_NOTE_RETRY_ERRORS:
+    type: env
+    params:
+      caller: [os.environ]
+  USE_MCP_VIDEO_AGENT:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.video_generator]
+
+files:
+  ./:
+    type: pattern
+    actions: [read]
+    params:
+      patterns: ['*.cache', '*.png', '*.jpg', '*.jpeg', '*.mp3', slide_*.mp4, slide_*.webm, '*_visuals', '{base}*.json']
+      caller: [_update_total_entries, clear_cache, _cleanup_cache_if_needed, get_cache_stats, _handle_video_synthesis, _handle_synthesize_style_videos]
+  .cache:
+    type: literal
+    actions: [read]
+    params:
+      caller: [get_cached_prompt, _save_cache_entry, is_cache_valid]
+      path: [self.cache_dir]
+  args.audio_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [Path]
+  args.progress_file:
+    type: pattern
+    actions: [read]
+    params:
+      caller: [os.path.join]
+      pattern: [pptx_dir, args.progress_file]
+  args.slides_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [Path]
+  audio_dir:
+    type: literal
+    actions: [read]
+    params:
+      caller: [Path(args.audio_dir), audio_dir.glob]
+  base_dir:
+    type: literal
+    actions: [read]
+    params:
+      caller: [Path(output_dir), base_dir.glob]
+  cache_file:
+    type: variable
+    actions: [read, delete]
+    params:
+      caller: [open, json.load, cache_file.unlink]
+      alias: [f]
+  cache_metadata.json:
+    type: literal
+    actions: [read]
+    params:
+      caller: [_initialize_cache, _load_metadata, _save_metadata]
+      path: [self.cache_dir]
+  config_path:
+    type: literal
+    actions: [read]
+    params:
+      caller: [Path(args.style_config)]
+  current_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.path.dirname]
+  en_img_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.path.exists, Image.open]
+  en_progress_file:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.path.exists]
+  file_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.path.basename]
+  filepath:
+    type: variable
+    actions: [write]
+    params:
+      caller: [open]
+      alias: [f]
+  img_path:
+    type: variable
+    actions: [read, write]
+    params:
+      caller: [os.path.exists, open, Image.open]
+  input_folder:
+    type: variable
+    actions: [read]
+    params:
+      caller: [Path]
+  input_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.path.abspath]
+  json_file:
+    type: pattern
+    actions: [read]
+    params:
+      caller: [os.path.join]
+      pattern: [self.input_path, json_file]
+  main.py:
+    type: pattern
+    actions: [read]
+    params:
+      caller: [os.path.join]
+      pattern: [project_root, veo_mcp, main.py]
+  metadata_path:
+    type: variable
+    actions: [read, write]
+    params:
+      caller: [open, json.load]
+      alias: [f]
+  output_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.makedirs, Path]
+  output_file_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [Path, open]
+  output_path:
+    type: literal
+    actions: [read]
+    params:
+      caller: [Path(args.video_output)]
+  pptx_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.path.basename, os.path.dirname]
+  presentation_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.path.exists, open, json.load, Path]
+  reduced_img_path:
+    type: variable
+    actions: [read, delete]
+    params:
+      caller: [Image.open, os.path.exists, os.unlink]
+  segments_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [segments_dir.glob]
+  slides_dir:
+    type: literal
+    actions: [read]
+    params:
+      caller: [Path(args.slides_dir), slides_dir.glob]
+  speech_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [speech_dir.glob]
+  target_img_path:
+    type: variable
+    actions: [read, write]
+    params:
+      caller: [os.path.exists, open]
+  temp_file:
+    type: variable
+    actions: [write, delete]
+    params:
+      caller: [open, temp_file.unlink]
+      alias: [f]
+  temp_path:
+    type: variable
+    actions: [read, delete]
+    params:
+      caller: [os.path.exists, os.unlink]
+  tmp_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [im.save]
+  vdir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [vdir.glob]
+  video_prompt_file:
+    type: variable
+    actions: [write, read]
+    params:
+      caller: [open, json.load]
+      alias: [f]
+  videos_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.makedirs]
+
+processes:
+  python:
+    type: mcp
+    actions: [exec]
+    args: [[-m, mcp_sample.veo_server]]
+    params:
+      caller: [StdioServerParameters]
+      shell: ["False"]
+  uv:
+    type: mcp
+    actions: [exec]
+    args: [[run]]
+    params:
+      caller: [StdioServerParameters]
+      shell: ["False"]
