@@ -1,641 +1,210 @@
-# Gemini Powerpoint Sage - Architecture Diagram
+# Gemini Powerpoint Sage Architecture
 
-```
-┌────────────────────────────────────────────────────────────────────┐
-│                           CLI Layer                                 │
-│                          main.py (24 lines)                         │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │ • Entry point                                                │  │
-│  │ • Setup logging                                              │  │
-│  │ • Delegate to application.CLI                                │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                      Application Layer                              │
-│                    application/cli.py                               │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │ • Parse arguments                                            │  │
-│  │ • Load configuration                                         │  │
-│  │ • Initialize services                                        │  │
-│  │ • Orchestrate processing                                     │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                      Configuration Layer                            │
-│                      config/ (251 lines total)                      │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │ • config.py - Configuration dataclass                       │  │
-│  │ • config_loader.py - YAML/JSON loading                      │  │
-│  │ • constants.py - Model names, patterns                      │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                         Service Layer                               │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │         PresentationProcessor (1261 lines)                   │  │
-│  │  ┌────────────────────────────────────────────────────────┐ │  │
-│  │  │ • Orchestrate all processing phases                    │ │  │
-│  │  │ • Load presentation & PDF                              │ │  │
-│  │  │ • Generate/load global context                         │ │  │
-│  │  │ • Process slides (notes, visuals, videos)              │ │  │
-│  │  │ • Handle multi-language workflows                      │ │  │
-│  │  │ • Save enhanced presentations                          │ │  │
-│  │  └────────────────────────────────────────────────────────┘ │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │           AgentManager                                       │  │
-│  │  • Centralized agent initialization                          │  │
-│  │  • Lazy loading of agents                                    │  │
-│  │  • Agent registry and getters                                │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │           NotesGenerator                                     │  │
-│  │  • Generate speaker notes via supervisor                     │  │
-│  │  • Translation mode detection                                │  │
-│  │  • Fallback handling                                         │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │           TranslationService                                 │  │
-│  │  • Translate speaker notes                                   │  │
-│  │  • Translate slide visuals                                   │  │
-│  │  • Language name mapping                                     │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │           VisualGenerator                                    │  │
-│  │  • Generate enhanced slide visuals                           │  │
-│  │  • Manage style consistency                                  │  │
-│  │  │ • Skip logic for existing visuals                        │  │
-│  │  • Embed visuals in presentation                             │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │           VideoService                                       │  │
-│  │  • Generate video prompts                                    │  │
-│  │  • MCP agent integration                                     │  │
-│  │  • Artifact extraction                                       │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │           ContextService                                     │  │
-│  │  • Manage global context                                     │  │
-│  │  • Handle rolling context                                    │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │           FileService                                        │  │
-│  │  • File I/O operations                                       │  │
-│  │  • Path management                                           │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │           RefinementProcessor                                │  │
-│  │  • Refine notes for TTS                                      │  │
-│  │  • Remove markdown formatting                                │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │           PromptRewriter                                     │  │
-│  │  • Rewrite prompts for agents                                │  │
-│  │  • Style adaptation                                          │  │
-│  │  • High-performance caching (110s → <1s)                    │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │           PromptCache                                        │  │
-│  │  • File-based prompt caching                                 │  │
-│  │  • SHA-256 hash keys                                         │  │
-│  │  • TTL management & size limits                              │  │
-│  │  • Performance metrics tracking                              │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │           TTS Services                                       │  │
-│  │  • Gemini TTS Engine                                         │  │
-│  │  • Unified model configuration                               │  │
-│  │  • Intelligent timeout handling                              │  │
-│  │  • Tone validation & mapping                                 │  │
-│  │  • Multi-language voice support                              │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────┘
-                    │                              │
-                    ▼                              ▼
-┌──────────────────────────────┐   ┌──────────────────────────────┐
-│       Tool Factory Layer      │   │      Utility Layer            │
-│  tools/agent_tools.py         │   │                               │
-│  tools/veo_mcp_tools.py       │   │  utils/image_utils.py         │
-│  ┌─────────────────────────┐ │   │  ┌─────────────────────────┐ │
-│  │ • create_analyst_tool()  │ │   │  │ • Image registry        │ │
-│  │ • create_writer_tool()   │ │   │  │ • PIL ↔ Part conversion │ │
-│  │ • create_auditor_tool()  │ │   │  └─────────────────────────┘ │
-│  │ • Track writer output    │ │   │                               │
-│  │ • Video MCP tools        │ │   │  utils/progress_utils.py      │
-│  └─────────────────────────┘ │   │  ┌─────────────────────────┐ │
-└──────────────────────────────┘   │  │ • Load/save progress    │ │
-                                    │  │ • Create slide keys     │ │
-                                    │  │ • Check retry mode      │ │
-                                    │  └─────────────────────────┘ │
-                                    │                               │
-                                    │  utils/agent_utils.py         │
-                                    │  ┌─────────────────────────┐ │
-                                    │  │ • run_stateless_agent() │ │
-                                    │  │ • run_visual_agent()    │ │
-                                    │  │ • Session management    │ │
-                                    │  └─────────────────────────┘ │
-                                    │                               │
-                                    │  utils/error_handling.py      │
-                                    │  ┌─────────────────────────┐ │
-                                    │  │ • Retry strategies      │ │
-                                    │  │ • @with_retry decorator │ │
-                                    │  │ • Custom exceptions     │ │
-                                    │  └─────────────────────────┘ │
-                                    │                               │
-                                    │  utils/pptx_utils.py          │
-                                    │  ┌─────────────────────────┐ │
-                                    │  │ • PPTX operations       │ │
-                                    │  │ • Slide manipulation    │ │
-                                    │  └─────────────────────────┘ │
-                                    │                               │
-                                    │  utils/cli_utils.py           │
-                                    │  ┌─────────────────────────┐ │
-                                    │  │ • CLI helpers           │ │
-                                    │  │ • Argument parsing      │ │
-                                    │  └─────────────────────────┘ │
-                                    └──────────────────────────────┘
-                                                  │
-                                                  ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                          Agent Layer                                │
-│                         agents/ (unchanged)                         │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │ • supervisor_agent   - Orchestrates workflow                │  │
-│  │ • analyst_agent      - Analyzes slide images                │  │
-│  │ • writer_agent       - Writes speaker notes                 │  │
-│  │ • auditor_agent      - Audits existing notes                │  │
-│  │ • overviewer_agent   - Generates global context             │  │
-│  │ • designer_agent     - Generates enhanced visuals           │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────┘
+This document traces the real runtime flow in the current codebase, from the CLI entry point down to slide-by-slide agent execution. It focuses on the paths implemented in:
+
+- `main.py`
+- `application/cli.py`
+- `application/unified_processor.py`
+- `services/presentation_processor.py`
+- `services/visual_generator.py`
+- `config/config.py`
+
+## 1. Runtime entry points
+
+The application has one executable entry point and several user-facing modes.
+
+```mermaid
+flowchart TD
+    A[main.py] --> B[setup_logging]
+    B --> C[CLI.run]
+    C --> D[parse args + load .env]
+    D --> E{mode}
+
+    E -->|--style-config| F[UnifiedProcessor.process_single_style]
+    E -->|--config| G[UnifiedProcessor.process_config]
+    E -->|--styles or default| H[UnifiedProcessor.process_styles_directory]
+    E -->|--tts-only| I[TTS CLI utility]
+    E -->|--synthesize-video| J[Video synthesis service]
+    E -->|--synthesize-style-videos| K[Style-driven video synthesis]
+    E -->|--refine| L[RefineCommand]
+
+    F --> M[Load YAML]
+    G --> M
+    H --> M
+    M --> N[Create Config]
+    N --> O[create_all_agents]
+    O --> P[PresentationProcessor.process]
 ```
 
-## Agent Interaction Flow
+## 2. What each CLI mode actually does
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           PRESENTATION PROCESSOR                             │
-│                              (3 Phases)                                     │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    │                 │                 │
-                    ▼                 ▼                 ▼
-         ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-         │   PHASE 1:      │ │   PHASE 2:      │ │   PHASE 3:      │
-         │ Generate Notes  │ │Generate Visuals │ │Generate Videos  │
-         └─────────────────┘ └─────────────────┘ └─────────────────┘
-                    │                 │                 │
-                    ▼                 ▼                 ▼
-         ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-         │  OVERVIEWER     │ │    DESIGNER     │ │ VIDEO GENERATOR │
-         │ (Global Context)│ │ (Visual Gen.)   │ │ (Video Prompts) │
-         └─────────────────┘ └─────────────────┘ └─────────────────┘
-                    │
-                    ▼
-         ┌─────────────────────────────────────────────────────────┐
-         │              SUPERVISOR WORKFLOW                        │
-         │                 (Per Slide)                            │
-         │                                                         │
-         │  1. AUDITOR ──→ 2. ANALYST ──→ 3. WRITER               │
-         │     │              │              │                    │
-         │     ▼              ▼              ▼                    │
-         │  Quality       Content        Speaker                  │
-         │  Check         Analysis       Notes                    │
-         │                                                         │
-         │  Alternative Path: TRANSLATOR (Translation Mode)       │
-         └─────────────────────────────────────────────────────────┘
-                                      │
-                                      ▼
-         ┌─────────────────────────────────────────────────────────┐
-         │              PROMPT REWRITER (META-AGENT)               │
-         │                 (Agent Creation Time)                   │
-         │                                                         │
-         │  Base Prompts + Style Guidelines → Rewritten Prompts   │
-         │                                                         │
-         │  • Designer: Visual style integration                   │
-         │  • Writer: Speaker style integration                    │
-         │  • Translator: Speaker style integration                │
-         │  • Title Generator: Speaker style integration           │
-         └─────────────────────────────────────────────────────────┘
+| User command | Main handler | Purpose |
+| --- | --- | --- |
+| `python main.py --style-config cyberpunk` | `UnifiedProcessor.process_single_style()` | Batch process all PPTX/PDF pairs from one YAML config. |
+| `python main.py --config /path/to/config.yaml` | `UnifiedProcessor.process_config()` | Run one custom YAML file directly. |
+| `python main.py --styles` or `python main.py` | `UnifiedProcessor.process_styles_directory()` | Process every `styles/config.*.yaml` file. |
+| `python main.py --tts-only --progress-file progress.json` | `CLI._handle_tts_only()` | Generate audio from an existing progress JSON. |
+| `python main.py --synthesize-video ...` | `CLI._handle_video_synthesis()` | Combine generated visuals and audio into a video. |
+
+## 2.5 YAML config resolution rules
+
+`ConfigFileLoader.load_from_file()` now resolves relative paths before processing starts:
+
+1. Config files under `styles/` resolve relative paths from the repository root.
+2. Config files outside `styles/` resolve relative paths from the config file's own folder.
+
+That keeps built-in style configs working while also making `--config /full/path/to/file.yaml` reliable, while preserving YAML as the only processing source of truth.
+
+## 3. End-to-end processing for one presentation
+
+Once a single presentation reaches `PresentationProcessor`, the runtime becomes a fixed multi-phase pipeline.
+
+```mermaid
+flowchart TD
+    A[Load PPTX twice<br/>notes copy + visuals copy] --> B[Open matching PDF]
+    B --> C[Load progress JSON]
+    C --> D{language == en?}
+    D -->|no| E[Load English notes / global context if available]
+    D -->|yes| F[Continue]
+    E --> F
+    F --> G[Get global context]
+    G --> H[Configure supervisor tools]
+    H --> I[Create supervisor session]
+    I --> J[Phase 1: generate speaker notes]
+    J --> K[Phase 1.5: generate TTS audio]
+    K --> L[Phase 2: generate or translate visuals]
+    L --> M[Phase 3: generate video prompts optional]
+    M --> N[Save notes PPTM/PPTX]
+    N --> O{all visuals generated?}
+    O -->|yes| P[Save visuals PPTM/PPTX]
+    O -->|no| Q[Skip visuals output file]
 ```
 
-## Detailed Agent Relationships
+## 4. Phase-by-phase trace
 
-```
-                    ┌─────────────────────────────────────────┐
-                    │           AGENT ECOSYSTEM               │
-                    └─────────────────────────────────────────┘
-                                      │
-        ┌─────────────────────────────┼─────────────────────────────┐
-        │                             │                             │
-        ▼                             ▼                             ▼
-┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
-│  OVERVIEWER     │         │   SUPERVISOR    │         │  PROMPT         │
-│                 │         │                 │         │  REWRITER       │
-│ • Analyzes ALL  │         │ • Orchestrates  │         │  (META-AGENT)   │
-│   slides at once│         │   workflow      │         │                 │
-│ • Creates global│         │ • Makes         │         │ • Rewrites      │
-│   context       │         │   decisions     │         │   prompts with  │
-│ • Defines       │         │ • Coordinates   │         │   style         │
-│   narrative arc │         │   other agents  │         │ • LLM-powered   │
-└─────────────────┘         └─────────────────┘         │ • Creation time │
-        │                             │                 │ • Fallback safe │
-        │                             ▼                 └─────────────────┘
-        │                   ┌─────────────────┐                     │
-        │                   │    AUDITOR      │                     │
-        │                   │                 │                     │
-        │                   │ • Quality check │                     │
-        │                   │ • Language      │                     │
-        │                   │   validation    │                     │
-        │                   │ • USEFUL/       │                     │
-        │                   │   USELESS       │                     │
-        │                   └─────────────────┘                     │
-        │                             │                             │
-        │                             ▼                             │
-        │                   ┌─────────────────┐                     │
-        │                   │    ANALYST      │                     │
-        │                   │                 │                     │
-        │                   │ • Slide vision  │                     │
-        │                   │ • Content       │                     │
-        │                   │   extraction    │                     │
-        │                   │ • Visual        │                     │
-        │                   │   analysis      │                     │
-        │                   └─────────────────┘                     │
-        │                             │                             │
-        │                             ▼                             │
-        └─────────────────────────────┼─────────────────────────────┘
-                                      ▼                             │
-                            ┌─────────────────┐                     │
-                            │     WRITER      │◄────────────────────┘
-                            │                 │    Style Integration
-                            │ • Speaker notes │    (at creation time)
-                            │ • Language      │
-                            │   enforcement   │
-                            │ • Style         │
-                            │   application   │
-                            └─────────────────┘
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    │                 │                 │
-                    ▼                 ▼                 ▼
-         ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-         │   TRANSLATOR    │ │    DESIGNER     │ │ IMAGE           │
-         │                 │ │                 │ │ TRANSLATOR      │
-         │ • Style-aware   │ │ • Visual        │ │                 │
-         │   translation   │ │   generation    │ │ • Visual        │
-         │ • Cultural      │ │ • Style         │ │   analysis      │
-         │   adaptation    │ │   integration   │ │ • Translation   │
-         │ • Bypasses      │ │ • Layout        │ │   specs         │
-         │   supervisor    │ │   optimization  │ │ • Works with    │
-         │   in trans mode │ │                 │ │   Designer      │
-         └─────────────────┘ └─────────────────┘ └─────────────────┘
+### Phase 0: global context
+
+`PresentationProcessor._get_global_context()` resolves presentation-wide context in this order:
+
+1. Reuse cached context from the progress file.
+2. If the target language is not English, try translating the English global context.
+3. Otherwise render every PDF page to an image and call the overviewer agent once.
+
+That global context is then reused for every slide in the same run.
+
+### Phase 1: speaker notes
+
+`PresentationProcessor._phase_generate_notes()` loops through each slide and keeps small rolling context:
+
+- current slide image from the PDF
+- existing slide notes
+- summary of the previous slide
+- last three generated speaker-note blocks
+- progress status for skip/retry behavior
+
+Each slide is routed through `_process_slide_notes()`.
+
+```mermaid
+sequenceDiagram
+    participant PP as PresentationProcessor
+    participant Sup as Supervisor agent
+    participant Aud as Auditor tool
+    participant Ana as Analyst tool
+    participant Wri as Writer tool
+    participant Tr as Translator tool
+
+    PP->>PP: Build supervisor prompt
+    alt Non-English and English note already exists
+        PP->>Tr: Translate English note
+        Tr-->>PP: Translated note
+    else Generate or reuse note
+        PP->>Sup: Run slide workflow
+        Sup->>Aud: Check existing notes
+        alt Existing notes are useful
+            Aud-->>Sup: Reuse notes
+        else Need regeneration
+            Sup->>Ana: Analyze slide image
+            Ana-->>Sup: Structured slide analysis
+            Sup->>Wri: Generate speaker notes
+            Wri-->>Sup: Final notes
+        end
+        Sup-->>PP: Final note text
+    end
+    PP->>PP: Save progress + update both PPTX copies
 ```
 
-## Module Dependencies
+### Phase 1.5: TTS
 
-```
-main.py
-  └── application.cli
-       ├── config.config_loader
-       │    ├── config.config
-       │    └── config.constants
-       ├── services.presentation_processor
-       │    ├── services.agent_manager
-       │    │    └── agents.*
-       │    ├── services.notes_generator
-       │    ├── services.translation_service
-       │    ├── services.visual_generator
-       │    ├── services.video_service
-       │    ├── services.context_service
-       │    ├── services.file_service
-       │    ├── services.refinement_processor
-       │    ├── services.prompt_rewriter
-       │    ├── utils.progress_utils
-       │    ├── utils.image_utils
-       │    ├── utils.agent_utils
-       │    ├── utils.pptx_utils
-       │    ├── utils.error_handling
-       │    ├── pymupdf
-       │    └── pptx
-       └── application.logging_setup
+If TTS is enabled, `PresentationProcessor._phase_generate_tts()` converts successful slide notes into `SlideData` objects, sends them to the batch TTS orchestrator, then writes audio metadata back into the same progress JSON.
+
+### Phase 2: visuals
+
+`PresentationProcessor._phase_generate_visuals()` uses one of two branches:
+
+```mermaid
+flowchart TD
+    A[Phase 2 start] --> B{target language == en?}
+    B -->|yes| C[Generate visuals directly]
+    B -->|no| D{English visuals available?}
+    D -->|yes| E[Translate English visuals]
+    D -->|no| F[Generate visuals in target language]
+
+    C --> G[VisualGenerator.generate_visual]
+    E --> H[image_translator_agent]
+    F --> G
+    G --> I[Save slide_N_reimagined.png]
+    H --> I
+    I --> J[Replace slide contents in visuals deck]
 ```
 
-## Agent Workflow Details
+`VisualGenerator.generate_visual()` itself is a three-tier fallback chain:
 
-### Phase 1: Speaker Notes Generation
+1. primary designer agent
+2. secondary Gemini image model
+3. direct Imagen generation
 
-**Per-Slide Supervisor Workflow (Strict 5-Step Process):**
+### Phase 3: video prompts
 
-```
-1. AUDIT EXISTING NOTES
-   ├─ Supervisor calls: note_auditor(existing_notes, slide_position)
-   ├─ Auditor evaluates quality and language correctness
-   └─ Returns: "USEFUL" or "USELESS" with reasoning
+If `generate_videos` is enabled, `_phase_generate_videos()` invokes the video generator agent for each slide and stores slide-level video artifacts alongside other outputs.
 
-2. DECISION POINT
-   ├─ If "USEFUL" → Return existing notes immediately (END)
-   └─ If "USELESS" → Continue to step 3
+## 5. Responsibility map
 
-3. ANALYZE SLIDE CONTENT  
-   ├─ Supervisor calls: call_analyst(image_id)
-   ├─ Analyst examines slide image for content
-   └─ Returns: Structured analysis (topic, details, visuals, intent)
+| Component | Responsibility |
+| --- | --- |
+| `CLI` | Parse mode, enforce mutually exclusive inputs, dispatch to the correct handler. |
+| `UnifiedProcessor` | Convert CLI/YAML input into `Config` + agents + `PresentationProcessor`. |
+| `Config` | Resolve style, language, output folders, and artifact naming. |
+| `InputScanner` | Discover PPTX/PDF pairs for YAML-driven processing. |
+| `PresentationProcessor` | Orchestrate the full presentation pipeline and progress tracking. |
+| `AgentToolFactory` | Expose analyst/writer/auditor/translator tools to the supervisor agent. |
+| `VisualGenerator` | Generate slide images and replace slide contents in the visuals deck. |
+| `TTSOrchestrator` | Batch audio generation from successful notes. |
 
-4. GENERATE SPEAKER NOTES
-   ├─ Supervisor calls: speech_writer(analysis, context, theme, global_context)
-   ├─ Writer creates notes using all context + style
-   └─ Returns: Natural speaker script
+## 6. Output model
 
-5. RETURN FINAL RESPONSE
-   ├─ Supervisor outputs exact text from writer
-   └─ No modification or commentary added
-```
+For each presentation/language pair, the processor may create:
 
-**Translation Mode Alternative:**
-```
-Non-English + English Notes Available:
-├─ Bypass supervisor workflow entirely
-├─ Use styled Translator agent directly
-├─ Apply speaker style during translation
-└─ 2-3x faster than full generation
-```
+- `*_notes.pptx|pptm`
+- `*_visuals.pptx|pptm`
+- `*_progress.json`
+- `*_visuals/` image directory
+- `*_speech/` audio directory
+- `*_videos/` video-prompt artifacts
 
-### Phase 2: Visual Generation
+The exact output root depends on `Config._get_output_dir()`:
 
-**Visual Processing Decision Tree:**
+- single-file mode defaults to `generate/` next to the PPTX
+- non-`professional` styles get a nested style folder
+- YAML-driven runs usually honor the config file's `output_dir`
 
-```
-English Language:
-├─ Designer generates visuals directly
-├─ Uses slide image + speaker notes + visual style
-└─ Outputs enhanced slide image (PNG)
+## 7. Main design takeaway
 
-Non-English Language:
-├─ Check for existing English visuals
-├─ If found:
-│   ├─ Image Translator analyzes English visual
-│   ├─ Provides translation specifications
-│   ├─ Designer regenerates with translated content
-│   └─ Maintains layout and style consistency
-└─ If not found:
-    ├─ Generate directly in target language
-    └─ Designer uses language-specific prompts
-```
+The system is best understood as:
 
-### Phase 3: Video Generation (Optional)
+1. **CLI routing**
+2. **file discovery / config resolution**
+3. **agent creation**
+4. **one presentation pipeline**
+5. **per-slide supervisor workflow**
 
-**Video Processing Flow:**
-
-```
-For Each Successful Slide:
-├─ Extract video prompt from speaker notes
-├─ Video Generator creates professional video concept
-├─ MCP integration with Veo 3.1 (if available)
-├─ Generate 8-10 second promotional video
-└─ Save video prompts and artifacts
-```
-
-## Agent Communication Patterns
-
-### Tool Factory Pattern
-```python
-# Supervisor uses tools created by AgentToolFactory
-tools = [
-    factory.create_analyst_tool(),    # Wraps analyst agent
-    factory.create_writer_tool(),     # Wraps writer agent  
-    factory.create_auditor_tool(),    # Wraps auditor agent
-]
-supervisor_agent.tools = tools
-```
-
-### Fallback Mechanisms
-```python
-# Writer output capture for supervisor fallback
-self._last_writer_output = result  # Captured in tool factory
-if supervisor_returns_empty:
-    return self.tool_factory.last_writer_output  # Fallback
-```
-
-### Style Integration Points
-```python
-# Prompt Rewriter integrates styles at agent creation
-rewriter = PromptRewriter(visual_style, speaker_style)
-designer_prompt = rewriter.rewrite_designer_prompt(base_prompt)
-writer_prompt = rewriter.rewrite_writer_prompt(base_prompt)
-translator_prompt = rewriter.rewrite_translator_prompt(base_prompt)
-title_gen_prompt = rewriter.rewrite_title_generator_prompt(base_prompt)
-```
-
-### Prompt Rewriter Execution Timeline
-```
-System Startup
-    ↓
-YAML Config Loading (visual_style + speaker_style)
-    ↓
-Agent Factory Initialization
-    ↓
-Prompt Rewriter Agent Creation
-    ↓
-For Each Styled Agent:
-    ├─ Load Base Prompt
-    ├─ Call Prompt Rewriter Agent (LLM)
-    ├─ Receive Rewritten Prompt
-    ├─ Create Agent with Styled Prompt
-    └─ Agent Ready for Content Processing
-    ↓
-All Agents Created and Style-Integrated
-    ↓
-Begin Presentation Processing (Phases 1-3)
-```
-
-**Key Insight**: The Prompt Rewriter operates **before** any content processing begins, ensuring all agents are style-aware from the start.
-
-## Key Design Principles
-
-### 1. Separation of Concerns
-- **Entry Point** (main.py): Application entry
-- **Application** (application/): CLI and logging
-- **Config** (config/): Configuration management
-- **Services** (services/): Business logic
-- **Tools** (tools/): Agent tool creation
-- **Utils** (utils/): Reusable utilities
-- **Agents** (agents/): AI agent definitions
-- **Core** (core/): Domain models and interfaces
-
-### 2. Dependency Injection
-```python
-processor = PresentationProcessor(
-    config=config,
-    supervisor_agent=supervisor_agent,
-    analyst_agent=analyst_agent,
-    # ... inject dependencies
-)
-```
-
-### 3. Single Responsibility
-Each module has one clear purpose:
-- `image_utils.py`: Image handling only
-- `progress_utils.py`: Progress tracking only
-- `visual_generator.py`: Visual generation only
-
-### 4. Open/Closed Principle
-Easy to extend without modification:
-```python
-# Add new tool type
-factory.create_summarizer_tool()
-
-# Add new storage backend
-processor = PresentationProcessor(
-    progress_tracker=DatabaseProgressTracker()
-)
-```
-
-### 5. Interface Segregation
-Small, focused interfaces:
-```python
-# VisualGenerator has focused interface
-generator.generate_visual(...)
-generator.add_visual_to_presentation(...)
-generator.reset_style_context()
-```
-
-## Architecture Benefits
-
-```
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│  main.py     │  │ application/ │  │  config/     │
-│  (24 lines)  │  │  CLI & logs  │  │  (251 lines) │
-│  ✅ Entry    │  │  ✅ Interface│  │  ✅ Config   │
-└──────────────┘  └──────────────┘  └──────────────┘
-       │                 │                  │
-       └─────────────────┴──────────────────┘
-                         │
-            ┌────────────┴────────────┐
-            │                         │
-┌───────────▼─────┐       ┌───────────▼─────┐
-│  services/      │       │  agents/         │
-│  10 services    │       │  14 agents       │
-│  ✅ Business    │       │  ✅ AI logic     │
-└─────────────────┘       └──────────────────┘
-            │                         │
-            └────────────┬────────────┘
-                         │
-            ┌────────────┴────────────┐
-            │                         │
-┌───────────▼─────┐       ┌───────────▼─────┐
-│  tools/         │       │  utils/          │
-│  Agent tools    │       │  Utilities       │
-│  ✅ Tool factory│       │  ✅ Reusable     │
-└─────────────────┘       └──────────────────┘
-
-✅ Easy to test (109 tests)
-✅ Easy to maintain
-✅ Easy to reuse
-✅ Easy to extend
-✅ Multi-language support
-```
-
-## Architecture Quality Metrics
-
-| Metric | Status | Notes |
-|--------|--------|-------|
-| Main file size | 24 lines | Minimal entry point |
-| Service modules | 10 services | Focused responsibilities |
-| Testable components | 109 tests | Comprehensive test coverage |
-| Coupling | Low | Loose coupling via dependency injection |
-| Cohesion | High | Clear, focused responsibilities |
-| Code duplication | Low | DRY principle applied throughout |
-| Extensibility | High | Plugin-ready architecture |
-| Multi-language support | Yes | English baseline + translations |
-| Caching performance | Excellent | 110s → <1s for cached prompts |
-| TTS integration | Advanced | Gemini TTS with timeout handling |
-
-## Performance Optimizations
-
-### High-Performance Caching System
-
-The architecture includes a sophisticated caching layer that provides dramatic performance improvements:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Caching Architecture                      │
-│                                                             │
-│  ┌──────────────┐    ┌─────────────────┐    ┌────────────┐ │
-│  │ Prompt       │───▶│ SHA-256 Hash    │───▶│ File Cache │ │
-│  │ + Style      │    │ Key Generation  │    │ Storage    │ │
-│  │ + Type       │    └─────────────────┘    └────────────┘ │
-│  └──────────────┘                                           │
-│                                                             │
-│  ┌──────────────┐    ┌─────────────────┐    ┌────────────┐ │
-│  │ Cache Hit    │───▶│ <1s Response    │───▶│ Instant    │ │
-│  │ (80%+ rate)  │    │ Time            │    │ Results    │ │
-│  └──────────────┘    └─────────────────┘    └────────────┘ │
-│                                                             │
-│  ┌──────────────┐    ┌─────────────────┐    ┌────────────┐ │
-│  │ Cache Miss   │───▶│ LLM Rewriting   │───▶│ Store &    │ │
-│  │ (20% rate)   │    │ (110s process)  │    │ Return     │ │
-│  └──────────────┘    └─────────────────┘    └────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Key Features:**
-- **File-based persistence**: Cache survives application restarts
-- **Intelligent cleanup**: TTL-based expiration and size management
-- **Performance metrics**: Hit rate tracking and statistics
-- **Atomic operations**: Safe concurrent access
-
-### TTS Integration Architecture
-
-Advanced text-to-speech integration with robust error handling:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    TTS Architecture                          │
-│                                                             │
-│  ┌──────────────┐    ┌─────────────────┐    ┌────────────┐ │
-│  │ TTS Request  │───▶│ Tone Validation │───▶│ Gemini TTS │ │
-│  │ + Style      │    │ & Mapping       │    │ Engine     │ │
-│  └──────────────┘    └─────────────────┘    └────────────┘ │
-│                                                             │
-│  ┌──────────────┐    ┌─────────────────┐    ┌────────────┐ │
-│  │ Timeout      │───▶│ Exponential     │───▶│ Fallback   │ │
-│  │ Protection   │    │ Backoff Retry   │    │ Mechanisms │ │
-│  │ (90s limit)  │    │ (3 attempts)    │    │            │ │
-│  └──────────────┘    └─────────────────┘    └────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Performance Benefits:**
-- **Unified configuration**: Single `MODEL_TTS` environment variable
-- **Intelligent timeouts**: Configurable via `TTS_TIMEOUT_SECONDS`
-- **Multi-language support**: 25+ languages with voice mapping
-- **Error resilience**: Comprehensive retry and fallback strategies
-
-### Performance Metrics
-
-| Component | Before | After | Improvement |
-|-----------|--------|-------|-------------|
-| Prompt Rewriting | 110s | <1s | 110x faster |
-| Cache Hit Rate | N/A | 80%+ | Excellent |
-| TTS Reliability | Variable | 99%+ | Robust |
-| Memory Usage | High | Optimized | Efficient |
-| Startup Time | Slow | Fast | Cached prompts |
+If you are tracing bugs, start from the mode-specific CLI branch first, then follow the `UnifiedProcessor -> Config -> PresentationProcessor` path.

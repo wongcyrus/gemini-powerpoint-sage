@@ -1,252 +1,189 @@
 # Configuration File Guide
 
-The system uses YAML configuration files in the `styles/` directory to manage processing settings and style definitions.
+YAML is the single source of truth for presentation processing.
 
-## Quick Start
+Use the CLI only to choose **which YAML config to run**:
 
-### 1. Choose an Existing Style Config
+- `python main.py --style-config professional`
+- `python main.py --config /path/to/config.yaml`
+- `python main.py --styles`
+
+## Quick start
+
+### 1. Pick a config
 
 ```bash
 ls styles/config.*.yaml
-# styles/config.cyberpunk.yaml
-# styles/config.gundam.yaml  
-# styles/config.professional.yaml
-# styles/config.starwars.yaml
 ```
 
-### 2. Run with Style Config
+### 2. Run one built-in style config
 
 ```bash
 python main.py --style-config cyberpunk
 ```
 
-### 3. Or Create Your Own
+### 3. Or run one custom config
 
-Copy an existing config:
+```bash
+python main.py --config /path/to/config.yaml
+```
+
+## Processing rule
+
+Put presentation inputs and processing behavior in YAML, not on the processing CLI.
+
+That includes:
+
+- `pptx`
+- `pdf`
+- `input_folder`
+- `output_dir`
+- `language`
+- `style`
+- `course_id`
+- `skip_visuals`
+- `generate_videos`
+- `retry_errors`
+- `region`
+- `progress_file`
+
+## Supported config shapes
+
+Use **one** of these input styles.
+
+### A. Single presentation config
+
+```yaml
+pptx: "presentations/lecture.pptx"
+pdf: "presentations/lecture.pdf"
+output_dir: "output/lecture"
+language: "en,zh-CN"
+region: "global"
+retry_errors: false
+skip_visuals: false
+generate_videos: false
+style:
+  visual_style: |
+    Clean professional slides
+  speaker_style: |
+    Clear executive presenter
+```
+
+Run it with:
+
+```bash
+python main.py --config configs/lecture.yaml
+```
+
+### B. Batch folder config
+
+```yaml
+input_folder: "notes"
+output_dir: "notes/professional/generate"
+language: "en,yue-HK,zh-CN"
+course_id: "course123"
+retry_errors: true
+skip_visuals: false
+generate_videos: false
+region: "global"
+style:
+  visual_style: |
+    Professional corporate presentation style
+  speaker_style: |
+    Senior business consultant persona
+```
+
+Run it with:
+
+```bash
+python main.py --style-config professional
+```
+
+## Path resolution rules
+
+Relative paths are resolved automatically:
+
+1. Configs inside `styles/` resolve relative paths from the repository root.
+2. Configs outside `styles/` resolve relative paths from the config file's own folder.
+
+So both of these work:
+
+```yaml
+# styles/config.professional.yaml
+input_folder: "notes"
+output_dir: "notes/professional/generate"
+```
+
+```yaml
+# /tmp/demo/config.yaml
+pptx: "presentations/demo.pptx"
+pdf: "presentations/demo.pdf"
+output_dir: "output"
+```
+
+## Creating a new config
 
 ```bash
 cp styles/config.professional.yaml styles/config.mystyle.yaml
 ```
 
-Edit `styles/config.mystyle.yaml`:
+Then edit:
 
 ```yaml
 input_folder: "notes"
 output_dir: "notes/mystyle/generate"
 language: "en"
+retry_errors: false
+skip_visuals: false
+generate_videos: false
 style:
-  visual_style: "Your visual description here..."
-  speaker_style: "Your speaker persona here..."
+  visual_style: |
+    Your visual style here
+  speaker_style: |
+    Your speaker style here
 ```
 
-Run it:
+Run it with:
 
 ```bash
 python main.py --style-config mystyle
 ```
 
-## Configuration File Format
+## Why this model
 
-Configuration files use **YAML format** for readability and comments support.
+This YAML-first flow keeps:
 
-**Example:**
-```yaml
-# My presentation config
-pptx: "slides.pptx"
-pdf: "slides.pdf"
-style: "cyberpunk"  # Use cyberpunk theme
-language: "en,zh-CN"  # English and Chinese
-```
+1. inputs
+2. languages
+3. output locations
+4. style prompts
+5. retry and generation behavior
 
-**Why YAML?**
-- Supports comments for documentation
-- More readable than JSON
-- Easier to edit manually
-- Industry standard for configuration
-
-## Configuration Options
-
-### Required Settings
-
-```yaml
-input_folder: "notes"                    # Where to find PPTX/PDF pairs
-output_dir: "notes/mystyle/generate"     # Where to save results
-language: "en"                           # Language(s) to process
-```
-
-### Style Definition (Required)
-
-```yaml
-style:
-  visual_style: |
-    Detailed visual aesthetic description:
-    - Color palette with hex codes
-    - Typography and layout preferences
-    - Visual elements and mood
-    
-  speaker_style: |
-    Detailed speaker persona description:
-    - Tone and voice characteristics
-    - Key vocabulary and phrases
-    - Example speaking patterns
-```
-
-### Optional Settings
-
-```yaml
-skip_visuals: false      # Skip visual generation (notes only)
-generate_videos: false   # Generate video prompts
-retry_errors: false      # Retry failed slides
-```
-
-## Global Options
-
-You can add global options to any style config:
-
-```bash
-# Skip visuals for any style
-python main.py --style-config cyberpunk --skip-visuals
-
-# Generate videos for any style  
-python main.py --style-config gundam --generate-videos
-```
-
-## Multiple Style Configurations
-
-The `styles/` directory contains different style configurations:
-
-```bash
-styles/
-├── config.cyberpunk.yaml      # Neon dystopian aesthetic
-├── config.gundam.yaml         # Mecha anime style
-├── config.professional.yaml   # Clean business style
-└── config.starwars.yaml       # Epic space opera style
-```
-
-Use them like:
-```bash
-python main.py --style-config cyberpunk
-python main.py --style-config gundam
-python main.py --styles  # Process all styles
-```
-
-## Example Configurations
-
-### Example 1: Professional Style
-
-**styles/config.professional.yaml:**
-```yaml
-input_folder: "notes"
-output_dir: "notes/professional/generate"
-language: "en"
-style:
-  visual_style: |
-    Clean, modern business aesthetic
-    - Conservative color palette: Navy (#003366), Gray (#666666), White
-    - Sans-serif typography (Arial, Helvetica)
-    - Minimal decorative elements
-    
-  speaker_style: |
-    Professional business presenter
-    - Formal, authoritative tone
-    - Clear, structured communication
-    - Uses business terminology appropriately
-```
-
-**Usage:**
-```bash
-python main.py --style-config professional
-```
-
-### Example 2: Multi-Language Cyberpunk
-
-**styles/config.cyberpunk.yaml:**
-```yaml
-input_folder: "notes"
-output_dir: "notes/cyberpunk/generate"
-language: "en,zh-CN,ja"
-style:
-  visual_style: |
-    Cyberpunk aesthetic with neon colors
-    - Electric Blue (#00FFFF), Hot Pink (#FF1493), Purple (#9D00FF)
-    - Dark backgrounds (#0A0E27) with glowing elements
-    - Futuristic typography with sharp angles
-    
-  speaker_style: |
-    Tech-savvy street philosopher
-    - Edgy, direct communication style
-    - Uses tech slang and cutting-edge terminology
-    - Challenges conventional thinking
-```
-
-**Usage:**
-```bash
-python main.py --style-config cyberpunk
-```
-
-### Example 3: Notes Only (No Visuals)
-
-**styles/config.notes-only.yaml:**
-```yaml
-input_folder: "notes"
-output_dir: "notes/notes-only/generate"
-language: "en"
-skip_visuals: true  # Skip visual generation
-style:
-  speaker_style: |
-    Clear, concise presenter
-    - Direct communication
-    - Focuses on key points
-```
-
-**Usage:**
-```bash
-python main.py --style-config notes-only
-```
-
-## Tips
-
-1. **Version Control**: Commit style configs in `styles/` directory for team sharing
-2. **Team Sharing**: Share example configs with your team for consistency
-3. **Documentation**: Add comments in YAML files to explain your choices
-4. **Testing**: Create separate configs for testing vs production
-5. **Validation**: The tool validates your config file and shows helpful error messages
+in one auditable file instead of splitting behavior between YAML and ad hoc CLI flags.
 
 ## Troubleshooting
 
 ### "Configuration file not found"
-- Check the path to your config file
-- Use absolute path or path relative to current directory
+
+- Check the config path
+- Use `--config /full/path/to/file.yaml` for external configs
+
+### "Input folder not found"
+
+- Confirm the path in YAML
+- Remember relative paths resolve from the config location rules above
+
+### "No valid PDF/PPTX pairs found"
+
+- Each PPTX must have a matching PDF with the same basename
 
 ### "Invalid YAML"
-- Check for syntax errors (indentation, missing quotes, etc.)
-- Use a YAML validator online
-- Make sure colons have spaces after them: `key: value`
 
-### "PyYAML is required"
-- Install PyYAML: `pip install pyyaml`
-- It's included in requirements.txt
+- Check indentation
+- Ensure `key: value` formatting is correct
 
-### "Configuration must specify either 'pptx' or 'folder'"
-- Make sure you have either `pptx` or `folder` in your config
-- Don't specify both at the same time
+## See also
 
-## Create New Style Config
-
-To create a new style configuration:
-
-```bash
-# Copy existing config as template
-cp styles/config.professional.yaml styles/config.mystyle.yaml
-
-# Edit the new config
-# - Change output_dir to "notes/mystyle/generate"
-# - Customize visual_style and speaker_style sections
-# - Adjust language and other settings as needed
-```
-
-## See Also
-
-- [STYLE_EXAMPLES.md](STYLE_EXAMPLES.md) - Style/theme examples
-- [README.md](README.md) - Main documentation
-- [.env.example](.env.example) - Environment variables
+- [QUICK_START.md](QUICK_START.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [STYLE_EXAMPLES.md](STYLE_EXAMPLES.md)

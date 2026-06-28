@@ -8,11 +8,37 @@ Transforms static PowerPoint presentations into engaging experiences with AI-gen
 
 - **[Quick Start](docs/QUICK_START.md)** - Get running in 3 steps
 - **[User Guide](QUICK_REFERENCE.md)** - Commands, styles, and workflows  
+- **[Architecture Trace](docs/ARCHITECTURE.md)** - Runtime flow from CLI to slide processing
 - **[All Documentation](docs/README.md)** - Complete documentation index
+
+## ✅ Pick the simplest command
+
+| Goal | Command |
+| --- | --- |
+| Process one built-in style config | `python main.py --style-config professional` |
+| Process one arbitrary YAML config | `python main.py --config /path/to/config.yaml` |
+| Process every configured style | `python main.py --styles` |
+
+`python main.py` defaults to `--styles`.
 
 ## 🏗️ Architecture
 
 The system uses a sophisticated **10-Agent Multi-Agent Architecture** with three processing phases:
+
+```mermaid
+flowchart TD
+    A[main.py] --> B[CLI.run]
+    B --> C[UnifiedProcessor]
+    C --> D[Config + agents]
+    D --> E[PresentationProcessor]
+    E --> F[Global context]
+    F --> G[Speaker notes]
+    G --> H[TTS]
+    H --> I[Visuals]
+    I --> J[Video prompts optional]
+```
+
+For the full trace, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ### 🤖 The Agent Ecosystem
 
@@ -64,7 +90,7 @@ The system uses a sophisticated **10-Agent Multi-Agent Architecture** with three
 
 ## 🚀 Quick Start
 
-Choose from three processing modes based on your needs:
+Choose from three YAML-first processing modes:
 
 ```bash
 # 🌟 All Styles Processing (Production - Process all files with all style configurations)
@@ -76,16 +102,18 @@ python main.py --style-config cyberpunk
 python main.py --style-config professional
 python main.py --style-config gundam
 
-# 📄 Single File Processing (Testing - Process one file with CLI parameters)
-python main.py --pptx lecture.pptx --language en --style professional
-python main.py --pptx presentation.pptx --language "en,zh-CN,yue-HK" --style cyberpunk
+# 🧩 Direct Config Processing (Use a custom YAML file directly)
+python main.py --config /path/to/custom-config.yaml
+
+# Example one-presentation YAML run
+python main.py --config configs/lecture.yaml
 ```
 
 ```powershell
 # Windows PowerShell
 python main.py --styles
 python main.py --style-config starwars
-python main.py --pptx "lecture.pptx" --language "en,zh-CN" --style gundam
+python main.py --config ".\configs\lecture.yaml"
 ```
 
 ## Setup
@@ -138,18 +166,18 @@ The system automatically rotates through projects for each slide, visual, and TT
 
 ## Usage
 
-### Three Processing Modes
+### Processing Modes
 
 #### 🌟 All Styles Processing (Production)
-Process all files with all available style configurations:
+Process all `styles/config.*.yaml` configurations:
 
 ```bash
-# Process all styles with their YAML configurations
+# Process every YAML config found in styles/
 python main.py --styles
 python main.py  # defaults to --styles
 
-# All configuration comes from styles/config.*.yaml files:
-# - input_folder: where to find PPTX/PDF pairs
+# Each config file controls:
+# - input_folder / pptx: what to process
 # - output_dir: where to save results
 # - language: languages to process
 # - style: visual and speaker style definitions
@@ -165,35 +193,24 @@ python main.py --style-config cyberpunk
 # Process with professional style only
 python main.py --style-config professional
 
-# Use full path to config file
-python main.py --style-config /path/to/custom-config.yaml
+# Prefer --config for arbitrary config paths
+python main.py --config /path/to/custom-config.yaml
 ```
 
-#### 📄 Single File Processing (Quick Testing)
-Process one specific file with CLI parameters:
+#### 🧩 Direct Config Processing
+Process a YAML config without treating it as a named built-in style:
 
 ```bash
-# Basic usage - PDF auto-detected
-python main.py --pptx presentation.pptx --language en --style Professional
-
-# With explicit PDF
-python main.py --pptx presentation.pptx --pdf presentation.pdf --language en --style Gundam
-
-# Multiple languages
-python main.py --pptx file.pptx --language "en,zh-CN,yue-HK" --style Cyberpunk
-
-# Custom output directory
-python main.py --pptx file.pptx --language en --style Professional --output-dir output/custom
+python main.py --config /path/to/config.yaml
 ```
 
-### Additional Options (All Modes)
+### Utility Modes
+
+Processing behavior comes from YAML. CLI flags are only for standalone utility modes:
 
 ```bash
-# Skip visual generation (faster, notes only)
-python main.py --styles --skip-visuals
-
-# Generate video prompts
-python main.py --style-config cyberpunk --generate-videos
+# Generate TTS from an existing progress JSON
+python main.py --tts-only --progress-file output/presentation_en_progress.json
 
 # Synthesize presentation video from slides + audio
 python main.py --synthesize-video \
@@ -205,12 +222,6 @@ python main.py --synthesize-video \
   --slides-dir visuals/ \
   --video-output video_hd.mp4 \
   --video-config '{"resolution": [1280, 720], "video_bitrate": "1.5M"}'
-
-# Retry failed slides
-python main.py --styles --retry-errors
-
-# Custom course context
-python main.py --style-config professional --course-id course123
 ```
 
 ### YAML Configuration Structure
@@ -244,28 +255,28 @@ generate_videos: false
 - `--styles` - Process all files with all available YAML configurations (default)
 - `--style-config <name>` - Process all files with one specific YAML configuration
   - Examples: `cyberpunk`, `professional`, `gundam`
-  - Can also use full path to config file
+  - Prefer `--config` for arbitrary file paths
+- `--config <path>` - Process one explicit YAML config file
 
-**Single File Processing:**
-- `--pptx <path>` - Path to input PowerPoint file (requires CLI parameters)
+### YAML-Owned Processing Options
 
-### Single File Parameters (only with --pptx)
-- `--pdf <path>` - Path to PDF export (auto-detected if not specified)
-- `--language <locale(s)>` - Language codes, comma-separated (default: `en`)
-  - Examples: `en`, `zh-CN`, `"en,zh-CN,yue-HK"`
-  - English always processed first as translation baseline
-  - **Supported Languages**: en, zh-CN, zh-TW, yue-HK, es, fr, ja, ko, de, it, pt, ru, ar, hi, th, vi
-- `--style <name>` - Style/theme for content generation
-  - **Available**: `professional`, `cyberpunk`, `gundam`, `starwars`, `hkcomic`
-- `--output-dir <path>` - Output directory for processed files
+These settings now belong in YAML, not on the processing CLI:
 
-### Global Options (all modes)
-- `--course-id <id>` - Firestore Course ID for thematic context
-- `--progress-file <path>` - Custom progress file location
-- `--retry-errors` - Retry previously failed slides
-- `--skip-visuals` - Skip AI visual generation (notes only, faster)
-- `--generate-videos` - Generate video prompts for all slides
-- `--region <region>` - GCP region (default: global)
+- `pptx` / `pdf`
+- `input_folder`
+- `output_dir`
+- `language`
+- `style`
+- `course_id`
+- `retry_errors`
+- `skip_visuals`
+- `generate_videos`
+- `region`
+- `progress_file`
+
+### Utility Options
+
+- `--progress-file <path>` - Progress JSON input for `--tts-only`
 - `--refine <path>` - Refine existing progress JSON for TTS (removes markdown)
 
 ### Video Synthesis Options
@@ -292,9 +303,9 @@ python main.py --style-config cyberpunk
 python main.py --style-config hkcomic
 python main.py --style-config professional
 
-# Single file with specific style
-python main.py --pptx file.pptx --language en --style starwars
-python main.py --pptx presentation.pptx --language "en,zh-CN" --style cyberpunk
+# One explicit YAML config per run
+python main.py --config configs/starwars-demo.yaml
+python main.py --config configs/cyberpunk-multilang.yaml
 ```
 
 ### 🎨 Available Themed Styles
@@ -417,11 +428,11 @@ For detailed information, see [Video Synthesis Setup Guide](VIDEO_SYNTHESIS_SETU
 ### Example
 
 ```bash
-# Single file processing
-python main.py --pptx lecture.pptx --language "en,zh-CN,yue-HK" --style Professional
+# Use YAML for one custom presentation run
+python main.py --config configs/lecture.yaml
 
-# Or use YAML configuration for organized processing
-python main.py --style-config professional  # Uses styles/config.professional.yaml
+# Or use a built-in style config
+python main.py --style-config professional
 ```
 
 **Output:**
@@ -475,7 +486,7 @@ The system uses systematic naming conventions for organization and caching:
 
 **See [File Naming Conventions](docs/FILE_NAMING_CONVENTIONS.md) for complete details.**
 
-**Example structure (single file):**
+**Example structure (single-presentation YAML config):**
 ```
 presentations/
 ├── lecture.pptx (original)
@@ -530,7 +541,7 @@ The tool automatically tracks processing progress for each language:
 
 - **Incremental processing**: Resume interrupted work without reprocessing completed slides
 - **Error retry**: Failed slides automatically retried on subsequent runs
-- **Force retry**: Use `--retry-errors` to regenerate all slides including successful ones
+- **Force retry**: Set `retry_errors: true` in YAML to regenerate failed slides on the next run
 - **Language isolation**: Each language has independent progress tracking
 
 Progress files track:
@@ -568,13 +579,9 @@ The system uses a **strict dependency chain** where each phase requires the prev
 retry_errors: true  # Force regeneration of failed slides
 ```
 
-**Manual Retry:**
-```bash
-# Retry failed slides only
-python main.py --style-config cyberpunk --retry-errors
-
-# Force regenerate all slides (including successful ones)
-python main.py --styles --retry-errors
+**Retry by changing YAML:**
+```yaml
+retry_errors: true
 ```
 
 ### Common Error Scenarios
@@ -604,7 +611,9 @@ For detailed troubleshooting, see [Error Handling Guide](docs/ERROR_HANDLING.md)
 grep -r "status.*error" notes/*/generate/*.json
 
 # Fix failed slides
-python main.py --styles --retry-errors
+# 1. Set retry_errors: true in the affected YAML config(s)
+# 2. Re-run the config
+python main.py --styles
 
 # Verify all slides successful before video synthesis
 python main.py --video-cache-stats
@@ -615,8 +624,8 @@ python main.py --video-cache-stats
 # Enable retry mode in YAML config
 retry_errors: true
 
-# Or use CLI flag
-python main.py --style-config cyberpunk --retry-errors
+# Re-run the YAML config after setting retry_errors: true
+python main.py --style-config cyberpunk
 ```
 
 **❌ Slides marked "success" but contain error messages (Fixed in v2.1+)**
@@ -633,7 +642,8 @@ python main.py --style-config cyberpunk --retry-errors
 ```bash
 # Root cause: Speaker notes failed first
 # Fix speaker notes, then images will generate automatically
-python main.py --style-config cyberpunk --retry-errors
+# Set retry_errors: true in YAML, then rerun
+python main.py --style-config cyberpunk
 ```
 
 ## Batch Processing
@@ -735,7 +745,7 @@ Output: Creates `_refined.json` suffix files (e.g., `progress_refined.json`)
 - **Supervisor Fallback**: "Last Tool Output" pattern captures writer output if supervisor terminates unexpectedly
 - **Retry Strategy**: Exponential backoff with 3 attempts for all agent calls
 - **Progress Tracking**: Resume interrupted processing automatically
-- **Image Caching**: Skip existing visuals unless `--retry-errors` specified
+- **Image Caching**: Skip existing visuals unless `retry_errors: true` is enabled in YAML
 - **TTS Resilience**: Timeout protection and tone validation with intelligent fallbacks
 
 ### Style Integration Architecture
@@ -775,24 +785,24 @@ Output: Creates `_refined.json` suffix files (e.g., `progress_refined.json`)
 # Linux/macOS - Use alternate GCP project
 export GOOGLE_CLOUD_PROJECT='your-project-id'
 export GOOGLE_CLOUD_LOCATION='us-central1'
-python main.py --pptx file.pptx
+python main.py --config configs/run.yaml
 
 # Linux/macOS - Use multiple projects for load balancing (avoids quota limits)
 export GOOGLE_CLOUD_PROJECTS='project-1,project-2,project-3'
 export GOOGLE_CLOUD_LOCATION='us-central1'
-python main.py --pptx file.pptx
+python main.py --config configs/run.yaml
 ```
 
 ```powershell
 # Windows - Use alternate GCP project
 $env:GOOGLE_CLOUD_PROJECT = 'your-project-id'
 $env:GOOGLE_CLOUD_LOCATION = 'us-central1'
-python main.py --pptx "file.pptx"
+python main.py --config ".\configs\run.yaml"
 
 # Windows - Use multiple projects for load balancing (avoids quota limits)
 $env:GOOGLE_CLOUD_PROJECTS = 'project-1,project-2,project-3'
 $env:GOOGLE_CLOUD_LOCATION = 'us-central1'
-python main.py --pptx "file.pptx"
+python main.py --config ".\configs\run.yaml"
 ```
 
 ### Performance & Caching Configuration

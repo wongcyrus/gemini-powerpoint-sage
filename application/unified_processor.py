@@ -1,12 +1,9 @@
-"""Unified processor that consolidates all running methods.
-
-Purely YAML-driven processor that handles style configurations
-from YAML files without CLI overrides.
-"""
+"""Unified processor for YAML-defined presentation runs."""
 
 import logging
 import os
-from typing import Dict, List, Optional, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 from .input_scanner import FileSet, InputScanner
 from config import Config
@@ -21,98 +18,20 @@ logger = logging.getLogger(__name__)
 class UnifiedProcessor:
     """Unified processor for YAML-driven presentation processing."""
     
-    def __init__(
-        self,
-        root_path: str = ".",
-        course_id: Optional[str] = None,
-        skip_visuals: bool = False,
-        generate_videos: bool = False,
-        retry_errors: bool = False,
-        region: str = "global"
-    ):
+    def __init__(self, root_path: str = "."):
         """
         Initialize unified processor.
         
         Args:
             root_path: Root directory for scanning
-            course_id: Optional course ID for context
-            skip_visuals: Whether to skip visual generation
-            generate_videos: Whether to generate videos
-            retry_errors: Whether to retry slides with errors
-            region: Google Cloud region
         """
         self.root_path = root_path
-        self.course_id = course_id
-        self.skip_visuals = skip_visuals
-        self.generate_videos = generate_videos
-        self.retry_errors = retry_errors
-        self.region = region
-        
+
         self.scanner = InputScanner(root_path)
-        
-    def _setup_environment(self) -> None:
-        """Setup environment variables."""
-        if self.retry_errors:
-            os.environ["SPEAKER_NOTE_RETRY_ERRORS"] = "true"
-        else:
-            os.environ.pop("SPEAKER_NOTE_RETRY_ERRORS", None)
-        
-        if self.region:
-            os.environ["GOOGLE_CLOUD_LOCATION"] = self.region
     
     def _parse_languages(self, languages: str) -> List[str]:
         """Parse and normalize language list."""
         return parse_languages(languages)
-    
-    async def process_single_file(
-        self, 
-        pptx_path: str, 
-        pdf_path: Optional[str] = None,
-        language: str = "en",
-        style: str = "professional",
-        output_dir: Optional[str] = None
-    ) -> Tuple[str, Optional[str]]:
-        """
-        Process a single PPTX file with explicit parameters.
-        
-        Args:
-            pptx_path: Path to PPTX file
-            pdf_path: Optional path to PDF file
-            language: Language for processing
-            style: Style for processing
-            output_dir: Optional output directory
-            
-        Returns:
-            Tuple of (notes_output_path, visuals_output_path)
-        """
-        # Resolve PDF path if not provided
-        if not pdf_path:
-            from utils.cli_utils import resolve_pdf_path, resolve_pptx_path
-            pptx_abs = resolve_pptx_path(pptx_path)
-            pdf_path = resolve_pdf_path(None, pptx_abs)
-            
-            if not pdf_path:
-                raise ValueError(f"No matching PDF found for: {pptx_path}")
-        
-        # Create file set
-        file_set = FileSet(
-            pptx_path=pptx_path,
-            pdf_path=pdf_path,
-            base_name=os.path.splitext(os.path.basename(pptx_path))[0],
-            directory=os.path.dirname(pptx_path),
-            style=style
-        )
-        
-        # Process languages
-        lang_list = self._parse_languages(language)
-        results = []
-        
-        for lang in lang_list:
-            logger.info(f"Processing {file_set.base_name} - Language: {lang}")
-            result = await self._process_single_file_set(file_set, lang, style, output_dir)
-            results.append(result)
-        
-        return results[-1]  # Return last result
     
     async def process_styles_directory(self) -> Dict[str, Dict[str, List[Tuple[str, Optional[str]]]]]:
         """
@@ -121,41 +40,25 @@ class UnifiedProcessor:
         Returns:
             Dictionary mapping styles to file processing results
         """
-        self._setup_environment()
-        
-        file_sets = self.scanner.scan_styles()
-        
-        if not file_sets:
-            logger.warning("No files found in styles directory")
+        config_paths = self.scanner.get_style_config_paths()
+
+        if not config_paths:
+            logger.warning("No YAML style configurations found in styles directory")
             return {}
-        
-        # Organize by style
-        by_style = self.scanner.organize_by_style(file_sets)
+
         results = {}
-        
-        for style_name, style_file_sets in by_style.items():
+        for config_path in config_paths:
+            style_name = self._get_style_name(config_path)
             logger.info(f"\n{'='*60}")
             logger.info(f"Processing style: {style_name}")
             logger.info(f"{'='*60}")
-            
-            # Load style configuration
-            config_path = self.scanner.get_style_config_path(style_name)
-            if config_path:
-                logger.info(f"Loading YAML configuration: {config_path}")
-                try:
-                    style_config = ConfigFileLoader.load_from_file(config_path)
-                    style_results = await self._process_file_sets_with_config(style_file_sets, style_config)
-                    results[style_name] = style_results
-                    
-                except Exception as e:
-                    logger.error(f"Error loading YAML config for {style_name}: {e}")
-                    logger.error("Skipping this style due to configuration error")
-                    continue
-            else:
-                logger.warning(f"No YAML configuration found for style: {style_name}")
-                logger.warning("Skipping this style - YAML config required")
-                continue
-        
+
+            try:
+                results[style_name] = await self.process_single_style(config_path)
+            except Exception as e:
+                logger.error(f"Error loading YAML config for {style_name}: {e}")
+                logger.error("Skipping this style due to configuration error")
+
         return results
     
     async def process_single_style(self, style_identifier: str) -> Dict[str, List[Tuple[str, Optional[str]]]]:
@@ -168,55 +71,87 @@ class UnifiedProcessor:
         Returns:
             Dictionary mapping file names to processing results
         """
-        self._setup_environment()
-        
-        # Determine config file path
-        if os.path.isfile(style_identifier):
-            # Full path provided
-            config_path = style_identifier
-            style_name = os.path.splitext(os.path.basename(style_identifier))[0]
-            if style_name.startswith("config."):
-                style_name = style_name.replace("config.", "")
-        else:
-            # Style name provided, find config file
-            config_path = self.scanner.get_style_config_path(style_identifier)
-            style_name = style_identifier
-            
-            if not config_path:
-                raise ValueError(f"No configuration file found for style: {style_identifier}")
-        
+        config_path = self._resolve_style_config_path(style_identifier)
+        style_name = self._get_style_name(config_path)
+
         logger.info(f"Processing single style: {style_name}")
         logger.info(f"Using configuration: {config_path}")
-        
-        # Load configuration
+        return await self.process_config(config_path)
+
+    async def process_config(self, config_identifier: str) -> Dict[str, List[Tuple[str, Optional[str]]]]:
+        """Process presentations described by a config file."""
+        config_path = self._resolve_style_config_path(config_identifier)
+
         try:
-            style_config = ConfigFileLoader.load_from_file(config_path)
+            config = ConfigFileLoader.load_from_file(config_path)
         except Exception as e:
             raise ValueError(f"Error loading configuration file {config_path}: {e}")
-        
-        # Get input folder from config
-        input_folder = style_config.get("input_folder")
-        if not input_folder:
-            raise ValueError(f"Configuration file {config_path} must specify 'input_folder'")
-        
-        # Scan for files in the specified input folder
-        from pathlib import Path
-        file_sets = self.scanner.scan_directory(Path(input_folder))
-        
+
+        style_name = self._get_style_name(config_path)
+        file_sets = self._get_file_sets_from_config(config, style_name)
+
         if not file_sets:
+            input_folder = config.get("input_folder") or config.get("folder")
             logger.warning(f"No PPTX/PDF pairs found in input folder: {input_folder}")
             return {}
-        
-        # Add style metadata to file sets
+
+        logger.info(f"Found {len(file_sets)} file sets for config {config_path}")
+        return await self._process_file_sets_with_config(file_sets, config)
+
+    def _resolve_style_config_path(self, style_identifier: str) -> str:
+        """Resolve a style name or file path to a config file path."""
+        if os.path.isfile(style_identifier):
+            return style_identifier
+
+        config_path = self.scanner.get_style_config_path(style_identifier)
+        if not config_path:
+            raise ValueError(f"No configuration file found for style: {style_identifier}")
+        return config_path
+
+    def _get_style_name(self, config_path: str) -> str:
+        """Infer the style name from a config file path."""
+        style_name = os.path.splitext(os.path.basename(config_path))[0]
+        if style_name.startswith("config."):
+            return style_name.replace("config.", "")
+        if style_name.endswith(".config"):
+            return style_name.replace(".config", "")
+        return style_name
+
+    def _get_file_sets_from_config(
+        self, config: Dict[str, Any], style_name: Optional[str] = None
+    ) -> List[FileSet]:
+        """Create file sets from a resolved config dictionary."""
+        pptx_path = config.get("pptx")
+        if pptx_path:
+            pdf_path = config.get("pdf")
+            if not pdf_path:
+                from utils.cli_utils import resolve_pdf_path
+
+                pdf_path = resolve_pdf_path(None, pptx_path)
+                if not pdf_path:
+                    raise ValueError(f"No matching PDF found for: {pptx_path}")
+
+            pptx_path_obj = Path(pptx_path)
+            return [
+                FileSet(
+                    pptx_path=str(pptx_path_obj),
+                    pdf_path=str(pdf_path),
+                    base_name=pptx_path_obj.stem,
+                    directory=str(pptx_path_obj.parent),
+                    style=style_name,
+                    category=f"style/{style_name}" if style_name else "config",
+                )
+            ]
+
+        input_folder = config.get("input_folder") or config.get("folder")
+        if not input_folder:
+            raise ValueError("Configuration file must specify 'pptx', 'folder', or 'input_folder'")
+
+        file_sets = self.scanner.scan_directory(Path(input_folder))
         for file_set in file_sets:
-            file_set.style = style_name
-            file_set.category = f"style/{style_name}"
-        
-        # Process files with the configuration
-        logger.info(f"Found {len(file_sets)} file sets in {input_folder}")
-        results = await self._process_file_sets_with_config(file_sets, style_config)
-        
-        return results
+            file_set.style = style_name or file_set.style
+            file_set.category = f"style/{style_name}" if style_name else "config"
+        return file_sets
     
     async def _process_file_sets_with_config(
         self, 
@@ -237,8 +172,12 @@ class UnifiedProcessor:
         config_languages = config.get("language", "en")
         config_style = config.get("style")
         config_output_dir = config.get("output_dir")
-        config_skip_visuals = config.get("skip_visuals", self.skip_visuals)
-        config_generate_videos = config.get("generate_videos", self.generate_videos)
+        config_skip_visuals = config.get("skip_visuals", False)
+        config_generate_videos = config.get("generate_videos", False)
+        config_retry_errors = config.get("retry_errors", False)
+        config_region = config.get("region", "global")
+        config_course_id = config.get("course_id")
+        config_progress_file = config.get("progress_file")
         
         # Parse languages from config
         lang_list = self._parse_languages(config_languages)
@@ -263,7 +202,16 @@ class UnifiedProcessor:
                 
                 try:
                     result = await self._process_file_set_with_config(
-                        file_set, lang, config
+                        file_set,
+                        lang,
+                        config_style=config_style,
+                        config_output_dir=config_output_dir,
+                        config_skip_visuals=config_skip_visuals,
+                        config_generate_videos=config_generate_videos,
+                        config_retry_errors=config_retry_errors,
+                        config_region=config_region,
+                        config_course_id=config_course_id,
+                        config_progress_file=config_progress_file,
                     )
                     file_results.append(result)
                     logger.info(f"Successfully processed {file_set.base_name} ({lang})")
@@ -275,73 +223,19 @@ class UnifiedProcessor:
         
         return results
     
-    async def _process_single_file_set(
-        self, 
-        file_set: FileSet, 
-        language: str,
-        style: str,
-        output_dir: Optional[str] = None
-    ) -> Tuple[str, Optional[str]]:
-        """
-        Process a single file set for single-file mode.
-        
-        Args:
-            file_set: File set to process
-            language: Language to process
-            style: Style to use
-            output_dir: Optional output directory
-            
-        Returns:
-            Tuple of (notes_output_path, visuals_output_path)
-        """
-        # Determine output directory
-        effective_output_dir = output_dir or file_set.directory
-        
-        # Create configuration
-        config = Config(
-            pptx_path=file_set.pptx_path,
-            pdf_path=file_set.pdf_path,
-            course_id=self.course_id,
-            skip_visuals=self.skip_visuals,
-            generate_videos=self.generate_videos,
-            language=language,
-            style=style,
-            output_dir=effective_output_dir,
-        )
-        
-        # Validate configuration
-        config.validate()
-        
-        # Create agents with styles
-        agents = await create_all_agents(
-            visual_style=config.visual_style,
-            speaker_style=config.speaker_style
-        )
-        
-        # Create processor
-        processor = PresentationProcessor(
-            config=config,
-            supervisor_agent=agents["supervisor"],
-            analyst_agent=agents["analyst"],
-            writer_agent=agents["writer"],
-            auditor_agent=agents["auditor"],
-            overviewer_agent=agents["overviewer"],
-            designer_agent=agents["designer"],
-            translator_agent=agents["translator"],
-            image_translator_agent=agents["image_translator"],
-            video_generator_agent=agents["video_generator"],
-        )
-        
-        # Process presentation
-        output_path_notes, output_path_visuals = await processor.process()
-        
-        return output_path_notes, output_path_visuals
-    
     async def _process_file_set_with_config(
         self, 
         file_set: FileSet, 
-        language: str, 
-        config: Dict[str, any]
+        language: str,
+        *,
+        config_style: Any,
+        config_output_dir: Optional[str],
+        config_skip_visuals: bool,
+        config_generate_videos: bool,
+        config_retry_errors: bool,
+        config_region: str,
+        config_course_id: Optional[str],
+        config_progress_file: Optional[str],
     ) -> Tuple[str, Optional[str]]:
         """
         Process a single file set using YAML configuration.
@@ -349,17 +243,9 @@ class UnifiedProcessor:
         Args:
             file_set: File set to process
             language: Language to process
-            config: YAML configuration dictionary
-            
         Returns:
             Tuple of (notes_output_path, visuals_output_path)
         """
-        # Extract config values
-        config_style = config.get("style")
-        config_output_dir = config.get("output_dir")
-        config_skip_visuals = config.get("skip_visuals", self.skip_visuals)
-        config_generate_videos = config.get("generate_videos", self.generate_videos)
-        
         # Use YAML config values
         effective_style = config_style or file_set.style
         effective_output_dir = config_output_dir or self.scanner.get_output_directory(file_set)
@@ -368,7 +254,10 @@ class UnifiedProcessor:
         config_obj = Config(
             pptx_path=file_set.pptx_path,
             pdf_path=file_set.pdf_path,
-            course_id=self.course_id,
+            course_id=config_course_id,
+            progress_file=config_progress_file,
+            retry_errors=config_retry_errors,
+            region=config_region,
             skip_visuals=config_skip_visuals,
             generate_videos=config_generate_videos,
             language=language,

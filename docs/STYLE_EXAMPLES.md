@@ -241,8 +241,8 @@ python main.py --style-config starwars
 # Process all styles
 python main.py --styles
 
-# Single file with style
-python main.py --pptx file.pptx --language en --style professional
+# Or run one explicit YAML config
+python main.py --config /path/to/config.yaml
 ```
 
 ---

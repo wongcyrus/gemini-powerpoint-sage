@@ -197,14 +197,7 @@ ACTION_REQUIRED: Retry slide processing or investigate underlying API/network is
 retry_errors: true  # Force regeneration of failed slides
 ```
 
-**Enable via CLI:**
-```bash
-# Retry failed slides only
-python main.py --style-config cyberpunk --retry-errors
-
-# Force regenerate ALL slides (including successful ones)
-python main.py --styles --retry-errors
-```
+Re-run the same YAML after enabling `retry_errors: true`.
 
 ### 2. Manual Error Investigation
 
@@ -222,17 +215,17 @@ tail -f logs/gemini_powerpoint_sage_*.log | grep -i error
 
 ### 3. Targeted Recovery
 
-**Single File Recovery:**
+**Single Config Recovery:**
 ```bash
-# Process only the problematic file
-python main.py --pptx problematic_presentation.pptx --language en --style cyberpunk --retry-errors
+# Process only the problematic YAML config
+python main.py --config configs/problematic-presentation.yaml
 ```
 
 **Specific Slide Investigation:**
 ```bash
 # Enable debug logging for detailed error analysis
 export LOG_LEVEL=DEBUG
-python main.py --style-config cyberpunk --retry-errors
+python main.py --style-config cyberpunk
 ```
 
 ### 4. Video Synthesis Recovery
@@ -278,7 +271,7 @@ python main.py --style-config cyberpunk
 # Solutions:
 1. Check API quotas and billing
 2. Verify network connectivity
-3. Retry with --retry-errors
+3. Enable `retry_errors: true` in YAML and rerun
 4. Check for rate limiting in logs
 ```
 
@@ -292,7 +285,7 @@ python main.py --style-config cyberpunk
 
 # If you see this on older versions:
 1. Upgrade to latest version with improved error detection
-2. Use --retry-errors to regenerate affected slides
+2. Set `retry_errors: true` to regenerate affected slides
 3. Check logs for underlying tool failure causes (API limits, timeouts, etc.)
 ```
 
@@ -311,7 +304,7 @@ python main.py --style-config cyberpunk
 ```bash
 # Root cause: Speaker notes failed
 # Solution: Fix speaker notes first, then retry
-python main.py --style-config cyberpunk --retry-errors
+python main.py --style-config cyberpunk
 ```
 
 ### Video Synthesis Failures
@@ -324,13 +317,14 @@ python main.py --style-config cyberpunk --retry-errors
 # 1. Check for failed slides
 grep -r "status.*error" notes/*/generate/*.json
 
-# 2. Fix failed slides
-python main.py --styles --retry-errors
+# 2. Set retry_errors: true in the affected YAML config(s)
+# 3. Re-run processing
+python main.py --styles
 
-# 3. Verify all slides successful
+# 4. Verify all slides successful
 python main.py --video-cache-stats  # Shows file counts
 
-# 4. Attempt video synthesis
+# 5. Attempt video synthesis
 python main.py --synthesize-video --slides-dir path/to/visuals --video-output output.mp4
 ```
 
@@ -344,7 +338,7 @@ ls -la slides_dir/
 ls -la audio_dir/
 
 # Regenerate if needed
-python main.py --style-config cyberpunk --retry-errors
+python main.py --style-config cyberpunk
 ```
 
 ### Performance and Timeout Issues
@@ -353,7 +347,7 @@ python main.py --style-config cyberpunk --retry-errors
 ```bash
 # Solutions:
 export TTS_TIMEOUT_SECONDS=180  # Increase timeout
-python main.py --style-config cyberpunk --retry-errors
+python main.py --style-config cyberpunk
 ```
 
 **Error:** "Video synthesis timed out"
@@ -406,7 +400,7 @@ tail -f logs/gemini_powerpoint_sage_*.log | grep -E "(ERROR|WARNING|SUCCESS)"
 2. **Configuration Validation:**
    ```bash
    # Test configuration before batch processing
-   python main.py --pptx small_test.pptx --language en --style professional
+   python main.py --config configs/small-test.yaml
    ```
 
 3. **Incremental Processing:**
@@ -432,8 +426,9 @@ if [ $failed_count -gt 0 ]; then
     echo "❌ Found $failed_count failed slides"
     echo "🔄 Starting recovery process..."
     
-    # Step 1: Retry failed slides
-    python main.py --styles --retry-errors
+    # Step 1: Ensure retry_errors: true is enabled in the affected YAML config(s)
+    # Step 2: Retry failed slides
+    python main.py --styles
     
     # Step 2: Verify recovery
     new_failed_count=$(grep -r "status.*error" notes/*/generate/*.json | wc -l)

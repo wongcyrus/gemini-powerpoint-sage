@@ -6,7 +6,7 @@ Welcome to the Gemini Powerpoint Sage documentation!
 
 Start here if you're new to the project:
 
-1. **[Quick Start Guide](QUICK_START.md)** - Get up and running in 3 steps
+1. **[Quick Start Guide](QUICK_START.md)** - Fastest way to pick the right command
 2. **[Configuration File Guide](CONFIG_FILE_GUIDE.md)** - Learn to use YAML configs
 3. **[Style Examples](STYLE_EXAMPLES.md)** - Customize your presentation style
 
@@ -33,7 +33,7 @@ Start here if you're new to the project:
 
 For developers and contributors:
 
-- **[Architecture](ARCHITECTURE.md)** - System architecture overview
+- **[Architecture](ARCHITECTURE.md)** - Runtime flow from CLI to slide processing, with diagrams
 - **[Agent Flow Detailed](AGENT_FLOW_DETAILED.md)** - Complete agent logic flow and relationships
 - **[Agent Relationships](AGENT_RELATIONSHIPS.md)** - Agent interactions and dependencies
 - **[Prompt Rewriter](PROMPT_REWRITER.md)** - Prompt rewriter system overview with caching
@@ -45,6 +45,14 @@ For developers and contributors:
 - **Configuration Management** - Environment variables for caching, TTS, and performance tuning
 
 ## 🎯 Quick Links by Task
+
+### Recommended starting points
+
+| Goal | Command |
+| --- | --- |
+| Process one YAML-configured workflow | `python main.py --style-config professional` |
+| Process one custom YAML file directly | `python main.py --config /path/to/config.yaml` |
+| Run all configured styles | `python main.py --styles` |
 
 ### I want to...
 
@@ -69,7 +77,7 @@ For developers and contributors:
 **Troubleshoot errors or failed slides**
 → [Error Handling & Recovery](ERROR_HANDLING.md)
 
-**Learn about the system architecture**
+**Trace the runtime logic flow**
 → [Architecture](ARCHITECTURE.md)
 
 **Optimize performance and understand caching**
@@ -115,5 +123,5 @@ This documentation is actively maintained. If you find any issues or have sugges
 
 ## 📌 Version
 
-Documentation last updated: December 2025
+Documentation last updated: June 2026
 Compatible with: Gemini Powerpoint Sage v2.0+

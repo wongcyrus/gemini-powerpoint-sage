@@ -320,8 +320,8 @@ FALLBACK_IMAGEN_MODEL = "FALLBACK_IMAGEN_MODEL"
 ## CLI Commands
 
 ```bash
-# Single file, English
-python main.py --pptx lecture.pptx --language en --style professional
+# One explicit config
+python main.py --config configs/lecture.yaml
 
 # Multiple languages (configure in YAML)
 python main.py --style-config multilang
@@ -330,14 +330,8 @@ python main.py --style-config multilang
 python main.py --style-config professional
 python main.py --styles  # All styles
 
-# Skip visuals
-python main.py --style-config professional --skip-visuals
-
-# Generate videos
-python main.py --style-config professional --generate-videos
-
-# Retry errors
-python main.py --style-config professional --retry-errors
+# Processing behavior such as skip_visuals, generate_videos, and retry_errors
+# should be configured inside the YAML file itself.
 ```
 
 ## Debugging
@@ -370,7 +364,7 @@ print(f"Supervisor: {ModelConfig.SUPERVISOR}")
 # Problem: ModuleNotFoundError: No module named 'config'
 # Solution: Run from project root
 cd /path/to/gemini-powerpoint-sage
-python3 main.py --pptx file.pptx
+python3 main.py --config configs/run.yaml
 ```
 
 ### Agent Not Found

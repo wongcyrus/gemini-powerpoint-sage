@@ -155,7 +155,7 @@ export TTS_TIMEOUT_SECONDS=120         # More generous timeout
 # Disable caching for development
 export PROMPT_CACHE_ENABLED=false
 export TTS_CACHE_ENABLED=false
-python main.py --pptx test.pptx --language en --style professional
+python main.py --config configs/test.yaml
 ```
 
 ## 📈 Best Practices

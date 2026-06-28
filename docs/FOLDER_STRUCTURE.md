@@ -32,7 +32,7 @@ All output files include the language suffix for consistency:
 - Simplified Chinese: `lecture_zh-CN_with_notes.pptx`, `lecture_zh-CN_progress.json`, `lecture_zh-CN_visuals/`
 - Cantonese: `lecture_yue-HK_with_notes.pptx`, `lecture_yue-HK_progress.json`, `lecture_yue-HK_visuals/`
 
-## Example: Single File, Multiple Languages
+## Example: Single-Presentation YAML Config, Multiple Languages
 
 Starting with:
 ```
@@ -41,7 +41,21 @@ presentations/
 └── lecture.pdf
 ```
 
-After processing with: `.\run.ps1 --pptx lecture.pptx --language "en,zh-CN,yue-HK"`
+After processing with a config such as:
+
+```yaml
+pptx: "presentations/lecture.pptx"
+pdf: "presentations/lecture.pdf"
+output_dir: "presentations"
+language: "en,zh-CN,yue-HK"
+style: "professional"
+```
+
+and running:
+
+```powershell
+.\run.ps1 --config ".\configs\lecture.yaml"
+```
 
 ```
 presentations/
@@ -139,20 +153,20 @@ presentations/
 
 ## Commands for Common Workflows
 
-### Process one file in multiple languages (recommended)
+### Process one presentation in multiple languages (recommended)
 ```powershell
-# English + Simplified Chinese + Cantonese
-.\run.ps1 --pptx "lecture.pptx" --language "en,zh-CN,yue-HK"
+# English + Simplified Chinese + Cantonese from YAML
+.\run.ps1 --config ".\configs\lecture-multilang.yaml"
 ```
 
-### Process one language at a time
+### Process one language set at a time
 ```powershell
-# English first (required for translations)
-.\run.ps1 --pptx "lecture.pptx" --language en
+# English-only config first
+.\run.ps1 --config ".\configs\lecture-en.yaml"
 
-# Then other languages (will translate from English)
-.\run.ps1 --pptx "lecture.pptx" --language zh-CN
-.\run.ps1 --pptx "lecture.pptx" --language yue-HK
+# Then a translated-language config
+.\run.ps1 --config ".\configs\lecture-zh-cn.yaml"
+.\run.ps1 --config ".\configs\lecture-yue-hk.yaml"
 ```
 
 ### Process entire folder in multiple languages

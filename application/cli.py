@@ -4,14 +4,12 @@ import argparse
 import asyncio
 import logging
 import os
-import sys
 from typing import Optional
 
 from dotenv import load_dotenv
 
 from .unified_processor import UnifiedProcessor
 from .commands import RefineCommand
-from utils.cli_utils import parse_languages, resolve_pptx_path, resolve_pdf_path
 
 logger = logging.getLogger(__name__)
 
@@ -27,73 +25,36 @@ class CLI:
         """Create argument parser."""
         parser = argparse.ArgumentParser(
             description="Generate Speaker Notes with Supervisor Agent",
-            epilog="Configuration is handled through YAML files in styles/ directory. "
-                   "Use --styles for all styles, --style-config for one specific style."
+            epilog="Presentation processing is YAML-driven. "
+                   "Use --styles for all configs, --style-config for one built-in style config, "
+                   "or --config for one explicit YAML file."
         )
         
         # Configuration file
         parser.add_argument(
             "--config",
-            help="Path to YAML configuration file. "
-                 "Command-line arguments override config file settings. "
-                 "Example: --config config.yaml"
-        )
-        
-        # Input modes
-        parser.add_argument(
-            "--pptx",
-            required=False,
-            help="Path to input PPTX or PPTM file (for single file processing)"
-        )
-        parser.add_argument(
-            "--pdf",
-            required=False,
-            help="Path to input PDF (optional if PDF with same name is in PPTX folder)"
+            help="Path to a YAML configuration file for processing. Example: --config config.yaml"
         )
         parser.add_argument(
             "--styles",
             action="store_true",
-            help="Process using YAML configurations in styles/ directory (recommended)"
+            help="Process every YAML configuration in styles/"
         )
         parser.add_argument(
             "--style-config",
-            help="Process using a specific YAML style configuration file. "
-                 "Examples: 'cyberpunk', 'professional', 'gundam' or full path to config file"
+            help="Process one style config from styles/, or pass a config file path. "
+                 "Examples: 'cyberpunk', 'professional', or /path/to/config.yaml"
         )
-        
-        # Processing options
-        parser.add_argument(
-            "--course-id",
-            help="Optional: Course ID to fetch theme context"
-        )
+
+        # Utility mode options
         parser.add_argument(
             "--progress-file",
-            help="Override path for progress JSON file"
-        )
-        parser.add_argument(
-            "--retry-errors",
-            action="store_true",
-            help="Retry slides previously marked as error"
-        )
-        parser.add_argument(
-            "--region",
-            help="Google Cloud Region (default: global)",
-            default="global"
-        )
-        parser.add_argument(
-            "--skip-visuals",
-            action="store_true",
-            help="Skip visual generation and only update speaker notes"
-        )
-        parser.add_argument(
-            "--generate-videos",
-            action="store_true",
-            help="Generate promotional videos for each slide using Veo 3.1"
+            help="Path to a presentation progress JSON. Used by --tts-only."
         )
         parser.add_argument(
             "--tts-only",
             action="store_true",
-            help="Generate only TTS audio files (skip notes and visuals generation)"
+            help="Generate only TTS audio files from a progress JSON"
         )
         parser.add_argument(
             "--synthesize-video",
@@ -137,22 +98,14 @@ class CLI:
             action="store_true",
             help="Force regeneration even if valid video already exists"
         )
-        # Single-file processing options (only used with --pptx)
         parser.add_argument(
             "--language",
-            help="Language locale(s) for single-file processing. "
-                 "Examples: en, 'en,ja-JP', 'en,yue-HK,zh-CN'",
+            help="Language locale(s) for utility modes such as --tts-only",
             default="en"
         )
         parser.add_argument(
-            "--style",
-            help="Style/theme for single-file processing. "
-                 "Examples: 'gundam', 'cyberpunk', 'professional'",
-            default="professional"
-        )
-        parser.add_argument(
             "--output-dir",
-            help="Output directory for single-file processing.",
+            help="Output directory for utility modes such as --tts-only.",
             default=None
         )
         
@@ -165,67 +118,16 @@ class CLI:
         
         return parser
     
-    def _load_config_file(self, args: argparse.Namespace) -> None:
-        """Load and merge configuration from file."""
-        if not args.config:
-            return
-        
-        from config.config_loader import ConfigFileLoader
-        
-        try:
-            config_dict = ConfigFileLoader.load_from_file(args.config)
-            ConfigFileLoader.validate_config(config_dict)
-            config_dict = ConfigFileLoader.merge_with_args(config_dict, args)
-            
-            # Update args with config values
-            for key, value in config_dict.items():
-                if not hasattr(args, key) or getattr(args, key) is None:
-                    setattr(args, key, value)
-            
-            logger.info(f"Loaded configuration from: {args.config}")
-        except Exception as e:
-            print(f"Error loading configuration file: {e}")
-            sys.exit(1)
-    
     def _setup_environment(self, args: argparse.Namespace) -> None:
         """Setup environment variables."""
         # Progress file
         if args.progress_file:
-            pptx_dir = os.path.dirname(os.path.abspath(args.pptx)) if args.pptx else os.getcwd()
             if os.path.isabs(args.progress_file):
                 progress_path = args.progress_file
             else:
-                progress_path = os.path.join(pptx_dir, args.progress_file)
+                progress_path = os.path.join(os.getcwd(), args.progress_file)
             os.environ["SPEAKER_NOTE_PROGRESS_FILE"] = progress_path
             logger.info(f"Progress file resolved to: {progress_path}")
-        
-        # Retry errors
-        if args.retry_errors:
-            os.environ["SPEAKER_NOTE_RETRY_ERRORS"] = "true"
-        
-        # Google Cloud region
-        if args.region:
-            os.environ["GOOGLE_CLOUD_LOCATION"] = args.region
-        elif "GOOGLE_CLOUD_LOCATION" not in os.environ:
-            os.environ["GOOGLE_CLOUD_LOCATION"] = "global"
-        
-        # Log Google Cloud project rotation setup
-        from utils.project_rotation import get_project_count, get_current_project, reload_projects
-        
-        # Force reload projects to ensure we have the latest environment variables
-        reload_projects()
-        
-        project_count = get_project_count()
-        current_project = get_current_project()
-        
-        if project_count > 1:
-            logger.info(f"Google Cloud project rotation enabled: {project_count} projects configured")
-            if current_project:
-                logger.info(f"Starting with project: {current_project}")
-        elif project_count == 1:
-            logger.info(f"Using single Google Cloud project: {current_project}")
-        else:
-            logger.warning("No Google Cloud projects configured")
     
     async def _handle_refine(self, args: argparse.Namespace) -> None:
         """Handle refinement mode."""
@@ -237,20 +139,21 @@ class CLI:
         from utils.tts_cli_utils import TTSCLIUtility
         import json
         
-        if not args.pptx:
-            print("Error: --tts-only requires --pptx argument with path to presentation progress JSON file")
+        progress_json = args.progress_file
+        if not progress_json:
+            print("Error: --tts-only requires --progress-file with a presentation progress JSON file")
             return
         
         # Check if the file is a JSON progress file
-        if not args.pptx.endswith('.json'):
-            print("Error: --tts-only requires a JSON progress file, not a PPTX file")
+        if not progress_json.endswith('.json'):
+            print("Error: --tts-only requires a JSON progress file")
             print("First run the normal processing to generate speaker notes, then use --tts-only on the progress JSON file")
             return
         
         try:
             tts_cli = TTSCLIUtility()
             result = await tts_cli.generate_tts_for_presentation(
-                args.pptx,
+                progress_json,
                 args.language,
                 args.output_dir
             )
@@ -587,7 +490,7 @@ class CLI:
                     
                     # Try to find the presentation JSON file to regenerate TTS
                     json_files = list(base_dir.glob(f"{base}*.json"))
-                    print(f"� Looking fo r JSON files with pattern: {base}*.json")
+                    print(f"🔍 Looking for JSON files with pattern: {base}*.json")
                     print(f"🔍 Found JSON files: {[str(f) for f in json_files]}")
                     
                     if json_files:
@@ -596,29 +499,14 @@ class CLI:
                         
                         try:
                             from utils.tts_cli_utils import TTSCLIUtility
-                            import asyncio
                             
                             print(f"🎤 Starting TTS regeneration for {lang}...")
                             tts_cli = TTSCLIUtility()
                             
-                            # Run TTS generation in async context
-                            async def regenerate_tts():
-                                print(f"🔧 Calling TTS generation for {json_file} in {lang}")
-                                return await tts_cli.generate_tts_for_presentation(
-                                    str(json_file), lang, str(base_dir)
-                                )
-                            
-                            # Get or create event loop
-                            try:
-                                loop = asyncio.get_event_loop()
-                                print("🔄 Using existing event loop")
-                            except RuntimeError:
-                                loop = asyncio.new_event_loop()
-                                asyncio.set_event_loop(loop)
-                                print("🔄 Created new event loop")
-                            
-                            print("🚀 Running TTS regeneration...")
-                            tts_result = loop.run_until_complete(regenerate_tts())
+                            print(f"🚀 Running TTS regeneration for {json_file} in {lang}...")
+                            tts_result = await tts_cli.generate_tts_for_presentation(
+                                str(json_file), lang, str(base_dir)
+                            )
                             print(f"📊 TTS result: {tts_result}")
                             
                             if tts_result.get('successful', 0) > 0:
@@ -723,64 +611,26 @@ class CLI:
         if args.video_clear_cache is not None:
             await self._handle_video_clear_cache(args)
             return
-        
+
         # Determine processing mode
-        if args.pptx:
-            # Single file mode - use CLI parameters
-            logger.info("Processing single file...")
-            processor = UnifiedProcessor(
-                root_path=".",
-                course_id=args.course_id,
-                skip_visuals=args.skip_visuals,
-                generate_videos=args.generate_videos,
-                retry_errors=args.retry_errors,
-                region=args.region
-            )
-            await processor.process_single_file(
-                args.pptx, 
-                args.pdf,
-                language=args.language,
-                style=args.style,
-                output_dir=args.output_dir
-            )
-            
+        if args.config:
+            logger.info(f"Processing with configuration file: {args.config}")
+            processor = UnifiedProcessor(root_path=".")
+            await processor.process_config(args.config)
+             
         elif args.styles:
-            # YAML-driven styles processing (all styles)
             logger.info("Processing with YAML configurations...")
-            processor = UnifiedProcessor(
-                root_path=".",
-                course_id=args.course_id,
-                skip_visuals=args.skip_visuals,
-                generate_videos=args.generate_videos,
-                retry_errors=args.retry_errors,
-                region=args.region
-            )
+            processor = UnifiedProcessor(root_path=".")
             await processor.process_styles_directory()
-            
+             
         elif args.style_config:
-            # Single style configuration processing
             logger.info(f"Processing with single style configuration: {args.style_config}")
-            processor = UnifiedProcessor(
-                root_path=".",
-                course_id=args.course_id,
-                skip_visuals=args.skip_visuals,
-                generate_videos=args.generate_videos,
-                retry_errors=args.retry_errors,
-                region=args.region
-            )
+            processor = UnifiedProcessor(root_path=".")
             await processor.process_single_style(args.style_config)
         
         else:
-            # Default to styles processing
             logger.info("No mode specified, defaulting to YAML-driven styles processing...")
-            processor = UnifiedProcessor(
-                root_path=".",
-                course_id=args.course_id,
-                skip_visuals=args.skip_visuals,
-                generate_videos=args.generate_videos,
-                retry_errors=args.retry_errors,
-                region=args.region
-            )
+            processor = UnifiedProcessor(root_path=".")
             await processor.process_styles_directory()
     
     def run(self, argv: Optional[list] = None) -> int:
@@ -795,13 +645,10 @@ class CLI:
         """
         # Load environment variables
         load_dotenv()
-        
+
         # Parse arguments
         args = self.parser.parse_args(argv)
-        
-        # Load config file if specified
-        self._load_config_file(args)
-        
+          
         # Handle refinement mode
         if args.refine:
             asyncio.run(self._handle_refine(args))
@@ -809,10 +656,14 @@ class CLI:
         
         # Validate input methods
         style_config_is_method = bool(args.style_config) and not (
-            args.synthesize_style_videos or args.synthesize_video or args.tts_only or args.video_cache_stats or (args.video_clear_cache is not None)
+            args.synthesize_style_videos
+            or args.synthesize_video
+            or args.tts_only
+            or args.video_cache_stats
+            or (args.video_clear_cache is not None)
         )
         input_methods = sum([
-            bool(args.pptx),
+            bool(args.config),
             bool(args.styles),
             style_config_is_method,
             bool(args.synthesize_video),

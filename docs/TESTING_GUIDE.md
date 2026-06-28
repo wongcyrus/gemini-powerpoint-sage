@@ -160,8 +160,8 @@ python main.py --style-config cyberpunk
 # Time the execution
 time python main.py --style-config starwars
 
-# Skip visuals for faster testing (notes only)
-python main.py --style-config starwars --skip-visuals
+# For faster testing, create a YAML config with skip_visuals: true
+python main.py --config configs/starwars-notes-only.yaml
 ```
 
 ## Troubleshooting Tests

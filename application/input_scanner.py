@@ -237,6 +237,18 @@ class InputScanner:
                 return str(candidate)
                 
         return None
+
+    def get_style_config_paths(self) -> List[str]:
+        """Return all first-class style config paths from styles/."""
+        styles_dir = self.root_path / "styles"
+        if not styles_dir.exists():
+            return []
+
+        config_paths = []
+        for pattern in ("config.*.yaml", "config.*.yml"):
+            config_paths.extend(styles_dir.glob(pattern))
+
+        return sorted(str(path) for path in config_paths)
     
     def organize_by_style(self, file_sets: List[FileSet]) -> Dict[str, List[FileSet]]:
         """

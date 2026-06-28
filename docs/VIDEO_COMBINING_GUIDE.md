@@ -17,7 +17,9 @@ This guide covers video synthesis and combining using MoviePy in this project. T
 grep -r "status.*error" notes/*/generate/*.json
 
 # If any failures found, fix them first:
-python main.py --styles --retry-errors
+# 1. Set retry_errors: true in the affected YAML config(s)
+# 2. Re-run processing
+python main.py --styles
 ```
 
 See [Error Handling Guide](ERROR_HANDLING.md) for detailed troubleshooting.
@@ -74,7 +76,8 @@ if len(slide_images) != len(audio_files):
 
 **Solution:** Fix ALL failed slides before attempting video synthesis:
 ```bash
-python main.py --style-config hkcomic --retry-errors
+# Set retry_errors: true in the YAML config, then rerun it
+python main.py --style-config hkcomic
 ```
 
 ## Basic Usage
@@ -293,10 +296,11 @@ See the `examples/combine_videos_example.py` file for complete working examples.
 # 1. Check for failed slides
 grep -r "status.*error" notes/*/generate/*.json
 
-# 2. Fix failed slides
-python main.py --style-config hkcomic --retry-errors
+# 2. Enable retry_errors: true in the YAML config
+# 3. Fix failed slides
+python main.py --style-config hkcomic
 
-# 3. Verify all slides successful
+# 4. Verify all slides successful
 python -c "
 import json
 with open('notes/hkcomic/generate/presentation_en_progress.json') as f:
@@ -308,7 +312,7 @@ if failed:
         print(f'  Slide {slide.get(\"slide_index\", \"?\")}: {slide.get(\"status\", \"unknown\")}')
 "
 
-# 4. Retry video synthesis
+# 5. Retry video synthesis
 python main.py --synthesize-video --slides-dir path/to/visuals --video-output output.mp4
 ```
 
@@ -319,8 +323,8 @@ python main.py --synthesize-video --slides-dir path/to/visuals --video-output ou
 ls -la slides_dir/ | grep -E "(slide_[0-9]+|\.png|\.jpg)"
 ls -la audio_dir/ | grep -E "(slide_[0-9]+|\.mp3)"
 
-# Regenerate missing files
-python main.py --style-config hkcomic --retry-errors
+# Regenerate missing files after enabling retry_errors: true
+python main.py --style-config hkcomic
 ```
 
 **Error: Misaligned slide-audio pairing**
@@ -335,7 +339,8 @@ python main.py --style-config hkcomic --retry-errors
 # slide_5.png + slide_4.mp3 ❌ Wrong!
 
 # Solution: Ensure NO missing slides
-python main.py --style-config hkcomic --retry-errors
+# Re-run after enabling retry_errors: true in YAML
+python main.py --style-config hkcomic
 ```
 
 ### MoviePy Issues

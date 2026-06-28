@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""
-Usage examples for the three-mode Gemini PowerPoint Sage system.
-
-Demonstrates single file, single style, and all styles processing modes.
-"""
+"""Usage examples for the YAML-first Gemini PowerPoint Sage system."""
 
 import asyncio
 import logging
@@ -15,32 +11,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-async def example_single_file():
-    """Example: Process a single PPTX file with CLI parameters."""
-    processor = UnifiedProcessor(
-        skip_visuals=False,
-        generate_videos=False
-    )
-    
-    try:
-        result = await processor.process_single_file(
-            pptx_path="presentation.pptx",
-            pdf_path="presentation.pdf",  # Optional if same name
-            language="en,zh-CN",
-            style="Cyberpunk",
-            output_dir="output/single"
-        )
-        logger.info(f"Single file processing result: {result}")
-    except Exception as e:
-        logger.error(f"Error processing single file: {e}")
-
-
 async def example_single_style():
     """Example: Process all files with one specific style configuration."""
-    processor = UnifiedProcessor(
-        skip_visuals=False,
-        generate_videos=True
-    )
+    processor = UnifiedProcessor()
     
     try:
         # Process using cyberpunk style configuration
@@ -56,10 +29,7 @@ async def example_single_style():
 
 async def example_all_styles():
     """Example: Process all files with all available style configurations."""
-    processor = UnifiedProcessor(
-        skip_visuals=False,
-        generate_videos=False
-    )
+    processor = UnifiedProcessor()
     
     try:
         results = await processor.process_styles_directory()
@@ -74,6 +44,17 @@ async def example_all_styles():
         
     except Exception as e:
         logger.error(f"Error processing all styles: {e}")
+
+
+async def example_direct_config():
+    """Example: Process one explicit YAML config file."""
+    processor = UnifiedProcessor()
+
+    try:
+        results = await processor.process_config("styles/config.professional.yaml")
+        logger.info(f"Direct config processing results: {results}")
+    except Exception as e:
+        logger.error(f"Error processing config file: {e}")
 
 
 def example_input_scanning():
@@ -107,28 +88,20 @@ def example_input_scanning():
 
 
 def example_cli_commands():
-    """Example: Show equivalent CLI commands for each mode."""
+    """Example: Show equivalent CLI commands for each YAML mode."""
     logger.info("CLI Command Examples:")
-    
-    logger.info("\n📄 SINGLE FILE PROCESSING:")
-    logger.info("  python main.py --pptx presentation.pptx --language en --style Professional")
-    logger.info("  python main.py --pptx file.pptx --language 'en,zh-CN' --style Cyberpunk")
-    logger.info("  python main.py --pptx test.pptx --language en --style Gundam --output-dir output/test")
-    
+
+    logger.info("\n🧩 DIRECT CONFIG PROCESSING:")
+    logger.info("  python main.py --config /path/to/config.yaml")
+
     logger.info("\n🎨 SINGLE STYLE PROCESSING:")
     logger.info("  python main.py --style-config cyberpunk")
     logger.info("  python main.py --style-config professional")
     logger.info("  python main.py --style-config gundam")
-    logger.info("  python main.py --style-config /path/to/custom-config.yaml")
     
     logger.info("\n🌟 ALL STYLES PROCESSING:")
     logger.info("  python main.py --styles")
     logger.info("  python main.py  # defaults to --styles")
-    
-    logger.info("\n⚙️ WITH ADDITIONAL OPTIONS:")
-    logger.info("  python main.py --styles --skip-visuals")
-    logger.info("  python main.py --style-config cyberpunk --generate-videos")
-    logger.info("  python main.py --pptx file.pptx --language en --style Professional --retry-errors")
 
 
 def example_use_cases():
@@ -136,9 +109,9 @@ def example_use_cases():
     logger.info("Use Case Examples:")
     
     logger.info("\n🔧 DEVELOPMENT & TESTING:")
-    logger.info("  # Quick test of single file")
-    logger.info("  python main.py --pptx test.pptx --language en --style Professional")
-    logger.info("  ")
+    logger.info("  # Use one explicit test config")
+    logger.info("  python main.py --config configs/test-run.yaml")
+    logger.info("")
     logger.info("  # Test specific style configuration")
     logger.info("  python main.py --style-config cyberpunk")
     
@@ -162,7 +135,7 @@ def example_use_cases():
 
 async def main():
     """Run all examples."""
-    logger.info("=== Gemini PowerPoint Sage - Three Modes Usage Examples ===\n")
+    logger.info("=== Gemini PowerPoint Sage - YAML-First Usage Examples ===\n")
     
     # Example 1: Input scanning
     logger.info("1. Input Scanning & Configuration Discovery:")
@@ -176,10 +149,10 @@ async def main():
     logger.info("\n3. Use Case Examples:")
     example_use_cases()
     
-    # Example 4: Single file processing
-    logger.info("\n4. Single File Processing Example:")
-    await example_single_file()
-    
+    # Example 4: Direct config processing
+    logger.info("\n4. Direct Config Processing Example:")
+    await example_direct_config()
+
     # Example 5: Single style processing
     logger.info("\n5. Single Style Processing Example:")
     await example_single_style()
@@ -190,7 +163,7 @@ async def main():
     
     logger.info("\n🎉 Examples complete!")
     logger.info("\nQuick reference:")
-    logger.info("  📄 Single file:  python main.py --pptx file.pptx --language en --style Professional")
+    logger.info("  🧩 One config:   python main.py --config configs/run.yaml")
     logger.info("  🎨 Single style: python main.py --style-config cyberpunk")
     logger.info("  🌟 All styles:   python main.py --styles")
 

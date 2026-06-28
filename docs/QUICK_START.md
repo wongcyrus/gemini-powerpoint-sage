@@ -1,167 +1,98 @@
 # Quick Start Guide
 
-Get started with Gemini Powerpoint Sage using the new three-mode system!
+Start with the smallest command that matches your goal.
 
-## 🌟 Method 1: All Styles Processing (Recommended)
+## 1. Setup once
 
-Process all your presentations with all available styles at once.
-
-### Step 1: Setup Your Files
 ```bash
-# Put your PPTX and PDF files in the notes/ directory
-mkdir -p notes
-cp your-presentation.pptx notes/
-cp your-presentation.pdf notes/
+./setup.sh
+gcloud auth application-default login
 ```
 
-### Step 2: Run All Styles
-```bash
-python main.py --styles
-# or simply:
-python main.py
+## 2. Choose one workflow
+
+| If you want to... | Run this |
+| --- | --- |
+| Process one YAML-configured batch | `python main.py --style-config professional` |
+| Process one custom YAML file directly | `python main.py --config /path/to/config.yaml` |
+| Process every configured style | `python main.py --styles` |
+
+`python main.py` is the same as `python main.py --styles`.
+
+## 3. Required inputs
+
+Every presentation run needs a matching PPTX/PDF pair.
+
+### Single-presentation YAML mode
+
+Use a config file even for one deck:
+
+```text
+configs/
+└── presentation.yaml
+
+presentations/
+├── presentation.pptx
+└── presentation.pdf
 ```
 
-**That's it!** ✨ All styles will be processed automatically using their YAML configurations.
+### YAML-driven mode
 
----
+Your YAML file points to an `input_folder` and `output_dir`, for example:
 
-## 🎨 Method 2: Single Style Processing
+```yaml
+input_folder: "notes"
+output_dir: "notes/professional/generate"
+language: "en,zh-CN"
+style:
+  visual_style: "Clean professional slides"
+  speaker_style: "Clear executive presenter"
+```
 
-Process with one specific style configuration.
+## 4. Most common commands
 
-### Choose a Style
 ```bash
-# Cyberpunk style
+# One presentation via YAML
+python main.py --config configs/presentation.yaml
+
+# One configured style
 python main.py --style-config cyberpunk
 
-# Professional style  
-python main.py --style-config professional
+# One custom YAML file
+python main.py --config /path/to/config.yaml
 
-# Gundam style
-python main.py --style-config gundam
-```
-
----
-
-## 📄 Method 3: Single File Processing
-
-Quick processing of one specific file.
-
-### Basic Usage
-```bash
-python main.py --pptx presentation.pptx --language en --style professional
-```
-
-### With Multiple Languages
-```bash
-python main.py --pptx presentation.pptx --language "en,zh-CN" --style Cyberpunk
-```
-
----
-
-## Test with Sample Data
-
-Try it out with the included sample files:
-
-```bash
-# Test all styles (recommended)
+# All configured styles
 python main.py --styles
-
-# Test specific style
-python main.py --style-config professional
-
-# Test single file
-python main.py --pptx notes/sample.pptx --language en --style professional
 ```
 
----
+## 5. What gets created
 
-## Output Files
+Typical outputs for one presentation/language pair:
 
-### YAML-Driven Processing (Modes 1 & 2)
-Files are organized by style in their configured output directories:
-
-```
-notes/                              # Input files
-├── presentation.pptx
-├── presentation.pdf
-└── cyberpunk/generate/             # Output from YAML config
-    ├── presentation_en_notes.pptm      # Speaker notes only
-    ├── presentation_en_visuals.pptm    # With redesigned slides
-    └── presentation_en_visuals/        # Individual slide images
+```text
+generate/
+├── presentation_en_notes.pptx|pptm
+├── presentation_en_visuals.pptx|pptm
+├── presentation_en_progress.json
+├── presentation_en_visuals/
+└── presentation_en_speech/
 ```
 
-### Single File Processing (Mode 3)
-Files are saved in the same directory as input:
+The exact output root comes from the YAML:
 
-```
-input/
-├── presentation.pptx
-├── presentation.pdf
-├── presentation_en_notes.pptm      # Generated files
-├── presentation_en_visuals.pptm
-└── presentation_en_visuals/
-```
+- `output_dir` in YAML-driven mode
+- otherwise the default `generate/` folder next to the PPTX named in the YAML
 
----
+## 6. Pick the simplest path
 
-## Common Options
+1. Put processing inputs and options in YAML.
+2. Use `--style-config` when you want repeatable built-in team workflows.
+3. Use `--config` when you want a custom YAML outside `styles/`.
+4. Use `--styles` only when you really want every configured style to run.
 
-### Skip Visual Generation (Notes Only)
-```bash
-python main.py --styles --skip-visuals
-python main.py --style-config cyberpunk --skip-visuals
-```
+## 7. Next references
 
-### Generate Video Prompts
-```bash
-python main.py --styles --generate-videos
-python main.py --style-config professional --generate-videos
-```
-
-### Available Styles
-Each style has its own YAML configuration file:
-
-- **🌃 Cyberpunk** - Neon colors, edgy, tech-savvy
-- **📋 Professional** - Clean, business-appropriate  
-- **🤖 Gundam** - Mecha-inspired, futuristic, tactical
-- **🌌 starwars** - Epic space opera aesthetic
-- **🎨 HK Comic** - Vibrant Hong Kong comic book style
-
-Style configurations are in `styles/config.{style}.yaml` files.
-
----
-
-## Need Help?
-
-- **Styles**: See [STYLE_EXAMPLES.md](STYLE_EXAMPLES.md)
-- **Configuration**: See [CONFIG_FILE_GUIDE.md](CONFIG_FILE_GUIDE.md)
-- **Full Docs**: See [README.md](../README.md)
-
----
-
-## Tips
-
-1. **Start with All Styles** - `python main.py --styles` processes everything
-2. **Test Single Styles** - Use `--style-config` for focused testing
-3. **YAML Configurations** - All settings are in `styles/config.*.yaml` files
-4. **Organized Output** - Each style outputs to its own directory
-5. **Team Consistency** - Share YAML configs for consistent results
-
----
-
-## Troubleshooting
-
-### "No configuration file found for style"
-Make sure the style name exists: `ls styles/config.*.yaml`
-
-### "No PPTX/PDF pairs found"
-Check that your input folder (from YAML config) contains matching PPTX and PDF files.
-
-### "Missing Google Cloud credentials"
-1. Set up `.env` file with your project ID
-2. Or run: `gcloud auth application-default login`
-
-### Need more help?
-- See full documentation in [README.md](../README.md)
-- Check [TESTING_GUIDE.md](TESTING_GUIDE.md) for testing commands
+- **Architecture trace:** [ARCHITECTURE.md](ARCHITECTURE.md)
+- **YAML config details:** [CONFIG_FILE_GUIDE.md](CONFIG_FILE_GUIDE.md)
+- **Examples of styles:** [STYLE_EXAMPLES.md](STYLE_EXAMPLES.md)
+- **Full docs index:** [README.md](README.md)

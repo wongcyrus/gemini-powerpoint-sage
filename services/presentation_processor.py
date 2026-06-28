@@ -474,13 +474,9 @@ class PresentationProcessor:
         else:
             # Non-English: check for existing English visuals to translate
             if self.image_translator_agent:
-                pptx_dir = os.path.dirname(self.config.pptx_path)
-                pptx_base = os.path.splitext(
-                    os.path.basename(self.config.pptx_path)
-                )[0]
-                english_visuals_dir = os.path.join(
-                    pptx_dir, f"{pptx_base}_en_visuals"
-                )
+                output_dir = self.config._get_output_dir()
+                pptx_base = os.path.splitext(os.path.basename(self.config.pptx_path))[0]
+                english_visuals_dir = os.path.join(output_dir, f"{pptx_base}_en_visuals")
                 if os.path.exists(english_visuals_dir):
                     logger.info(
                         "Found English visuals, will translate to %s",

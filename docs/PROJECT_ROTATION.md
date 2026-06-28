@@ -41,7 +41,7 @@ No code changes are required. Simply configure the environment variable and the 
 export GOOGLE_CLOUD_PROJECTS=project-1,project-2,project-3
 
 # Run your presentation processing
-python main.py --pptx presentation.pptx
+python main.py --config configs/presentation.yaml
 ```
 
 ## Logging

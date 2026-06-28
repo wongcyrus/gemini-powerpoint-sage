@@ -15,6 +15,15 @@ logger = logging.getLogger(__name__)
 class ConfigFileLoader:
     """Loads configuration from YAML files."""
 
+    _PATH_KEYS = {
+        "pptx",
+        "pdf",
+        "folder",
+        "input_folder",
+        "output_dir",
+        "progress_file",
+    }
+
     @staticmethod
     def load_from_file(config_path: str) -> Dict[str, Any]:
         """
@@ -61,9 +70,41 @@ class ConfigFileLoader:
             with open(config_path, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
             logger.info(f"Loaded configuration from YAML: {config_path}")
-            return config or {}
+            return ConfigFileLoader._resolve_paths(config or {}, config_path)
         except yaml.YAMLError as e:
             raise ValueError(f"Invalid YAML in config file: {e}")
+
+    @staticmethod
+    def _resolve_paths(config: Dict[str, Any], config_path: Path) -> Dict[str, Any]:
+        """Resolve relative paths in config files to stable absolute paths."""
+        resolved = config.copy()
+        base_dir = ConfigFileLoader._get_config_base_dir(config_path)
+
+        for key in ConfigFileLoader._PATH_KEYS:
+            value = resolved.get(key)
+            if not value or not isinstance(value, str):
+                continue
+            resolved[key] = ConfigFileLoader._resolve_path(value, base_dir)
+
+        resolved["__config_path"] = str(config_path.resolve())
+        resolved["__config_base_dir"] = str(base_dir)
+        return resolved
+
+    @staticmethod
+    def _get_config_base_dir(config_path: Path) -> Path:
+        """Infer the base directory used for relative paths inside a config."""
+        config_path = config_path.resolve()
+        if config_path.parent.name == "styles":
+            return config_path.parent.parent
+        return config_path.parent
+
+    @staticmethod
+    def _resolve_path(path_value: str, base_dir: Path) -> str:
+        """Resolve a possibly relative path against the config base directory."""
+        candidate = Path(path_value).expanduser()
+        if candidate.is_absolute():
+            return str(candidate)
+        return str((base_dir / candidate).resolve())
 
     @staticmethod
     def validate_config(config: Dict[str, Any]) -> None:
@@ -206,59 +247,6 @@ class ConfigFileLoader:
         
         return pairs
 
-    @staticmethod
-    def merge_with_args(
-        config: Dict[str, Any], args: Any
-    ) -> Dict[str, Any]:
-        """
-        Merge configuration file with command-line arguments.
-        Command-line arguments take precedence over config file.
-
-        Args:
-            config: Configuration from file
-            args: Parsed command-line arguments
-
-        Returns:
-            Merged configuration dictionary
-        """
-        merged = config.copy()
-
-        # Override with command-line arguments if provided
-        arg_mappings = {
-            "pptx": "pptx",
-            "folder": "folder",
-            "input_folder": "input_folder",
-            "pdf": "pdf",
-            "course_id": "course_id",
-            "progress_file": "progress_file",
-            "retry_errors": "retry_errors",
-            "region": "region",
-            "skip_visuals": "skip_visuals",
-            "generate_videos": "generate_videos",
-            "language": "language",
-            "style": "style",
-            "output_dir": "output_dir",
-        }
-
-        for arg_name, config_key in arg_mappings.items():
-            arg_value = getattr(args, arg_name, None)
-            # Override if argument was explicitly provided
-            if arg_value is not None:
-                # For boolean flags, check if they're True
-                if isinstance(arg_value, bool):
-                    if arg_value:
-                        merged[config_key] = arg_value
-                else:
-                    merged[config_key] = arg_value
-
-        # Set default language if neither config nor CLI provided it
-        if "language" not in merged or merged["language"] is None:
-            from config.constants import LanguageConfig
-            merged["language"] = LanguageConfig.DEFAULT_LANGUAGE
-
-        return merged
-
-
 def create_example_config(output_path: str) -> None:
     """
     Create an example YAML configuration file.
@@ -276,16 +264,16 @@ def create_example_config(output_path: str) -> None:
     with open(output_path, "w", encoding="utf-8") as f:
         # Write with comments
         f.write("# Gemini Powerpoint Sage Configuration\n\n")
-        f.write("# Single file processing\n")
+        f.write("# Use EITHER a single pptx/pdf pair OR an input_folder\n")
+        f.write("# Single-presentation config\n")
         f.write('pptx: "path/to/presentation.pptx"\n')
         f.write(
             'pdf: "path/to/presentation.pdf"  # Optional if same name as PPTX\n\n'
         )
-        f.write("# OR folder processing (comment out pptx/pdf above)\n")
-        f.write('# input_folder: "path/to/folder"  # Auto-detects PDF/PPTX pairs\n')
-        f.write('# folder: "path/to/folder"  # Legacy folder processing\n\n')
-        f.write("# Optional parameters\n")
-        f.write("# course_id: null\n")
+        f.write("# OR batch folder processing (comment out pptx/pdf above)\n")
+        f.write('# input_folder: "path/to/folder"  # Auto-detects PDF/PPTX pairs\n\n')
+        f.write("# Optional processing parameters\n")
+        f.write("# course_id: null  # Optional presentation context\n")
         f.write('region: "global"\n')
         f.write('language: "en"  # Or comma-separated: "en,zh-CN,yue-HK"\n')
         f.write(
