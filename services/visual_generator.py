@@ -12,15 +12,24 @@ from typing import Optional
 
 from PIL import Image
 from pptx import Presentation
-from pptx.util import Inches, Pt
+from pptx.util import Inches
 
 from google.adk.agents import LlmAgent
 from google import genai
 from google.genai import types
 from utils.project_rotation import rotate_project
 
-from config.constants import EnvironmentVars, FilePatterns, LanguageConfig
+from config.constants import EnvironmentVars, FilePatterns
 from utils.agent_utils import run_visual_agent
+from services.visual_generator_helpers import (
+    cleanup_reduced_image_file,
+    apply_slide_notes,
+    build_designer_prompt,
+    build_fallback_prompt,
+    compute_image_placement_inches,
+    get_logo_instruction,
+    optimize_image_file,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -86,95 +95,16 @@ class VisualGenerator:
             )
             return None
 
-        # Check if visual already exists
         img_filename = FilePatterns.REIMAGINED_SLIDE.format(idx=slide_idx)
         img_path = os.path.join(self.output_dir, img_filename)
-
-        if os.path.exists(img_path) and not retry_errors:
-            logger.info(
-                f"Visual already exists for Slide {slide_idx} "
-                f"({img_filename}). Skipping generation."
+        img_bytes = self._load_existing_visual_bytes(img_path, slide_idx, img_filename, retry_errors)
+        if img_bytes is None:
+            img_bytes = await self._generate_visual_candidate(
+                slide_idx,
+                slide_image,
+                speaker_notes,
+                language,
             )
-            try:
-                with open(img_path, "rb") as f:
-                    img_bytes = f.read()
-                self._update_previous_image(img_bytes)
-                return img_bytes
-            except Exception as e:
-                logger.error(f"Failed to load existing image {img_path}: {e}")
-                # Fall through to regenerate
-
-        # Generate new visual with multi-tier fallback
-        force_fallback = os.getenv(EnvironmentVars.FORCE_FALLBACK_IMAGE_GEN) == "1"
-        
-        # Rotate Google Cloud project before visual generation
-        current_project = rotate_project()
-        if current_project:
-            logger.info("--- Generating Visual for Slide %d (Project: %s, force_fallback=%s) ---" % (slide_idx, current_project, force_fallback))
-        else:
-            logger.info("--- Generating Visual for Slide %d (force_fallback=%s) ---" % (slide_idx, force_fallback))
-
-        img_bytes = None
-        logo_instruction = self._get_logo_instruction(slide_idx)
-        designer_prompt = self._build_designer_prompt(
-            speaker_notes,
-            logo_instruction,
-            language
-        )
-        if designer_prompt is None:
-            logger.warning("_build_designer_prompt returned None; using minimal fallback prompt.")
-            designer_prompt = (
-                "Speaker Notes: " + speaker_notes[:400] + "\nTASK: Generate a high-fidelity slide image."
-            )
-
-        designer_images = [slide_image]
-        if self.previous_image:
-            designer_images.append(self.previous_image)
-
-        # Tier 1: Primary designer model (gemini-3-pro-image-preview)
-        if not force_fallback:
-            img_bytes = await run_visual_agent(
-                self.designer_agent,
-                designer_prompt,
-                images=designer_images
-            )
-        else:
-            logger.info("Force fallback enabled; skipping primary designer model.")
-
-        # Tier 2: Secondary Gemini model (gemini-2.5-flash-image)
-        if not img_bytes and not force_fallback:
-            logger.info(
-                "FALLBACK TIER 2: Trying secondary model (%s) for Slide %d",
-                self.secondary_model, slide_idx
-            )
-            from google.adk.agents import LlmAgent
-            secondary_agent = LlmAgent(
-                name="slide_designer_secondary",
-                model=self.secondary_model,
-                description="Secondary slide designer",
-                instruction=self.designer_agent.instruction
-            )
-            try:
-                img_bytes = await run_visual_agent(
-                    secondary_agent,
-                    designer_prompt,
-                    images=designer_images
-                )
-            except Exception as e:
-                logger.error("Secondary model failed for Slide %d: %s" % (slide_idx, e))
-
-        # Tier 3: Imagen API directly
-        if not img_bytes:
-            logger.info(
-                "FALLBACK TIER 3: Calling Imagen model for Slide %d", slide_idx
-            )
-            fallback_prompt = self._build_fallback_prompt(
-                speaker_notes, language
-            )
-            try:
-                img_bytes = await self._generate_imagen_directly(fallback_prompt)
-            except Exception as e:
-                logger.error("Fallback Imagen generation failed for Slide %d: %s" % (slide_idx, e))
 
         if img_bytes:
             try:
@@ -187,6 +117,115 @@ class VisualGenerator:
         else:
             logger.warning("No image generated for Slide %d" % slide_idx)
             self.previous_image = None
+
+        return img_bytes
+
+    def _load_existing_visual_bytes(
+        self,
+        img_path: str,
+        slide_idx: int,
+        img_filename: str,
+        retry_errors: bool,
+    ) -> Optional[bytes]:
+        """Load an existing generated image when reuse is allowed."""
+        if not os.path.exists(img_path) or retry_errors:
+            return None
+
+        logger.info(
+            f"Visual already exists for Slide {slide_idx} "
+            f"({img_filename}). Skipping generation."
+        )
+        try:
+            with open(img_path, "rb") as f:
+                img_bytes = f.read()
+            self._update_previous_image(img_bytes)
+            return img_bytes
+        except Exception as e:
+            logger.error(f"Failed to load existing image {img_path}: {e}")
+            return None
+
+    async def _generate_visual_candidate(
+        self,
+        slide_idx: int,
+        slide_image: Image.Image,
+        speaker_notes: str,
+        language: str,
+    ) -> Optional[bytes]:
+        """Generate a new visual using the primary, secondary, and Imagen tiers."""
+        force_fallback = os.getenv(EnvironmentVars.FORCE_FALLBACK_IMAGE_GEN) == "1"
+
+        current_project = rotate_project()
+        if current_project:
+            logger.info(
+                "--- Generating Visual for Slide %d (Project: %s, force_fallback=%s) ---"
+                % (slide_idx, current_project, force_fallback)
+            )
+        else:
+            logger.info(
+                "--- Generating Visual for Slide %d (force_fallback=%s) ---"
+                % (slide_idx, force_fallback)
+            )
+
+        logo_instruction = self._get_logo_instruction(slide_idx)
+        designer_prompt = self._build_designer_prompt(
+            speaker_notes,
+            logo_instruction,
+            language,
+        )
+        if designer_prompt is None:
+            logger.warning("_build_designer_prompt returned None; using minimal fallback prompt.")
+            designer_prompt = (
+                "Speaker Notes: " + speaker_notes[:400] + "\nTASK: Generate a high-fidelity slide image."
+            )
+
+        designer_images = [slide_image]
+        if self.previous_image:
+            designer_images.append(self.previous_image)
+
+        img_bytes = None
+        if not force_fallback:
+            img_bytes = await run_visual_agent(
+                self.designer_agent,
+                designer_prompt,
+                images=designer_images,
+            )
+        else:
+            logger.info("Force fallback enabled; skipping primary designer model.")
+
+        if not img_bytes and not force_fallback:
+            logger.info(
+                "FALLBACK TIER 2: Trying secondary model (%s) for Slide %d",
+                self.secondary_model,
+                slide_idx,
+            )
+            from google.adk.agents import LlmAgent
+
+            secondary_agent = LlmAgent(
+                name="slide_designer_secondary",
+                model=self.secondary_model,
+                description="Secondary slide designer",
+                instruction=self.designer_agent.instruction,
+            )
+            try:
+                img_bytes = await run_visual_agent(
+                    secondary_agent,
+                    designer_prompt,
+                    images=designer_images,
+                )
+            except Exception as e:
+                logger.error("Secondary model failed for Slide %d: %s" % (slide_idx, e))
+
+        if not img_bytes:
+            logger.info(
+                "FALLBACK TIER 3: Calling Imagen model for Slide %d", slide_idx
+            )
+            fallback_prompt = self._build_fallback_prompt(speaker_notes, language)
+            try:
+                img_bytes = await self._generate_imagen_directly(fallback_prompt)
+            except Exception as e:
+                logger.error(
+                    "Fallback Imagen generation failed for Slide %d: %s" % (slide_idx, e)
+                )
 
         return img_bytes
 
@@ -226,25 +265,7 @@ class VisualGenerator:
 
             # Optionally reduce image file size (not dimensions) by re-saving
             # This keeps pixel dimensions but lowers compression quality for smaller .pptx
-            reduced_img_path = img_path
-            try:
-                with Image.open(img_path) as im:
-                    img_width_px, img_height_px = im.size
-                    
-                    # Re-save to JPEG or PNG with optimized settings to reduce size
-                    # If original has alpha, keep PNG; otherwise use JPEG for disk-size savings.
-                    if im.mode in ("RGBA", "LA") or (im.format == "PNG" and "transparency" in im.info):
-                        tmp_path = os.path.splitext(img_path)[0] + "_reduced.png"
-                        im.save(tmp_path, format="PNG", optimize=True)
-                    else:
-                        tmp_path = os.path.splitext(img_path)[0] + "_reduced.jpg"
-                        # quality ~85 is a good balance; adjust as needed
-                        im = im.convert("RGB")
-                        im.save(tmp_path, format="JPEG", quality=85, optimize=True)
-                    
-                    reduced_img_path = tmp_path
-            except Exception as e:
-                logger.debug(f"Image re-save optimization skipped: {e}")
+            reduced_img_path = optimize_image_file(img_path)
 
             # Compute placement with aspect ratio rules
             try:
@@ -273,28 +294,15 @@ class VisualGenerator:
             logger.info(f"Optimized image added with {mode} mode")
 
             # Clean up the reduced image if it's different from original
-            if reduced_img_path != img_path and os.path.exists(reduced_img_path):
-                try:
-                    os.unlink(reduced_img_path)
+            try:
+                cleanup_reduced_image_file(img_path, reduced_img_path)
+                if reduced_img_path != img_path:
                     logger.debug(f"Cleaned up reduced image: {reduced_img_path}")
-                except Exception as e:
-                    logger.debug(f"Could not clean up reduced image: {e}")
+            except Exception as e:
+                logger.debug(f"Could not clean up reduced image: {e}")
 
             # Add speaker notes to the notes section as plain text
-            if not slide.has_notes_slide:
-                slide.notes_slide
-            
-            text_frame = slide.notes_slide.notes_text_frame
-            text_frame.clear()
-            
-            # Add notes as single paragraph without bullet formatting
-            p = text_frame.paragraphs[0]
-            p.text = speaker_notes
-            p.level = 0
-            
-            # Explicitly remove bullet formatting
-            from pptx.enum.text import PP_ALIGN
-            p.alignment = PP_ALIGN.LEFT
+            apply_slide_notes(slide, speaker_notes)
 
             logger.info(f"Replaced slide content with visual using {mode} mode.")
             return True
@@ -349,23 +357,7 @@ class VisualGenerator:
             logger.debug(f"New slide dimensions: {slide_width.inches}\" x {slide_height.inches}\"")
 
             # Optimize image file size by re-saving with compression
-            reduced_img_path = img_path
-            try:
-                with Image.open(img_path) as im:
-                    img_width_px, img_height_px = im.size
-                    
-                    # Re-save with optimized settings
-                    if im.mode in ("RGBA", "LA") or (im.format == "PNG" and "transparency" in im.info):
-                        tmp_path = os.path.splitext(img_path)[0] + "_reduced.png"
-                        im.save(tmp_path, format="PNG", optimize=True)
-                    else:
-                        tmp_path = os.path.splitext(img_path)[0] + "_reduced.jpg"
-                        im = im.convert("RGB")
-                        im.save(tmp_path, format="JPEG", quality=85, optimize=True)
-                    
-                    reduced_img_path = tmp_path
-            except Exception as e:
-                logger.debug(f"Image optimization skipped: {e}")
+            reduced_img_path = optimize_image_file(img_path)
 
             # Compute placement with aspect ratio rules
             try:
@@ -391,28 +383,18 @@ class VisualGenerator:
             logger.info(f"Optimized image added with {mode} mode")
             
             # Clean up the reduced image if it's different from original
-            if reduced_img_path != img_path and os.path.exists(reduced_img_path):
-                try:
-                    os.unlink(reduced_img_path)
+            try:
+                cleanup_reduced_image_file(img_path, reduced_img_path)
+                if reduced_img_path != img_path:
                     logger.debug(f"Cleaned up reduced image: {reduced_img_path}")
-                except Exception as e:
-                    logger.debug(f"Could not clean up reduced image: {e}")
+            except Exception as e:
+                logger.debug(f"Could not clean up reduced image: {e}")
 
             # Add speaker notes to the notes section instead of as text on slide
-            if not new_slide.has_notes_slide:
-                new_slide.notes_slide
-            
-            text_frame = new_slide.notes_slide.notes_text_frame
-            text_frame.clear()
-            
-            # Add notes as single paragraph
-            p = text_frame.paragraphs[0]
-            p.text = f"Generated Notes for Slide {slide_idx}:\n{speaker_notes}"
-            p.level = 0
-            
-            # Explicitly remove bullet formatting
-            from pptx.enum.text import PP_ALIGN
-            p.alignment = PP_ALIGN.LEFT
+            apply_slide_notes(
+                new_slide,
+                f"Generated Notes for Slide {slide_idx}:\n{speaker_notes}",
+            )
 
             logger.info(
                 f"Added new slide with full-size reimagined image and notes "
@@ -426,16 +408,7 @@ class VisualGenerator:
 
     def _get_logo_instruction(self, slide_idx: int) -> str:
         """Get logo instruction based on slide position."""
-        if slide_idx == 1:
-            return (
-                "You MUST prominently feature the logo/branding from "
-                "IMAGE 1 (Original Draft Slide) in an appropriate corner."
-            )
-        else:
-            return (
-                "DO NOT include any logos or branding elements. "
-                "Focus solely on content."
-            )
+        return get_logo_instruction(slide_idx)
 
     def _build_designer_prompt(
         self,
@@ -444,32 +417,11 @@ class VisualGenerator:
         language: str = "en"
     ) -> str:
         """Build the prompt for the primary (Gemini) designer agent."""
-        style_ref = (
-            "Style Reference (Previous Slide) provided."
-            if self.previous_image
-            else "N/A"
-        )
-        
-        # Language-specific instructions
-        lang_name = LanguageConfig.get_language_name(language)
-        
-        lang_instruction = ""
-        if language != "en":
-            lang_instruction = (
-                f"\n\nLANGUAGE: ALL text in the generated image MUST be "
-                f"in {lang_name}. Do NOT include any English text. "
-                f"Translate all titles, labels, and content to "
-                f"{lang_name}."
-            )
-        
-        # Note: Visual style is now in the agent's system instruction, not here
-        
-        return (
-            f"IMAGE 1: Original Slide Image provided.\n\n"
-            f"IMAGE 2: {style_ref}\n\n"
-            f"Speaker Notes: \"{speaker_notes}\"\n\n"
-            f"TASK: Generate the high-fidelity slide image now.\n\n"
-            f"CONTEXT: {logo_instruction}{lang_instruction}\n"
+        return build_designer_prompt(
+            speaker_notes,
+            logo_instruction,
+            language,
+            previous_image_present=self.previous_image is not None,
         )
 
     def _build_fallback_prompt(
@@ -478,25 +430,7 @@ class VisualGenerator:
         language: str = "en"
     ) -> str:
         """Prompt for Imagen fallback rendering."""
-        # Language-specific instructions
-        lang_name = LanguageConfig.get_language_name(language)
-        
-        lang_instruction = ""
-        if language != "en":
-            lang_instruction = (
-                f" ALL text MUST be in {lang_name}. "
-                f"NO English text allowed."
-            )
-        
-        return (
-            "Create a professional 16:9 presentation slide. "
-            + "Speaker Notes: " + speaker_notes.strip() + "\n"
-            + "Instructions: Derive a clear title and bullet points. "
-            + "Render a clean slide with whitespace, legible "
-            + "typography, subtle modern background, high contrast "
-            + "text." + lang_instruction
-            + " NO logos, NO invented imagery."
-        )
+        return build_fallback_prompt(speaker_notes, language)
 
     async def _generate_imagen_directly(self, prompt: str) -> Optional[bytes]:
         """Generate image using Imagen API directly (not via ADK agent).
@@ -575,52 +509,22 @@ class VisualGenerator:
             Tuple of (left, top, width, height) as Length objects
         """
         from pptx.util import Inches
-        
-        # Convert slide dimensions to pixels
-        slide_width_px = slide_width.inches * dpi
-        slide_height_px = slide_height.inches * dpi
-        
-        # Calculate aspect ratios
-        img_ratio = img_width_px / img_height_px
-        slide_ratio = slide_width_px / slide_height_px
-        
-        if mode == "contain":
-            # Fit image within slide bounds (letterbox/pillarbox)
-            if img_ratio > slide_ratio:
-                # Image is wider - fit to width
-                new_width_px = slide_width_px
-                new_height_px = slide_width_px / img_ratio
-                left_px = 0
-                top_px = (slide_height_px - new_height_px) / 2
-            else:
-                # Image is taller - fit to height
-                new_height_px = slide_height_px
-                new_width_px = slide_height_px * img_ratio
-                left_px = (slide_width_px - new_width_px) / 2
-                top_px = 0
-        else:  # mode == "cover"
-            # Fill slide completely (may crop image)
-            if img_ratio > slide_ratio:
-                # Image is wider - fit to height, crop width
-                new_height_px = slide_height_px
-                new_width_px = slide_height_px * img_ratio
-                left_px = -(new_width_px - slide_width_px) / 2
-                top_px = 0
-            else:
-                # Image is taller - fit to width, crop height
-                new_width_px = slide_width_px
-                new_height_px = slide_width_px / img_ratio
-                left_px = 0
-                top_px = -(new_height_px - slide_height_px) / 2
-        
-        # Convert back to inches
-        left = Inches(left_px / dpi)
-        top = Inches(top_px / dpi)
-        width = Inches(new_width_px / dpi)
-        height = Inches(new_height_px / dpi)
-        
-        logger.debug(f"Image placement ({mode}): {left.inches:.2f}\", {top.inches:.2f}\", {width.inches:.2f}\", {height.inches:.2f}\"")
-        
+
+        left_in, top_in, width_in, height_in = compute_image_placement_inches(
+            img_width_px,
+            img_height_px,
+            slide_width.inches,
+            slide_height.inches,
+            dpi=dpi,
+            mode=mode,
+        )
+        left = Inches(left_in)
+        top = Inches(top_in)
+        width = Inches(width_in)
+        height = Inches(height_in)
+        logger.debug(
+            f"Image placement ({mode}): {left.inches:.2f}\", {top.inches:.2f}\", {width.inches:.2f}\", {height.inches:.2f}\""
+        )
         return left, top, width, height
 
 

@@ -1,12 +1,15 @@
 """Tests for config loading and processor config routing."""
 
+import builtins
+import sys
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
 from application.input_scanner import FileSet
 from application.unified_processor import UnifiedProcessor
-from config.config_loader import ConfigFileLoader
+from config.config_loader import ConfigFileLoader, create_example_config
 
 
 class TestConfigFileLoader:
@@ -49,6 +52,56 @@ class TestConfigFileLoader:
         assert loaded["input_folder"] == str(input_dir.resolve())
         assert loaded["output_dir"] == str((config_dir / "out").resolve())
 
+    def test_load_from_file_rejects_missing_or_unsupported_files(self, tmp_path):
+        """Missing files and wrong extensions should fail fast."""
+        with pytest.raises(FileNotFoundError, match="Configuration file not found"):
+            ConfigFileLoader.load_from_file(str(tmp_path / "missing.yaml"))
+
+        bad = tmp_path / "config.txt"
+        bad.write_text("x: 1", encoding="utf-8")
+        with pytest.raises(ValueError, match="Unsupported config file format"):
+            ConfigFileLoader.load_from_file(str(bad))
+
+    def test_load_yaml_requires_pyyaml_and_valid_yaml(self, monkeypatch, tmp_path):
+        """YAML loading should surface import and parse errors clearly."""
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text("x: 1", encoding="utf-8")
+
+        original_import = builtins.__import__
+
+        def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "yaml":
+                raise ImportError("missing yaml")
+            return original_import(name, globals, locals, fromlist, level)
+
+        monkeypatch.setattr(builtins, "__import__", fake_import)
+        with pytest.raises(ImportError, match="PyYAML is required"):
+            ConfigFileLoader._load_yaml(config_path)
+
+        fake_yaml = SimpleNamespace(
+            YAMLError=ValueError,
+            safe_load=lambda data: (_ for _ in ()).throw(ValueError("bad yaml")),
+        )
+        monkeypatch.setattr(builtins, "__import__", original_import)
+        monkeypatch.setitem(sys.modules, "yaml", fake_yaml)
+        with pytest.raises(ValueError, match="Invalid YAML"):
+            ConfigFileLoader._load_yaml(config_path)
+
+    def test_resolve_paths_and_base_dir_helpers(self, tmp_path):
+        """Relative paths should resolve against the inferred config base."""
+        styles_config = tmp_path / "styles" / "config.demo.yaml"
+        styles_config.parent.mkdir(parents=True)
+        resolved = ConfigFileLoader._resolve_paths(
+            {"input_folder": "input", "output_dir": "/abs/out", "notes": 1},
+            styles_config,
+        )
+
+        assert resolved["input_folder"] == str((tmp_path / "input").resolve())
+        assert resolved["output_dir"] == "/abs/out"
+        assert resolved["__config_base_dir"] == str(tmp_path.resolve())
+        assert ConfigFileLoader._get_config_base_dir(styles_config) == tmp_path.resolve()
+        assert ConfigFileLoader._get_config_base_dir(tmp_path / "custom.yaml") == tmp_path.resolve()
+
     def test_validate_config_rejects_multiple_input_methods(self):
         """Configs should not define multiple processing inputs."""
         with pytest.raises(ValueError, match="multiple input methods"):
@@ -60,6 +113,76 @@ class TestConfigFileLoader:
         """Configs should define one YAML-owned input source."""
         with pytest.raises(ValueError, match="must specify either 'pptx', 'folder', or 'input_folder'"):
             ConfigFileLoader.validate_config({"output_dir": "/tmp/out"})
+
+    def test_validate_config_accepts_valid_input_folder_with_pairs(self, tmp_path):
+        """Folder-based configs should validate when matching PPTX/PDF pairs exist."""
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        (input_dir / "deck.pptx").write_text("pptx", encoding="utf-8")
+        (input_dir / "deck.pdf").write_text("pdf", encoding="utf-8")
+
+        ConfigFileLoader.validate_config({"input_folder": str(input_dir)})
+
+    def test_validate_config_rejects_bad_folder_and_missing_pairs(self, tmp_path):
+        """Folder validation should fail for invalid folders or missing PDF matches."""
+        with pytest.raises(ValueError, match="Folder not found"):
+            ConfigFileLoader.validate_config({"folder": str(tmp_path / "missing")})
+
+        input_dir = tmp_path / "pairs"
+        input_dir.mkdir()
+        (input_dir / "deck.pptx").write_text("pptx", encoding="utf-8")
+        with pytest.raises(ValueError, match="No valid PDF/PPTX pairs found"):
+            ConfigFileLoader.validate_config({"input_folder": str(input_dir)})
+
+    def test_validate_file_pairs_requires_pptx_files(self, tmp_path):
+        """Pair validation should reject empty folders."""
+        with pytest.raises(ValueError, match="No PPTX files found"):
+            ConfigFileLoader._validate_file_pairs(str(tmp_path))
+
+    def test_validate_config_rejects_missing_pdf_for_pptx_input(self, tmp_path):
+        """Explicit PDF paths should be validated when provided."""
+        pptx_path = tmp_path / "deck.pptx"
+        pptx_path.write_text("pptx", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="PDF file not found"):
+            ConfigFileLoader.validate_config(
+                {"pptx": str(pptx_path), "pdf": str(tmp_path / "missing.pdf")}
+            )
+
+    def test_get_file_pairs_returns_only_matching_pairs(self, tmp_path):
+        """Pair discovery should skip PPTX files that lack a matching PDF."""
+        (tmp_path / "deck1.pptx").write_text("pptx", encoding="utf-8")
+        (tmp_path / "deck1.pdf").write_text("pdf", encoding="utf-8")
+        (tmp_path / "deck2.pptx").write_text("pptx", encoding="utf-8")
+
+        pairs = ConfigFileLoader.get_file_pairs(str(tmp_path))
+
+        assert pairs == [(str(tmp_path / "deck1.pptx"), str(tmp_path / "deck1.pdf"))]
+
+    def test_create_example_config_writes_yaml_template(self, tmp_path):
+        """Example config generation should emit the documented YAML template."""
+        output_path = tmp_path / "example.yaml"
+
+        create_example_config(str(output_path))
+
+        content = output_path.read_text(encoding="utf-8")
+        assert 'pptx: "path/to/presentation.pptx"' in content
+        assert 'language: "en"' in content
+        assert "retry_errors: false" in content
+
+    def test_create_example_config_requires_pyyaml(self, monkeypatch, tmp_path):
+        """The example generator should surface missing PyYAML clearly."""
+        original_import = builtins.__import__
+
+        def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "yaml":
+                raise ImportError("missing yaml")
+            return original_import(name, globals, locals, fromlist, level)
+
+        monkeypatch.setattr(builtins, "__import__", fake_import)
+
+        with pytest.raises(ImportError, match="PyYAML is required"):
+            create_example_config(str(tmp_path / "example.yaml"))
 
 
 class TestUnifiedProcessor:
@@ -105,6 +228,29 @@ class TestUnifiedProcessor:
 
         assert result == {"deck": [("notes", None)]}
         mock_process.assert_awaited_once_with("/tmp/styles/config.alpha.yaml")
+
+    def test_resolve_style_config_path_accepts_explicit_file_path(self, tmp_path):
+        """Explicit config paths should bypass style lookup."""
+        processor = UnifiedProcessor()
+        config_path = tmp_path / "config.alpha.yaml"
+        config_path.write_text("language: en\n", encoding="utf-8")
+
+        assert processor._resolve_style_config_path(str(config_path)) == str(config_path)
+
+    def test_resolve_style_config_path_raises_for_unknown_style(self):
+        """Unknown styles should produce a clear config resolution error."""
+        processor = UnifiedProcessor()
+
+        with patch.object(processor.scanner, "get_style_config_path", return_value=None):
+            with pytest.raises(ValueError, match="No configuration file found for style"):
+                processor._resolve_style_config_path("missing-style")
+
+    def test_get_style_name_handles_first_class_and_legacy_names(self):
+        """Style name extraction should normalize both supported config naming schemes."""
+        processor = UnifiedProcessor()
+
+        assert processor._get_style_name("/tmp/config.cyberpunk.yaml") == "cyberpunk"
+        assert processor._get_style_name("/tmp/cyberpunk.config.yml") == "cyberpunk"
 
     def test_get_file_sets_from_config_with_pptx_uses_matching_pdf(self, tmp_path):
         """Single-file configs should build a FileSet from YAML-owned PPTX/PDF paths."""
@@ -157,6 +303,22 @@ class TestUnifiedProcessor:
             result = await processor.process_config("alpha")
 
         assert result == {}
+
+    @pytest.mark.asyncio
+    async def test_process_config_wraps_config_load_errors(self):
+        """Config loading failures should surface with config path context."""
+        processor = UnifiedProcessor()
+
+        with patch.object(
+            processor,
+            "_resolve_style_config_path",
+            return_value="/tmp/styles/config.alpha.yaml",
+        ), patch(
+            "application.unified_processor.ConfigFileLoader.load_from_file",
+            side_effect=ValueError("bad yaml"),
+        ):
+            with pytest.raises(ValueError, match="Error loading configuration file /tmp/styles/config.alpha.yaml"):
+                await processor.process_config("alpha")
 
     @pytest.mark.asyncio
     async def test_process_file_sets_with_config_keeps_successful_languages(self):

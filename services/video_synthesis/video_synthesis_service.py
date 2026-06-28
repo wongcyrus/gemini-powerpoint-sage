@@ -12,9 +12,17 @@ from core.domain.video_synthesis import (
 )
 from services.video_synthesis.audio_analyzer import AudioAnalyzer
 from services.video_synthesis.file_validator import FileValidator
+from services.video_synthesis.video_synthesis_service_helpers import (
+    extract_slide_number_from_filenames,
+)
 from services.video_synthesis.video_config_manager import VideoConfigManager
 from services.video_synthesis.ffmpeg_processor import FFmpegVideoProcessor
 from services.video_synthesis.file_manager import VideoFileManager
+from services.video_synthesis.video_combine_helpers import (
+    build_concat_command,
+    calculate_total_video_duration,
+    validate_video_paths,
+)
 from services.video_synthesis.progress_tracker import (
     VideoProgressTracker, ProcessingStage, ProgressReporter
 )
@@ -343,41 +351,8 @@ class VideoSynthesisService:
             raise
     
     def _extract_slide_number_from_files(self, image_path: Path, audio_path: Path) -> int:
-        """
-        Extract slide number from image and audio filenames.
-        
-        Args:
-            image_path: Path to slide image (e.g., slide_5_reimagined.png)
-            audio_path: Path to audio file (e.g., slide_5_abc123.mp3)
-            
-        Returns:
-            Slide number extracted from filenames
-            
-        Raises:
-            ValueError: If slide numbers don't match or can't be extracted
-        """
-        import re
-        
-        # Extract slide number from image filename
-        img_match = re.search(r'slide_(\d+)', image_path.name)
-        if not img_match:
-            raise ValueError(f"Cannot extract slide number from image filename: {image_path.name}")
-        img_slide_num = int(img_match.group(1))
-        
-        # Extract slide number from audio filename  
-        audio_match = re.search(r'slide_(\d+)', audio_path.name)
-        if not audio_match:
-            raise ValueError(f"Cannot extract slide number from audio filename: {audio_path.name}")
-        audio_slide_num = int(audio_match.group(1))
-        
-        # Verify they match
-        if img_slide_num != audio_slide_num:
-            raise ValueError(
-                f"Slide number mismatch: image has slide {img_slide_num}, "
-                f"audio has slide {audio_slide_num}"
-            )
-        
-        return img_slide_num
+        """Extract slide number from image and audio filenames."""
+        return extract_slide_number_from_filenames(image_path.name, audio_path.name)
     
     def _create_video_segments(
         self,
@@ -700,17 +675,10 @@ class VideoSynthesisService:
                     'message': f'Loading {len(video_paths)} video files',
                     'progress': 0
                 })
-            
-            # Validate input files
-            for i, video_path in enumerate(video_paths):
-                if not video_path.exists():
-                    raise FileValidationError(f"Video file not found: {video_path}")
-                if not video_path.is_file():
-                    raise FileValidationError(f"Path is not a file: {video_path}")
-            
-            # Get total duration using FFmpeg
+
+            validate_video_paths(video_paths)
+
             total_duration = 0
-            
             for i, video_path in enumerate(video_paths):
                 if callback:
                     callback({
@@ -719,23 +687,8 @@ class VideoSynthesisService:
                         'message': f'Analyzing video {i+1}/{len(video_paths)}: {video_path.name}',
                         'progress': (i / len(video_paths)) * 20  # 20% for analysis
                     })
-                
-                try:
-                    # Get video duration using FFprobe
-                    result = subprocess.run([
-                        'ffprobe', '-v', 'quiet', '-show_entries', 'format=duration',
-                        '-of', 'default=noprint_wrappers=1:nokey=1', str(video_path)
-                    ], capture_output=True, text=True, timeout=10)
-                    
-                    if result.returncode == 0:
-                        duration = float(result.stdout.strip())
-                        total_duration += duration
-                        logger.debug(f"Video {i+1}: {video_path.name} ({duration:.2f}s)")
-                    else:
-                        raise VideoProcessingError(f"Failed to get duration for {video_path}")
-                        
-                except Exception as e:
-                    raise VideoProcessingError(f"Failed to analyze video {video_path}: {e}")
+
+            total_duration = calculate_total_video_duration(video_paths)
             
             if callback:
                 callback({
@@ -768,14 +721,7 @@ class VideoSynthesisService:
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 
                 # Use FFmpeg concat demuxer (fastest method)
-                cmd = [
-                    'ffmpeg', '-y',  # Overwrite output
-                    '-f', 'concat',  # Use concat demuxer
-                    '-safe', '0',    # Allow absolute paths
-                    '-i', str(concat_file),  # Input concat file
-                    '-c', 'copy',    # Copy streams without re-encoding (fastest!)
-                    str(output_path)  # Output file
-                ]
+                cmd = build_concat_command(concat_file, output_path)
                 
                 logger.info(f"Running FFmpeg: {' '.join(cmd[:6])}...")
                 

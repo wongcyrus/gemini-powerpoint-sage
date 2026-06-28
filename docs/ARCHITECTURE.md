@@ -141,6 +141,10 @@ If TTS is enabled, `PresentationProcessor._phase_generate_tts()` converts succes
 
 `PresentationProcessor._phase_generate_visuals()` uses one of two branches:
 
+For non-English runs, translated visuals are first looked up in the sibling
+`*_en_visuals/` directory under the same presentation output root, then the
+localized `*_visuals/` folder is used as the target for the translated result.
+
 ```mermaid
 flowchart TD
     A[Phase 2 start] --> B{target language == en?}

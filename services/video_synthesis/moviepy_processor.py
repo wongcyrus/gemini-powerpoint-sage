@@ -25,6 +25,10 @@ except ImportError:
 from core.domain.video_synthesis import (
     VideoConfig, SlideVideoSegment, VideoProcessingError
 )
+from .moviepy_processor_helpers import (
+    build_moviepy_cache_config,
+    calculate_segment_layout,
+)
 
 if TYPE_CHECKING:
     from .file_manager import VideoFileManager
@@ -79,16 +83,7 @@ class MoviePyVideoProcessor:
             
             # Check cache first if file manager is provided
             if file_manager and file_manager.enable_cache:
-                config_dict = {
-                    'resolution': config.resolution,
-                    'fps': config.fps,
-                    'video_codec': config.video_codec,
-                    'audio_codec': config.audio_codec,
-                    'video_bitrate': config.video_bitrate,
-                    'audio_bitrate': config.audio_bitrate,
-                    'output_format': config.output_format,
-                    'fade_duration': config.fade_duration
-                }
+                config_dict = build_moviepy_cache_config(config)
                 
                 cache_key = file_manager.generate_segment_cache_key(
                     segment.image_path, segment.audio_path, config_dict, segment.slide_index
@@ -123,49 +118,27 @@ class MoviePyVideoProcessor:
             # Set duration to match audio
             image_clip = image_clip.with_duration(audio_clip.duration)
             
-            # Resize image to match target resolution while maintaining aspect ratio
-            target_width, target_height = config.resolution
-            
-            # For large presentations, use more conservative resizing to avoid memory issues
-            img_width, img_height = image_clip.size
-            
-            # If the image is very large, resize it down first to avoid memory issues
-            if img_width > 2048 or img_height > 2048:
-                # Pre-resize very large images to a reasonable size
-                max_dimension = 1920
-                if img_width > img_height:
-                    pre_width = max_dimension
-                    pre_height = int(img_height * max_dimension / img_width)
-                else:
-                    pre_height = max_dimension
-                    pre_width = int(img_width * max_dimension / img_height)
-                
+            layout = calculate_segment_layout(
+                image_clip.size[0],
+                image_clip.size[1],
+                config.resolution,
+            )
+
+            pre_width, pre_height = layout["pre_size"]
+            if (pre_width, pre_height) != tuple(image_clip.size):
                 image_clip = image_clip.resized((pre_width, pre_height))
-                img_width, img_height = pre_width, pre_height
-            
-            # Calculate scaling to fit within target resolution
-            scale_width = target_width / img_width
-            scale_height = target_height / img_height
-            scale = min(scale_width, scale_height)
-            
-            # Resize image
-            new_width = int(img_width * scale)
-            new_height = int(img_height * scale)
+
+            new_width, new_height = layout["final_size"]
             image_clip = image_clip.resized((new_width, new_height))
-            
-            # Center the image on a black background of target resolution
-            if new_width != target_width or new_height != target_height:
-                # Create black background (ColorClip already imported)
+
+            if layout["needs_background"]:
                 background = ColorClip(
                     size=config.resolution,
                     color=(0, 0, 0),
                     duration=audio_clip.duration
                 )
-                
-                # Center the image
-                x_offset = (target_width - new_width) // 2
-                y_offset = (target_height - new_height) // 2
-                
+
+                x_offset, y_offset = layout["offset"]
                 image_clip = image_clip.with_position((x_offset, y_offset))
                 video_clip = CompositeVideoClip([background, image_clip])
             else:

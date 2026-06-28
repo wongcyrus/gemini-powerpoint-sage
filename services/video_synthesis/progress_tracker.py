@@ -98,7 +98,7 @@ class VideoProgressTracker:
         self.error_callbacks: List[Callable[[ErrorInfo], None]] = []
         
         # Thread safety
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         
         logger.info(f"Initialized progress tracker for operation {operation_id} with {total_slides} slides")
     
@@ -304,7 +304,6 @@ class VideoProgressTracker:
             cleanup_status: Status of cleanup operations
         """
         with self.lock:
-            self.is_cancelled = True
             self.end_time = time.time()
             processing_time = self.end_time - self.start_time
             
@@ -318,6 +317,7 @@ class VideoProgressTracker:
                 "Video synthesis cancelled by user",
                 cancellation_metadata
             )
+            self.is_cancelled = True
             
             logger.info(f"Operation {self.operation_id} cancelled after {processing_time:.2f}s")
     

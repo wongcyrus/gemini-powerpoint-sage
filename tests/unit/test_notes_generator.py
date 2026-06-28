@@ -182,3 +182,188 @@ class TestNotesGenerator:
         assert "Previous" in prompt
         assert "Security" in prompt
         assert "Global" in prompt
+
+    @pytest.mark.asyncio
+    async def test_generate_notes_supervisor_mode(
+        self,
+        mock_tool_factory,
+        mock_supervisor_runner,
+        sample_image
+    ):
+        """Test generate_notes delegates to supervisor mode for English flows."""
+        generator = NotesGenerator(
+            tool_factory=mock_tool_factory,
+            supervisor_runner=mock_supervisor_runner,
+            language="en",
+        )
+
+        with patch.object(
+            generator,
+            "_generate_with_supervisor",
+            AsyncMock(return_value=("Generated notes", "success")),
+        ) as mock_generate:
+            notes, status = await generator.generate_notes(
+                slide_idx=2,
+                slide_image=sample_image,
+                existing_notes="seed",
+                previous_slide_summary="prev",
+                presentation_theme="Theme",
+                global_context="Context",
+            )
+
+        assert (notes, status) == ("Generated notes", "success")
+        mock_generate.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_translate_notes_exception_returns_error(
+        self,
+        mock_tool_factory,
+        mock_supervisor_runner,
+        sample_english_notes
+    ):
+        """Test translation exceptions are converted into error status."""
+        async def mock_translator(text, **kwargs):
+            raise RuntimeError("translator failed")
+
+        mock_tool_factory.create_translator_tool.return_value = mock_translator
+        generator = NotesGenerator(
+            tool_factory=mock_tool_factory,
+            supervisor_runner=mock_supervisor_runner,
+            language="zh-CN",
+            english_notes=sample_english_notes,
+        )
+
+        notes, status = await generator._translate_notes(1)
+
+        assert notes == ""
+        assert status == "error"
+
+    @pytest.mark.asyncio
+    async def test_run_supervisor_collects_text_and_resets_writer_output(
+        self,
+        mock_tool_factory,
+        sample_image
+    ):
+        """Test supervisor execution returns collected text from streamed events."""
+        async def run_async(**kwargs):
+            part = Mock(text="Generated answer", function_call=None)
+            event = Mock()
+            event.content = Mock(parts=[part])
+            yield event
+
+        mock_runner = Mock()
+        mock_runner.run_async = run_async
+        generator = NotesGenerator(
+            tool_factory=mock_tool_factory,
+            supervisor_runner=mock_runner,
+            language="en",
+        )
+
+        notes, status = await generator._run_supervisor(
+            slide_idx=1,
+            content=Mock(),
+            user_id="u",
+            session_id="s",
+        )
+
+        assert (notes, status) == ("Generated answer", "success")
+        mock_tool_factory.reset_writer_output.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_run_supervisor_uses_last_writer_output_fallback(
+        self,
+        mock_tool_factory
+    ):
+        """Test empty supervisor output falls back to the writer tool result."""
+        async def run_async(**kwargs):
+            if False:
+                yield None
+
+        mock_tool_factory.last_writer_output = "Fallback output"
+        mock_runner = Mock()
+        mock_runner.run_async = run_async
+        generator = NotesGenerator(
+            tool_factory=mock_tool_factory,
+            supervisor_runner=mock_runner,
+            language="en",
+        )
+
+        notes, status = await generator._run_supervisor(
+            slide_idx=3,
+            content=Mock(),
+            user_id="u",
+            session_id="s",
+        )
+
+        assert (notes, status) == ("Fallback output", "success")
+        mock_tool_factory.reset_writer_output.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_run_supervisor_raises_on_tool_error_response(
+        self,
+        mock_tool_factory
+    ):
+        """Structured tool errors in supervisor output should raise slide errors."""
+        async def run_async(**kwargs):
+            part = Mock(text="tool_error: failed to write", function_call=None)
+            event = Mock()
+            event.content = Mock(parts=[part])
+            yield event
+
+        mock_runner = Mock()
+        mock_runner.run_async = run_async
+        generator = NotesGenerator(
+            tool_factory=mock_tool_factory,
+            supervisor_runner=mock_runner,
+            language="en",
+        )
+
+        with pytest.raises(SlideProcessingError, match="Tool error"):
+            await generator._run_supervisor(
+                slide_idx=4,
+                content=Mock(),
+                user_id="u",
+                session_id="s",
+            )
+
+    @pytest.mark.asyncio
+    async def test_run_supervisor_raises_when_no_output_is_available(
+        self,
+        mock_tool_factory
+    ):
+        """Missing supervisor and fallback output should raise a retryable error."""
+        async def run_async(**kwargs):
+            if False:
+                yield None
+
+        mock_runner = Mock()
+        mock_runner.run_async = run_async
+        generator = NotesGenerator(
+            tool_factory=mock_tool_factory,
+            supervisor_runner=mock_runner,
+            language="en",
+        )
+
+        with pytest.raises(SlideProcessingError, match="empty response"):
+            await generator._run_supervisor(
+                slide_idx=5,
+                content=Mock(),
+                user_id="u",
+                session_id="s",
+            )
+
+    def test_is_error_response_matches_only_structured_errors(
+        self,
+        mock_tool_factory,
+        mock_supervisor_runner
+    ):
+        """Error detection should be strict to avoid false positives in real notes."""
+        generator = NotesGenerator(
+            tool_factory=mock_tool_factory,
+            supervisor_runner=mock_supervisor_runner,
+            language="en",
+        )
+
+        assert generator._is_error_response("tool_error: failed") is True
+        assert generator._is_error_response("system_error: failed") is True
+        assert generator._is_error_response("normal speaker notes about system error handling") is False

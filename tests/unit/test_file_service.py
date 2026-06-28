@@ -135,7 +135,7 @@ class TestFileService:
             mock_prs.slide_width = 10
             mock_prs.slide_height = 5.625
             
-            with patch('services.file_service.ensure_pptx_path') as mock_ensure:
+            with patch('utils.pptx_utils.ensure_pptx_path') as mock_ensure:
                 mock_ensure.return_value = output_path
                 
                 result = FileService.save_presentation(
@@ -153,7 +153,7 @@ class TestFileService:
             
             mock_prs = Mock()
             
-            with patch('services.file_service.ensure_pptx_path') as mock_ensure:
+            with patch('utils.pptx_utils.ensure_pptx_path') as mock_ensure:
                 with patch('services.file_service.Inches') as mock_inches:
                     mock_ensure.return_value = output_path
                     mock_inches.return_value = 10
@@ -167,6 +167,57 @@ class TestFileService:
                     # Should set slide dimensions
                     assert mock_prs.slide_width is not None
                     assert mock_prs.slide_height is not None
+
+    def test_save_presentation_restores_vba_when_needed(self):
+        """Test saving a PPTM file restores VBA project content."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = os.path.join(tmpdir, "output.pptm")
+            temp_path = os.path.join(tmpdir, "temp-output.pptm")
+            mock_prs = Mock()
+
+            with patch('utils.pptx_utils.ensure_pptx_path', return_value=temp_path), patch(
+                'utils.pptx_utils.restore_vba_project'
+            ) as mock_restore:
+                result = FileService.save_presentation(
+                    prs=mock_prs,
+                    output_path=output_path,
+                    source_path=os.path.join(tmpdir, "source.pptm"),
+                )
+
+            assert result == output_path
+            mock_prs.save.assert_called_once_with(temp_path)
+            mock_restore.assert_called_once_with(
+                os.path.join(tmpdir, "source.pptm"),
+                temp_path,
+                output_path,
+            )
+
+    def test_save_presentation_moves_temp_file_to_final_path(self):
+        """Test saving moves intermediate files into the requested output path."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = os.path.join(tmpdir, "output.pptx")
+            temp_path = os.path.join(tmpdir, "temp-output.pptx")
+            mock_prs = Mock()
+
+            with patch('utils.pptx_utils.ensure_pptx_path', return_value=temp_path), patch(
+                'services.file_service.shutil.move'
+            ) as mock_move:
+                result = FileService.save_presentation(
+                    prs=mock_prs,
+                    output_path=output_path,
+                )
+
+            assert result == output_path
+            mock_move.assert_called_once_with(temp_path, output_path)
+
+    def test_save_presentation_wraps_save_errors(self):
+        """Test save errors are surfaced as ProcessingError."""
+        mock_prs = Mock()
+        mock_prs.save.side_effect = RuntimeError("disk full")
+
+        with patch('utils.pptx_utils.ensure_pptx_path', return_value="/tmp/output.pptx"):
+            with pytest.raises(ProcessingError, match="Failed to save PPTX"):
+                FileService.save_presentation(mock_prs, "/tmp/output.pptx")
     
     def test_get_slide_count(self):
         """Test getting slide count."""

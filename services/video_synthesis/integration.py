@@ -9,6 +9,11 @@ from services.file_service import FileService
 from core.domain.presentation import Presentation
 from core.domain.video_synthesis import VideoSynthesisRequest, VideoConfig
 from services.video_synthesis.video_synthesis_service import VideoSynthesisService
+from services.video_synthesis.integration_helpers import (
+    build_video_output_path,
+    build_video_synthesis_request,
+    resolve_video_synthesis_inputs,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,10 +68,9 @@ class VideoSynthesisIntegration:
             logger.info(f"Creating video from presentation: {presentation.pptx_path.name}")
             
             # Use appropriate directories if not specified
-            if slide_images_dir is None:
-                slide_images_dir = Path(self.config.visuals_dir)
-            if audio_files_dir is None:
-                audio_files_dir = Path(self.config.speech_dir)
+            slide_images_dir, audio_files_dir = resolve_video_synthesis_inputs(
+                self.config, slide_images_dir, audio_files_dir
+            )
             
             # Find slide images and audio files
             slide_images = self._find_slide_images(slide_images_dir, presentation.total_slides())
@@ -81,7 +85,7 @@ class VideoSynthesisIntegration:
                 return None
             
             # Generate output path
-            output_path = self._generate_output_path(presentation, output_filename)
+            output_path = build_video_output_path(self.config, presentation, output_filename)
             
             # Get video configuration
             video_config = self.config.get_video_synthesis_config()
@@ -90,12 +94,12 @@ class VideoSynthesisIntegration:
                 return None
             
             # Create synthesis request
-            request = VideoSynthesisRequest(
+            request = build_video_synthesis_request(
+                presentation=presentation,
                 slide_images=slide_images,
                 audio_files=audio_files,
                 output_path=output_path,
                 config=video_config,
-                presentation_id=presentation.pptx_path.stem
             )
             
             # Synthesize video
@@ -280,28 +284,6 @@ class VideoSynthesisIntegration:
         
         logger.debug(f"Found {len(found_audio)} audio files (expected {expected_count})")
         return found_audio[:expected_count]  # Limit to expected count
-    
-    def _generate_output_path(self, presentation: Presentation, custom_filename: Optional[str] = None) -> Path:
-        """
-        Generate output path for video file.
-        
-        Args:
-            presentation: Presentation object
-            custom_filename: Optional custom filename
-            
-        Returns:
-            Path for output video file
-        """
-        output_dir = Path(self.config.video_synthesis_dir)
-        
-        if custom_filename:
-            filename = custom_filename
-        else:
-            # Generate filename based on presentation
-            base_name = presentation.pptx_path.stem
-            filename = f"{base_name}_{presentation.language}_video.mp4"
-        
-        return output_dir / filename
     
     def get_video_synthesis_status(self) -> Dict[str, Any]:
         """

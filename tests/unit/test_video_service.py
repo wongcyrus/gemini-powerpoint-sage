@@ -6,6 +6,7 @@ import tempfile
 from unittest.mock import Mock, patch
 
 from services.video_service import VideoService
+from utils.error_handling import VideoGenerationError
 
 
 class TestVideoService:
@@ -34,6 +35,15 @@ class TestVideoService:
         assert "professional" in prompt.lower()
         assert "video" in prompt.lower()
         assert len(prompt) > 0
+
+    @pytest.mark.asyncio
+    async def test_generate_video_prompt_uses_empty_fallback(self):
+        """Empty notes should use the shared fallback prompt."""
+        service = VideoService()
+
+        from services.video_service_helpers import build_video_prompt
+
+        assert await service.generate_video_prompt(1, "") == build_video_prompt("")
     
     @pytest.mark.asyncio
     async def test_generate_video_prompt_empty_notes(self):
@@ -60,8 +70,8 @@ class TestVideoService:
             speaker_notes=long_notes
         )
         
-        # Should be truncated
-        assert len(prompt) < len(long_notes) + 100
+        assert "A" * 151 not in prompt
+        assert prompt.endswith("Focus on clarity and visual appeal.")
     
     @pytest.mark.asyncio
     async def test_generate_video_success(self, mock_agent, sample_image):
@@ -105,6 +115,19 @@ class TestVideoService:
             )
             
             assert result is None
+
+    @pytest.mark.asyncio
+    async def test_generate_video_handles_agent_failure(self, mock_agent):
+        """Test video generation failures return None instead of bubbling up."""
+        with patch('services.video_service.run_stateless_agent', side_effect=RuntimeError("boom")):
+            service = VideoService(video_generator_agent=mock_agent)
+
+            result = await service.generate_video(
+                slide_idx=1,
+                speaker_notes="Test notes"
+            )
+
+            assert result is None
     
     @pytest.mark.asyncio
     async def test_save_video_prompt(self):
@@ -145,6 +168,18 @@ class TestVideoService:
                 content = f.read()
                 assert "Test prompt" in content
                 assert "video_123" not in content
+
+    @pytest.mark.asyncio
+    async def test_save_video_prompt_requires_videos_dir(self):
+        """Test saving a prompt without a configured videos dir raises an error."""
+        service = VideoService(videos_dir=None)
+
+        with pytest.raises(VideoGenerationError, match="Videos directory not configured"):
+            await service.save_video_prompt(
+                slide_idx=1,
+                video_prompt="Test prompt",
+                speaker_notes="Test notes",
+            )
     
     def test_extract_artifact_id_explicit(self):
         """Test extracting explicit artifact_id."""
@@ -180,6 +215,22 @@ class TestVideoService:
         artifact_id = service._extract_artifact_id("")
         
         assert artifact_id == ""
+
+    def test_extract_artifact_id_generic_video_reference(self):
+        """Test extracting generic generated video references."""
+        service = VideoService()
+
+        artifact_id = service._extract_artifact_id("Generated asset named video_alpha_beta")
+
+        assert artifact_id == "video_alpha_beta"
+
+    def test_save_video_prompt_formats_expected_content(self):
+        """Prompt files should render the shared content format."""
+        from services.video_service_helpers import format_video_prompt_file
+
+        content = format_video_prompt_file(1, "Prompt", "Notes", "video_123")
+        assert "Slide 1 Video Prompt" in content
+        assert "video_123" in content
     
     def test_is_available(self, mock_agent):
         """Test availability check."""

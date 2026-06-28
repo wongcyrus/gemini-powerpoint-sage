@@ -2,7 +2,6 @@
 
 import logging
 import os
-import re
 from typing import Optional
 
 import pymupdf
@@ -12,6 +11,12 @@ from google.adk.agents import LlmAgent
 from config.constants import FilePatterns
 from utils.agent_utils import run_stateless_agent
 from utils.error_handling import VideoGenerationError
+from services.video_service_helpers import (
+    build_video_agent_prompt,
+    build_video_prompt,
+    extract_artifact_id,
+    format_video_prompt_file,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,27 +59,7 @@ class VideoService:
         Returns:
             Video prompt text
         """
-        if not speaker_notes or not speaker_notes.strip():
-            return (
-                "Create an engaging visual representation of key concepts."
-            )
-        
-        # Extract first sentence or first 150 characters
-        lines = speaker_notes.strip().split('\n')
-        first_line = lines[0] if lines else speaker_notes
-        
-        if len(first_line) > 150:
-            first_line = first_line[:150].rsplit(' ', 1)[0] + "."
-        
-        # Create focused prompt
-        video_prompt = (
-            f"Create a professional 8-10 second video that visually "
-            f"illustrates this concept: {first_line} "
-            f"Use modern design, clear visuals, and professional animation. "
-            f"Focus on clarity and visual appeal."
-        )
-        
-        return video_prompt
+        return build_video_prompt(speaker_notes)
     
     async def generate_video(
         self,
@@ -104,12 +89,7 @@ class VideoService:
             )
             
             # Call video agent
-            agent_prompt = (
-                f"Generate a professional video for a presentation "
-                f"slide based on this concept:\n\n{video_prompt}\n\n"
-                f"Speaker Notes:\n{speaker_notes}\n\n"
-                f"Generate an 8-10 second video."
-            )
+            agent_prompt = build_video_agent_prompt(video_prompt, speaker_notes)
             
             images = [slide_image] if slide_image else None
             response = await run_stateless_agent(
@@ -164,14 +144,16 @@ class VideoService:
         
         filename = FilePatterns.VIDEO_PROMPT_FILE.format(idx=slide_idx)
         filepath = os.path.join(self.videos_dir, filename)
-        
+
         with open(filepath, "w", encoding="utf-8") as f:
-            f.write(f"Slide {slide_idx} Video Prompt\n")
-            f.write("=" * 29 + "\n\n")
-            f.write(f"Prompt:\n{video_prompt}\n\n")
-            f.write(f"Speaker Notes:\n{speaker_notes}\n")
-            if video_artifact:
-                f.write(f"\nGenerated Video: {video_artifact}\n")
+            f.write(
+                format_video_prompt_file(
+                    slide_idx,
+                    video_prompt,
+                    speaker_notes,
+                    video_artifact,
+                )
+            )
         
         logger.info(f"Saved video prompt to {filepath}")
         return filepath
@@ -186,37 +168,7 @@ class VideoService:
         Returns:
             Artifact ID if found, empty string otherwise
         """
-        if not agent_response:
-            return ""
-        
-        # Pattern 1: explicit artifact_id mention
-        match = re.search(
-            r'artifact[_-]?id["\']?\s*[:=]\s*["\']?([^"\'\s]+)',
-            agent_response,
-            re.IGNORECASE
-        )
-        if match:
-            return match.group(1)
-        
-        # Pattern 2: video file references (video_*.mp4)
-        match = re.search(
-            r'(video[_\w]*\.mp4)',
-            agent_response,
-            re.IGNORECASE
-        )
-        if match:
-            return match.group(1)
-        
-        # Pattern 3: generated video references
-        match = re.search(
-            r'(video[_\w]*)',
-            agent_response,
-            re.IGNORECASE
-        )
-        if match:
-            return match.group(1)
-        
-        return ""
+        return extract_artifact_id(agent_response)
     
     def is_available(self) -> bool:
         """Check if video generation is available."""

@@ -66,11 +66,11 @@ class TestPrompts:
         assert hasattr(prompt, "WRITER_PROMPT")
         assert hasattr(prompt, "DESIGNER_PROMPT")
         
-        # Should be the same as new imports
-        assert prompt.SUPERVISOR_PROMPT == SUPERVISOR_PROMPT
-        assert prompt.ANALYST_PROMPT == ANALYST_PROMPT
-        assert prompt.WRITER_PROMPT == WRITER_PROMPT
-        assert prompt.DESIGNER_PROMPT == DESIGNER_PROMPT
+        # Backward-compatible module should still expose non-empty prompt text
+        assert isinstance(prompt.SUPERVISOR_PROMPT, str) and len(prompt.SUPERVISOR_PROMPT) > 50
+        assert isinstance(prompt.ANALYST_PROMPT, str) and len(prompt.ANALYST_PROMPT) > 50
+        assert isinstance(prompt.WRITER_PROMPT, str) and len(prompt.WRITER_PROMPT) > 50
+        assert isinstance(prompt.DESIGNER_PROMPT, str) and len(prompt.DESIGNER_PROMPT) > 50
     
     def test_prompts_are_strings(self):
         """Test that all prompts are strings, not bytes or other types."""

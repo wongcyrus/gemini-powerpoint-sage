@@ -60,42 +60,7 @@ class FFmpegVideoProcessor:
             
             # Check cache first if file manager is provided
             if file_manager and file_manager.enable_cache:
-                config_dict = {
-                    'resolution': config.resolution,
-                    'fps': config.fps,
-                    'video_codec': config.video_codec,
-                    'audio_codec': config.audio_codec,
-                    'video_bitrate': config.video_bitrate,
-                    'audio_bitrate': config.audio_bitrate,
-                    'output_format': config.output_format,
-                    'fade_duration': config.fade_duration
-                }
-                
-                cache_key = file_manager.generate_segment_cache_key(
-                    segment.image_path, segment.audio_path, config_dict, segment.slide_index
-                )
-                
-                cached_segment = file_manager.get_cached_segment(cache_key, config.output_format)
-                if cached_segment:
-                    # Use cached segment directly - no need to copy to temp
-                    segment.temp_video_path = cached_segment
-                    
-                    logger.info(f"Using cached segment for slide {segment.slide_index}: {cached_segment}")
-                    return cached_segment
-            
-            # Check cache first if file manager is provided
-            if file_manager and file_manager.enable_cache:
-                config_dict = {
-                    'resolution': config.resolution,
-                    'fps': config.fps,
-                    'video_codec': config.video_codec,
-                    'audio_codec': config.audio_codec,
-                    'video_bitrate': config.video_bitrate,
-                    'audio_bitrate': config.audio_bitrate,
-                    'output_format': config.output_format,
-                    'fade_duration': config.fade_duration
-                }
-                
+                config_dict = self._build_cache_config(config)
                 cache_key = file_manager.generate_segment_cache_key(
                     segment.image_path, segment.audio_path, config_dict, segment.slide_index
                 )
@@ -193,6 +158,19 @@ class FFmpegVideoProcessor:
             error_msg = f"Failed to create video segment for slide {segment.slide_index}: {e}"
             logger.error(error_msg)
             raise VideoProcessingError(error_msg) from e
+
+    def _build_cache_config(self, config: VideoConfig) -> Dict[str, Any]:
+        """Build the deterministic cache config used for segment keys."""
+        return {
+            "resolution": config.resolution,
+            "fps": config.fps,
+            "video_codec": config.video_codec,
+            "audio_codec": config.audio_codec,
+            "video_bitrate": config.video_bitrate,
+            "audio_bitrate": config.audio_bitrate,
+            "output_format": config.output_format,
+            "fade_duration": config.fade_duration,
+        }
     
 
     

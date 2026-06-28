@@ -83,6 +83,10 @@ The exact output root comes from the YAML:
 - `output_dir` in YAML-driven mode
 - otherwise the default `generate/` folder next to the PPTX named in the YAML
 
+For non-English runs, translated visuals reuse the sibling English visual
+folder when it already exists, then write the localized result into the
+language-specific `*_visuals/` folder.
+
 ## 6. Pick the simplest path
 
 1. Put processing inputs and options in YAML.

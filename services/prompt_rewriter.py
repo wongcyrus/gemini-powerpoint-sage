@@ -7,6 +7,15 @@ import asyncio
 from typing import Dict, Any
 from google.adk.runners import InMemoryRunner
 from .prompt_cache import PromptCache
+from .prompt_rewriter_flow_helpers import (
+    build_emergency_fallback_prompt,
+    build_rewrite_request,
+)
+from .prompt_rewriter_helpers import (
+    create_concise_tts_prompt,
+    create_tts_fallback_prompt,
+    validate_and_fix_tts_tone,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -246,38 +255,7 @@ Apply these visual style guidelines throughout all design decisions and outputs.
             logger.info(f"Cache miss for {prompt_type} - performing LLM rewriting")
             
             # Create appropriate rewrite request based on prompt type
-            if prompt_type == "tts":
-                rewrite_request = f"""BASE_PROMPT:
-{base_prompt}
-
-STYLE_GUIDELINES:
-{style_guidelines}
-
-STYLE_TYPE: tts_speech
-
-CRITICAL REQUIREMENT: This is for text-to-speech generation using Gemini TTS. The output should be a natural language instruction that tells the TTS engine how to speak the content.
-
-IMPORTANT TONE CONSTRAINT: The tone MUST be exactly one of these values: 'professional', 'casual', 'enthusiastic', 'technical', or 'narrative'. Do not use any other tone words.
-
-IMPORTANT LENGTH CONSTRAINT: The final output MUST be under 500 characters total. Be extremely concise.
-
-Focus on:
-1. Choose the most appropriate tone from: professional, casual, enthusiastic, technical, narrative
-2. Pace and rhythm instructions (slow, normal, fast)
-3. Emphasis and emotional expression
-4. Language-appropriate cultural considerations
-
-Please rewrite the base prompt to create a SHORT, natural language TTS instruction that incorporates the speaking style from the guidelines. Keep it under 500 characters and use only the allowed tone values."""
-            else:
-                rewrite_request = f"""BASE_PROMPT:
-{base_prompt}
-
-STYLE_GUIDELINES:
-{style_guidelines}
-
-STYLE_TYPE: {"visual" if prompt_type == "designer" else "speaker"}
-
-Please rewrite the base prompt to deeply integrate the style guidelines throughout the instructions."""
+            rewrite_request = build_rewrite_request(base_prompt, style_guidelines, prompt_type)
             
             try:
                 # Perform LLM rewriting
@@ -314,15 +292,7 @@ Please rewrite the base prompt to deeply integrate the style guidelines througho
             logger.info(f"Using emergency fallback for {prompt_type}")
             
             # Emergency fallback - simple concatenation
-            emergency_result = f"""{base_prompt}
-
-===============================================================================
-STYLE INTEGRATION ({prompt_type.upper()})
-===============================================================================
-
-{style_guidelines}
-
-Apply these style guidelines throughout all operations."""
+            emergency_result = build_emergency_fallback_prompt(base_prompt, style_guidelines, prompt_type)
             
             elapsed = time.time() - start_time
             logger.warning(f"✓ Emergency fallback completed for {prompt_type}: {elapsed:.3f}s")
@@ -511,21 +481,10 @@ Apply these style guidelines throughout all operations."""
         Returns:
             Fixed TTS prompt with valid tone
         """
-        valid_tones = ["professional", "casual", "enthusiastic", "technical", "narrative"]
-        
-        # Check if prompt contains any valid tone
-        found_tone = None
-        for tone in valid_tones:
-            if tone in tts_prompt.lower():
-                found_tone = tone
-                break
-        
-        if not found_tone:
-            # Default to professional tone
+        fixed = validate_and_fix_tts_tone(tts_prompt)
+        if fixed != tts_prompt:
             logger.warning("No valid tone found in TTS prompt, defaulting to professional")
-            return f"Speak in a professional manner. {tts_prompt}"
-        
-        return tts_prompt
+        return fixed
     
     def _create_tts_fallback_prompt(self, base_prompt: str, style_guidelines: str) -> str:
         """
@@ -539,31 +498,7 @@ Apply these style guidelines throughout all operations."""
             Simple fallback TTS prompt
         """
         logger.info("Creating TTS fallback prompt")
-        
-        # Extract key style elements from guidelines
-        lines = style_guidelines.split('\n')
-        tone = "professional"
-        pace = "normal"
-        
-        for line in lines:
-            if "Detected Tone:" in line:
-                detected = line.split(":", 1)[1].strip().lower()
-                if detected in ["professional", "casual", "enthusiastic", "technical", "narrative"]:
-                    tone = detected
-            elif "Pace Indicators:" in line:
-                pace_part = line.split(":", 1)[1].strip().lower()
-                if pace_part in ["slow", "fast"]:
-                    pace = pace_part
-        
-        # Create simple fallback
-        pace_instruction = ""
-        if pace == "slow":
-            pace_instruction = " Speak slowly and clearly."
-        elif pace == "fast":
-            pace_instruction = " Speak at a brisk but clear pace."
-        
-        fallback = f"Speak in a {tone} manner.{pace_instruction}"
-        
+        fallback = create_tts_fallback_prompt(style_guidelines)
         logger.info(f"Created TTS fallback prompt: {len(fallback)} chars")
         return fallback
     
@@ -578,66 +513,7 @@ Apply these style guidelines throughout all operations."""
             Concise TTS prompt under 500 characters
         """
         logger.info("Creating concise TTS prompt to stay under length limits")
-        
-        # Extract only the most essential style elements
-        lines = style_guidelines.split('\n')
-        tone = "professional"
-        pace = "normal"
-        emphasis_words = []
-        emotions = []
-        
-        for line in lines:
-            if "Detected Tone:" in line:
-                tone = line.split(":", 1)[1].strip().lower()
-            elif "Pace Indicators:" in line:
-                pace = line.split(":", 1)[1].strip().lower()
-            elif "Emphasis Points:" in line and "None" not in line:
-                # Extract emphasis words if present
-                emphasis_part = line.split(":", 1)[1].strip()
-                if emphasis_part and emphasis_part != "None":
-                    emphasis_words = [w.strip() for w in emphasis_part.split(",")][:2]  # Limit to 2
-            elif "Emotional Context:" in line and "Neutral" not in line:
-                emotion_part = line.split(":", 1)[1].strip()
-                if emotion_part and emotion_part != "Neutral":
-                    emotions = [emotion_part.lower()]
-        
-        # Build concise prompt components
-        components = []
-        
-        # Base tone instruction (always include)
-        tone_map = {
-            "professional": "professional and clear",
-            "enthusiastic": "energetic and passionate", 
-            "casual": "friendly and conversational",
-            "technical": "precise and methodical",
-            "formal": "authoritative and structured",
-            "narrative": "engaging storytelling"
-        }
-        base_tone = tone_map.get(tone, "clear and professional")
-        components.append(f"Speak in a {base_tone} manner")
-        
-        # Add pace if not normal
-        if pace == "slow":
-            components.append("at a slow, deliberate pace")
-        elif pace == "fast":
-            components.append("at a brisk pace")
-        
-        # Add emotion if present
-        if emotions:
-            components.append(f"with {emotions[0]} emotion")
-        
-        # Add emphasis if present (limit to 1-2 words)
-        if emphasis_words:
-            components.append(f"emphasizing {emphasis_words[0]}")
-        
-        # Create final concise prompt
-        prompt = ". ".join(components) + "."
-        
-        # Ensure it's under the limit (aim for under 200 chars for safety)
-        if len(prompt) > 200:
-            # Ultra-concise fallback
-            prompt = f"Speak in a {base_tone} manner."
-        
+        prompt = create_concise_tts_prompt(style_guidelines)
         logger.info(f"Created concise TTS prompt: {len(prompt)} chars")
         return prompt
 

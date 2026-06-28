@@ -223,6 +223,92 @@ class TestContextService:
         )
         
         assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_global_context_translates_from_english_cache(self, mock_agent):
+        """Non-English runs should reuse translated English context when available."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            import json
+            json.dump({"slides": {}}, f)
+            progress_file = f.name
+
+        try:
+            service = ContextService(
+                overviewer_agent=Mock(),
+                translator_agent=mock_agent,
+            )
+
+            with patch.object(
+                service,
+                "_translate_from_english",
+                AsyncMock(return_value="Translated context"),
+            ) as mock_translate, patch(
+                "services.context_service.save_progress"
+            ) as mock_save:
+                context = await service.get_global_context(
+                    pdf_doc=Mock(),
+                    limit=2,
+                    progress_file=progress_file,
+                    language="zh-CN",
+                    pptx_path="/tmp/deck.pptx",
+                    output_dir="/tmp/out",
+                )
+
+            assert context == "Translated context"
+            mock_translate.assert_awaited_once_with("/tmp/deck.pptx", "zh-CN", "/tmp/out")
+            mock_save.assert_called_once()
+        finally:
+            os.unlink(progress_file)
+
+    @pytest.mark.asyncio
+    async def test_translate_from_english_returns_none_for_short_context(self, mock_agent):
+        """Short English context should not be used for translated global context."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            import json
+            en_progress_file = os.path.join(tmpdir, "test_en_progress.json")
+            with open(en_progress_file, 'w') as f:
+                json.dump({"global_context": "too short"}, f)
+
+            with patch('services.context_service.get_progress_file_path', return_value=en_progress_file):
+                service = ContextService(
+                    overviewer_agent=Mock(),
+                    translator_agent=mock_agent
+                )
+
+                result = await service._translate_from_english(
+                    pptx_path=os.path.join(tmpdir, "test.pptx"),
+                    target_language="zh-CN"
+                )
+
+                assert result is None
+
+    @pytest.mark.asyncio
+    async def test_translate_from_english_handles_agent_failures(self, mock_agent):
+        """Translation failures should be swallowed and return None."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            import json
+            en_progress_file = os.path.join(tmpdir, "test_en_progress.json")
+            with open(en_progress_file, 'w') as f:
+                json.dump({
+                    "global_context": "English global context for the presentation. This text is intentionally long enough to pass validation."
+                }, f)
+
+            with patch('services.context_service.get_progress_file_path', return_value=en_progress_file), patch(
+                'services.context_service.run_stateless_agent',
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("boom"),
+            ):
+                service = ContextService(
+                    overviewer_agent=Mock(),
+                    translator_agent=mock_agent
+                )
+
+                result = await service._translate_from_english(
+                    pptx_path=os.path.join(tmpdir, "test.pptx"),
+                    target_language="zh-CN"
+                )
+
+                assert result is None
     
     def test_extract_all_images(self, mock_agent):
         """Test extracting all images from PDF."""

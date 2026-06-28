@@ -14,7 +14,7 @@ from google.adk.agents import LlmAgent
 from google.adk.tools.agent_tool import AgentTool
 
 from config import Config
-from utils.agent_utils import run_stateless_agent
+from utils.agent_utils import run_stateless_agent, run_visual_agent
 from utils.image_utils import register_image, unregister_image
 from utils.progress_utils import (
     load_progress,
@@ -28,8 +28,20 @@ from tools.agent_tools import AgentToolFactory
 from services.visual_generator import VisualGenerator
 from services.tts.tts_orchestrator import TTSOrchestrator, create_tts_orchestrator
 from config.tts_config import get_tts_config
+from services.presentation_processor_helpers import (
+    build_global_context_generation_prompt,
+    build_global_context_translation_prompt,
+    process_slide_visual,
+    build_supervisor_prompt,
+    extract_artifact_id,
+    extract_video_prompt,
+    get_language_name,
+    is_error_response,
+)
+from services.presentation_processor_context_helpers import get_global_context
+from services.presentation_processor_output_helpers import save_processed_presentations
+from services.presentation_processor_tts_helpers import build_tts_slide_data
 import zipfile
-import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 
@@ -381,20 +393,7 @@ class PresentationProcessor:
         # Extract presentation ID from config
         presentation_id = os.path.splitext(os.path.basename(self.config.pptx_path))[0]
         
-        # Prepare slide data for TTS processing
-        from core.domain.tts import SlideData
-        
-        tts_slides = []
-        for slide_info in slide_data:
-            if slide_info["status"] == "success" and slide_info["speaker_notes"]:
-                tts_slide = SlideData(
-                    slide_number=slide_info["slide_idx"],
-                    text_content=slide_info["speaker_notes"],
-                    speaker_notes=slide_info["speaker_notes"],
-                    language_code=self.config.language,
-                    presentation_id=presentation_id
-                )
-                tts_slides.append(tts_slide)
+        tts_slides = build_tts_slide_data(slide_data, self.config.language, presentation_id)
         
         if not tts_slides:
             logger.warning("No slides with successful notes found for TTS generation")
@@ -463,32 +462,6 @@ class PresentationProcessor:
         logger.info("PHASE 2: Generating visuals for all slides")
         logger.info("="*60)
         
-        # If processing English, generate visuals
-        # If processing non-English, check if English visuals exist to translate
-        english_visuals_dir = None
-        translate_visuals = False
-        
-        if self.config.language == "en":
-            # English: generate visuals directly
-            logger.info("Generating visuals in English")
-        else:
-            # Non-English: check for existing English visuals to translate
-            if self.image_translator_agent:
-                output_dir = self.config._get_output_dir()
-                pptx_base = os.path.splitext(os.path.basename(self.config.pptx_path))[0]
-                english_visuals_dir = os.path.join(output_dir, f"{pptx_base}_en_visuals")
-                if os.path.exists(english_visuals_dir):
-                    logger.info(
-                        "Found English visuals, will translate to %s",
-                        self.config.language
-                    )
-                    translate_visuals = True
-                else:
-                    logger.info(
-                        "English visuals not found. Please run with "
-                        "--language en first to generate English visuals."
-                    )
-        
         missing_visuals_count = 0
         for slide_info in slide_data:
             slide_idx = slide_info["slide_idx"]
@@ -502,125 +475,33 @@ class PresentationProcessor:
             if current_project:
                 logger.debug(f"Processing visual for Slide {slide_idx} (Project: {current_project})")
 
-            if status == "success":
-                # For non-English, translate from English visuals if available
-                translated = False
-                if translate_visuals and english_visuals_dir:
-                    en_img_path = os.path.join(
-                        english_visuals_dir,
-                        f"slide_{slide_idx}_reimagined.png"
-                    )
-                    target_img_path = os.path.join(
-                        self.config.visuals_dir,
-                        f"slide_{slide_idx}_reimagined.png"
-                    )
-                    
-                    # Check if translated visual already exists
-                    if os.path.exists(target_img_path):
-                        logger.info(
-                            "Visual already translated for Slide %d",
-                            slide_idx
-                        )
-                        # Replace slide with existing translated visual
-                        self.visual_generator.replace_slide_with_visual(
-                            prs_visuals, slide_visuals,
-                            target_img_path, speaker_notes
-                        )
-                        translated = True
-                    elif os.path.exists(en_img_path):
-                        # Load English visual and translate it
-                        english_visual = Image.open(en_img_path)
-                        
-                        logger.info(
-                            "Translating visual for Slide %d to %s",
-                            slide_idx, self.config.language
-                        )
-                        
-                        # Use image translator agent
-                        locale_map = {
-                            "zh-CN": "Simplified Chinese (简体中文)",
-                            "zh-TW": "Traditional Chinese (繁體中文)",
-                            "yue-HK": "Cantonese (廣東話)",
-                            "es": "Spanish (Español)",
-                            "fr": "French (Français)",
-                            "ja": "Japanese (日本語)",
-                            "ko": "Korean (한국어)",
-                        }
-                        lang_name = locale_map.get(
-                            self.config.language,
-                            self.config.language
-                        )
-                        
-                        from utils.agent_utils import run_visual_agent
-                        
-                        design_prompt = (
-                            f"Translate this English slide visual to "
-                            f"{lang_name}. \n\n"
-                            f"IMPORTANT:\n"
-                            f"- Translate ALL text to {lang_name}\n"
-                            f"- Keep the exact same layout and structure\n"
-                            f"- Ensure text is readable and fits within "
-                            f"the original text areas\n"
-                            f"- Do NOT change colors, fonts, or design\n"
-                            f"- Do NOT add or remove elements\n\n"
-                            f"Speaker Notes: {speaker_notes}"
-                        )
-                        
-                        img_bytes = await run_visual_agent(
-                            self.image_translator_agent,
-                            design_prompt,
-                            images=[english_visual]
-                        )
-                        
-                        if img_bytes:
-                            # Save translated visual
-                            os.makedirs(
-                                self.config.visuals_dir, exist_ok=True
-                            )
-                            
-                            with open(target_img_path, "wb") as f:
-                                f.write(img_bytes)
-                            
-                            logger.info(
-                                "Translated visual for Slide %d", slide_idx
-                            )
-                            
-                            # Replace slide with translated visual
-                            self.visual_generator.replace_slide_with_visual(
-                                prs_visuals, slide_visuals,
-                                target_img_path, speaker_notes
-                            )
-                            translated = True
-                
-                if not translated:
-                    # Generate visual in target language
-                    img_bytes = await self.visual_generator.generate_visual(
-                        slide_idx, slide_image, speaker_notes,
-                        self.retry_errors, self.config.language
-                    )
-
-                    if img_bytes:
-                        img_path = os.path.join(
-                            self.config.visuals_dir,
-                            f"slide_{slide_idx}_reimagined.png"
-                        )
-                        # Replace the slide content with the visual
-                        self.visual_generator.replace_slide_with_visual(
-                            prs_visuals, slide_visuals, img_path, speaker_notes
-                        )
-                    else:
-                        logger.warning(
-                            "No image generated for Slide %d; visuals "
-                            "presentation will be skipped" % slide_idx
-                        )
-                        missing_visuals_count += 1
-            else:
+            if status != "success":
                 logger.warning(
                     f"Skipping visual generation for Slide {slide_idx} "
                     f"due to notes generation failure"
                 )
                 missing_visuals_count += 1
-        
+                continue
+
+            missing_visuals_count += await process_slide_visual(
+                slide_idx=slide_idx,
+                slide_visuals=slide_visuals,
+                slide_image=slide_image,
+                speaker_notes=speaker_notes,
+                status=status,
+                language=self.config.language,
+                visuals_dir=os.path.dirname(self.config.visuals_dir),
+                pptx_path=self.config.pptx_path,
+                retry_errors=self.retry_errors,
+                image_translator_agent=self.image_translator_agent,
+                visual_generator=self.visual_generator,
+                replace_visual=lambda sv, img_path, notes: self.visual_generator.replace_slide_with_visual(
+                    prs_visuals, sv, img_path, notes
+                ),
+                run_visual_agent=run_visual_agent,
+                get_language_name=get_language_name,
+            )
+
         return missing_visuals_count
 
     async def _phase_generate_videos(
@@ -654,63 +535,26 @@ class PresentationProcessor:
         Save the processed presentations to disk.
         """
         from utils.pptx_utils import ensure_pptx_path, restore_vba_project
-        
-        output_path_notes = self.config.output_path
-        output_path_visuals = self.config.output_path_with_visuals
 
-        # Notes output
-        temp_notes_pptx = ensure_pptx_path(output_path_notes)
-        prs_notes.save(temp_notes_pptx)
-        logger.info('Saved presentation (intermediate) to: %s', temp_notes_pptx)
+        output_path_notes, output_path_visuals = save_processed_presentations(
+            prs_notes=prs_notes,
+            prs_visuals=prs_visuals,
+            output_path_notes=self.config.output_path,
+            output_path_visuals=self.config.output_path_with_visuals,
+            source_pptx_path=self.config.pptx_path,
+            missing_visuals_count=missing_visuals_count,
+            ensure_pptx_path=ensure_pptx_path,
+            restore_vba_project=restore_vba_project,
+        )
 
-        # If final desired extension is .pptm and source had macros, inject them
-        src_ext = os.path.splitext(self.config.pptx_path)[1].lower()
-        if src_ext == '.pptm' and output_path_notes.lower().endswith('.pptm'):
-            restore_vba_project(
-                self.config.pptx_path, temp_notes_pptx, output_path_notes
-            )
-            logger.info(
-                'Saved presentation with notes (pptm) to: %s', output_path_notes
-            )
-        else:
-            if temp_notes_pptx != output_path_notes:
-                shutil.move(temp_notes_pptx, output_path_notes)
-            logger.info(
-                'Saved presentation with notes to: %s', output_path_notes
-            )
-
-        # Only save visuals presentation if all images were generated
-        if missing_visuals_count == 0:
-            temp_visuals_pptx = ensure_pptx_path(output_path_visuals)
-            prs_visuals.save(temp_visuals_pptx)
-
-            if (
-                src_ext == '.pptm'
-                and output_path_visuals
-                and output_path_visuals.lower().endswith('.pptm')
-            ):
-                restore_vba_project(
-                    self.config.pptx_path,
-                    temp_visuals_pptx,
-                    output_path_visuals
-                )
-                logger.info(
-                    'Saved presentation with visuals (pptm) to: %s',
-                    output_path_visuals
-                )
-            else:
-                if temp_visuals_pptx != output_path_visuals:
-                    shutil.move(temp_visuals_pptx, output_path_visuals)
-                logger.info(
-                    'Saved presentation with visuals to: %s',
-                    output_path_visuals
-                )
+        logger.info("Saved presentation with notes to: %s", output_path_notes)
+        if output_path_visuals:
+            logger.info("Saved presentation with visuals to: %s", output_path_visuals)
         else:
             logger.warning(
-                'Skipping visuals presentation save: %d slide(s) missing images',
-                missing_visuals_count
+                "Skipping visuals presentation save: %d slide(s) missing images",
+                missing_visuals_count,
             )
-            output_path_visuals = None
 
         return output_path_notes, output_path_visuals
 
@@ -721,96 +565,28 @@ class PresentationProcessor:
         progress: Dict[str, Any]
     ) -> str:
         """Generate or retrieve cached global context."""
-        # Check if cached
-        if (
-            "global_context" in progress
-            and progress["global_context"]
-            and len(progress["global_context"]) > 50
-            and not self.retry_errors
-        ):
-            logger.info("Using cached Global Context from progress file.")
-            return progress["global_context"]
+        from config.constants import LanguageConfig
+        from utils.progress_utils import get_progress_file_path
 
-        # For non-English, try to translate from English global context
-        if self.config.language != "en":
-            from utils.progress_utils import get_progress_file_path
-            en_progress_file = get_progress_file_path(
-                self.config.pptx_path, "en", self.config._get_output_dir()
-            )
-            if os.path.exists(en_progress_file):
-                en_progress = load_progress(en_progress_file)
-                en_global_context = en_progress.get("global_context")
-                if en_global_context and len(en_global_context) > 50:
-                    logger.info(
-                        "--- Pass 1: Translating Global Context from English ---"
-                    )
-                    
-                    from config.constants import LanguageConfig
-                    lang_name = LanguageConfig.get_language_name(self.config.language)
-                    
-                    # Add Chinese locale specific instructions
-                    chinese_instruction = ""
-                    if self.config.language == "zh-CN":
-                        chinese_instruction = (
-                            f"\n\nCHINESE LOCALE REQUIREMENT: "
-                            f"You MUST use ONLY Simplified Chinese characters (简体中文). "
-                            f"Examples: Use 网络 (not 網絡), 数据 (not 數據), 计算机 (not 計算機)."
-                        )
-                    elif self.config.language in ["zh-TW", "zh-HK", "yue-HK"]:
-                        chinese_instruction = (
-                            f"\n\nCHINESE LOCALE REQUIREMENT: "
-                            f"You MUST use ONLY Traditional Chinese characters (繁體中文). "
-                            f"Examples: Use 網絡 (not 网络), 數據 (not 数据), 計算機 (not 计算机)."
-                        )
-                    
-                    # Use styled translation for global context
-                    translate_prompt = (
-                        f"Translate the following presentation overview to {lang_name}. "
-                        f"Apply the configured speaker style and adapt cultural references appropriately. "
-                        f"Maintain the narrative structure and key vocabulary while ensuring the content "
-                        f"sounds natural and engaging in {lang_name}.\n\n"
-                        f"PRESENTATION OVERVIEW:\n{en_global_context}\n\n"
-                        f"IMPORTANT: Provide ONLY the translated overview in {lang_name}. "
-                        f"Do not include explanations or metadata.{chinese_instruction}"
-                    )
-                    
-                    global_context = await run_stateless_agent(
-                        self.translator_agent,
-                        translate_prompt
-                    )
-                    
-                    logger.info(
-                        f"Global Context Translated: {len(global_context)} chars"
-                    )
-                    
-                    # Cache it
-                    progress["global_context"] = global_context
-                    save_progress(self.progress_file, progress)
-                    
-                    return global_context
-
-        # Generate new context
-        logger.info("--- Pass 1: Generating Global Context ---")
-
-        all_images = []
-        for i in range(limit):
-            pix = pdf_doc[i].get_pixmap(dpi=75)
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            all_images.append(img)
-
-        global_context = await run_stateless_agent(
-            self.overviewer_agent,
-            f"Here are the slides for the entire presentation. Analyze them. Note: This presentation has exactly {len(all_images)} slides.",
-            images=all_images
+        return await get_global_context(
+            pdf_doc=pdf_doc,
+            limit=limit,
+            progress=progress,
+            language=self.config.language,
+            retry_errors=self.retry_errors,
+            progress_file=self.progress_file,
+            output_dir=self.config._get_output_dir(),
+            pptx_path=self.config.pptx_path,
+            load_progress=load_progress,
+            save_progress=save_progress,
+            get_progress_file_path=get_progress_file_path,
+            run_stateless_agent=run_stateless_agent,
+            overviewer_agent=self.overviewer_agent,
+            translator_agent=self.translator_agent,
+            build_generation_prompt=build_global_context_generation_prompt,
+            build_translation_prompt=build_global_context_translation_prompt,
+            language_name_lookup=LanguageConfig.get_language_name,
         )
-
-        logger.info(f"Global Context Generated: {len(global_context)} chars")
-
-        # Cache it
-        progress["global_context"] = global_context
-        save_progress(self.progress_file, progress)
-
-        return global_context
 
     def _configure_supervisor_tools(
         self,
@@ -1065,58 +841,7 @@ class PresentationProcessor:
         Returns:
             True if the response appears to be an error message
         """
-        if not response or not response.strip():
-            return False
-            
-        response_stripped = response.strip()
-        response_lower = response_stripped.lower()
-        
-        # 1. Check for structured error format (very specific, unlikely in real content)
-        if (response_lower.startswith('system_error:') or 
-            response_lower.startswith('tool_error:') or
-            response_lower.startswith('processing_error:')):
-            return True
-            
-        # 2. Check for very specific tool error messages (exact matches only)
-        specific_tool_errors = [
-            "error: the writer agent failed to generate a script",
-            "error: the analyst agent failed",
-            "error: the translator agent failed", 
-            "error: the auditor agent failed",
-            "error: the designer agent failed",
-            "please try again or use a placeholder",
-            "failed to generate a script",
-            "tool execution failed",
-            "agent returned empty"
-        ]
-        
-        for error_msg in specific_tool_errors:
-            if error_msg in response_lower:
-                return True
-        
-        # 3. Check for responses that start with clear error indicators
-        # (Only at the very beginning to avoid false positives)
-        error_starters = [
-            "error:",
-            "failed:",
-            "cannot generate",
-            "unable to generate",
-            "generation failed",
-            "workflow failed:"
-        ]
-        
-        for starter in error_starters:
-            if response_lower.startswith(starter):
-                return True
-        
-        # 4. Check for very short responses with obvious error keywords
-        # (Only for very short responses to minimize false positives)
-        if len(response_stripped) < 30 and len(response_stripped.split()) < 6:
-            obvious_errors = ["error", "failed", "timeout", "exception"]
-            if any(response_lower.startswith(word) for word in obvious_errors):
-                return True
-            
-        return False
+        return is_error_response(response)
 
     def _build_supervisor_prompt(
         self,
@@ -1130,37 +855,16 @@ class PresentationProcessor:
         previous_speaker_notes: list = None,
     ) -> str:
         """Build the prompt for the supervisor agent."""
-        slide_position_info = ""
-        if total_slides:
-            if slide_idx == 1:
-                slide_position_info = f"SLIDE POSITION: This is the FIRST slide (slide {slide_idx} of {total_slides}). Include appropriate greeting.\n"
-            elif slide_idx == total_slides:
-                slide_position_info = f"SLIDE POSITION: This is the LAST slide (slide {slide_idx} of {total_slides}). Include appropriate closing.\n"
-            else:
-                slide_position_info = f"SLIDE POSITION: This is a MIDDLE slide (slide {slide_idx} of {total_slides}). NO greetings or farewells.\n"
-        
-        # Add target language information
-        target_language_info = f"TARGET_LANGUAGE: {self.config.language}\n"
-        
-        # Format previous speaker notes context
-        previous_notes_context = ""
-        if previous_speaker_notes:
-            previous_notes_context = "PREVIOUS_SPEAKER_NOTES:\n"
-            for note_data in previous_speaker_notes[-3:]:  # Last 3 slides
-                previous_notes_context += f"Slide {note_data['slide_idx']}: {note_data['notes']}\n"
-            previous_notes_context += "\n"
-        
-        return (
-            f"Here is Slide {slide_idx}.\n"
-            f"Existing Notes: \"{existing_notes}\"\n"
-            f"Image ID: \"{image_id}\"\n"
-            f"Previous Slide Summary: \"{previous_slide_summary}\"\n"
-            f"{previous_notes_context}"
-            f"Theme: \"{presentation_theme}\"\n"
-            f"Global Context: \"{global_context}\"\n"
-            f"{slide_position_info}"
-            f"{target_language_info}\n"
-            f"Please proceed with the workflow."
+        return build_supervisor_prompt(
+            slide_idx=slide_idx,
+            image_id=image_id,
+            existing_notes=existing_notes,
+            previous_slide_summary=previous_slide_summary,
+            presentation_theme=presentation_theme,
+            global_context=global_context,
+            target_language=self.config.language,
+            total_slides=total_slides,
+            previous_speaker_notes=previous_speaker_notes,
         )
 
     async def _translate_notes(
@@ -1179,29 +883,7 @@ class PresentationProcessor:
         if not self.translator_agent:
             return None
 
-        # Map locale to language name
-        locale_map = {
-            "en": "English",
-            "zh-CN": "Simplified Chinese (简体中文)",
-            "zh-TW": "Traditional Chinese (繁體中文)",
-            "yue-HK": "Cantonese (廣東話)",
-            "es": "Spanish (Español)",
-            "fr": "French (Français)",
-            "ja": "Japanese (日本語)",
-            "ko": "Korean (한국어)",
-            "de": "German (Deutsch)",
-            "it": "Italian (Italiano)",
-            "pt": "Portuguese (Português)",
-            "ru": "Russian (Русский)",
-            "ar": "Arabic (العربية)",
-            "hi": "Hindi (हिन्दी)",
-            "th": "Thai (ไทย)",
-            "vi": "Vietnamese (Tiếng Việt)",
-        }
-
-        lang_name = locale_map.get(
-            self.config.language, self.config.language
-        )
+        lang_name = get_language_name(self.config.language)
 
         prompt = (
             f"Translate the following English speaker notes to {lang_name}. "
@@ -1255,29 +937,7 @@ class PresentationProcessor:
         if not self.image_translator_agent:
             return None
 
-        # Map locale to language name
-        locale_map = {
-            "en": "English",
-            "zh-CN": "Simplified Chinese (简体中文)",
-            "zh-TW": "Traditional Chinese (繁體中文)",
-            "yue-HK": "Cantonese (廣東話)",
-            "es": "Spanish (Español)",
-            "fr": "French (Français)",
-            "ja": "Japanese (日本語)",
-            "ko": "Korean (한국어)",
-            "de": "German (Deutsch)",
-            "it": "Italian (Italiano)",
-            "pt": "Portuguese (Português)",
-            "ru": "Russian (Русский)",
-            "ar": "Arabic (العربية)",
-            "hi": "Hindi (हिन्दी)",
-            "th": "Thai (ไทย)",
-            "vi": "Vietnamese (Tiếng Việt)",
-        }
-
-        lang_name = locale_map.get(
-            self.config.language, self.config.language
-        )
+        lang_name = get_language_name(self.config.language)
 
         # Step 1: Analyze English visual and get translation specs
         analysis_prompt = (
@@ -1509,26 +1169,7 @@ class PresentationProcessor:
         Returns:
             Concise video prompt (1-2 sentences)
         """
-        if not speaker_notes or not speaker_notes.strip():
-            return "Create an engaging visual representation of key concepts."
-        
-        # Extract first sentence or first 100 characters for conciseness
-        lines = speaker_notes.strip().split('\n')
-        first_line = lines[0] if lines else speaker_notes
-        
-        # Truncate to reasonable length
-        if len(first_line) > 150:
-            first_line = first_line[:150].rsplit(' ', 1)[0] + "."
-        
-        # Create a focused prompt
-        video_prompt = (
-            f"Create a professional 8-10 second video that visually "
-            f"illustrates this concept: {first_line} "
-            f"Use modern design, clear visuals, and professional animation. "
-            f"Focus on clarity and visual appeal."
-        )
-        
-        return video_prompt
+        return extract_video_prompt(speaker_notes)
 
     def _extract_artifact_id(self, agent_response: str) -> str:
         """
@@ -1543,25 +1184,4 @@ class PresentationProcessor:
         Returns:
             Artifact ID/filename if found, empty string otherwise
         """
-        if not agent_response:
-            return ""
-        
-        # Look for artifact_id references
-        import re
-        
-        # Pattern 1: explicit artifact_id mention
-        match = re.search(r'artifact[_-]?id["\']?\s*[:=]\s*["\']?([^"\'\s]+)', agent_response, re.IGNORECASE)
-        if match:
-            return match.group(1)
-        
-        # Pattern 2: video file references (video_*.mp4)
-        match = re.search(r'(video[_\w]*\.mp4)', agent_response, re.IGNORECASE)
-        if match:
-            return match.group(1)
-        
-        # Pattern 3: generated video references
-        match = re.search(r'(video[_\w]*)', agent_response, re.IGNORECASE)
-        if match:
-            return match.group(1)
-        
-        return ""
+        return extract_artifact_id(agent_response)
