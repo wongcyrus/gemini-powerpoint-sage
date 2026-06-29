@@ -48,13 +48,13 @@ Result: Video saved as artifact, ready to use in presentation
 
 def create_video_agent(
     agent_name: str = "presentation-video-generator",
-    model: str = "gemini-2.5-flash",
+    model: str = "gemini-3.5-flash",
 ) -> Agent:
     """Create a video generation agent with MCP tools.
     
     Args:
         agent_name: Name for the agent
-        model: Gemini model to use (default: gemini-2.5-flash)
+        model: Gemini model to use (default: gemini-3.5-flash)
         
     Returns:
         Configured ADK agent with video generation capabilities

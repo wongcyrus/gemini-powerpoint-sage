@@ -14,7 +14,7 @@ except Exception:
 
     video_generator_agent = LlmAgent(
         name="video_generator",
-        model=os.getenv("MODEL_VIDEO_GENERATOR", "gemini-2.5-flash"),
+        model=os.getenv("MODEL_VIDEO_GENERATOR", "gemini-3.5-flash"),
         description="Plans which presentation moments deserve video treatment.",
         instruction=prompt.VIDEO_GENERATOR_PROMPT,
     )

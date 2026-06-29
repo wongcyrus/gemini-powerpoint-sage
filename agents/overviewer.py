@@ -7,7 +7,7 @@ from . import prompt
 
 overviewer_agent = LlmAgent(
     name="presentation_overviewer",
-    model=os.getenv("MODEL_OVERVIEWER", "gemini-2.5-flash"),
+    model=os.getenv("MODEL_OVERVIEWER", "gemini-3.5-flash"),
     description="Analyzes the entire slide deck to establish global context and narrative flow.",
     instruction=prompt.OVERVIEWER_PROMPT,
     tools=[google_search]

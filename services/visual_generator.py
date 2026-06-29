@@ -57,7 +57,7 @@ class VisualGenerator:
         """
         self.designer_agent = designer_agent
         self.fallback_imagen_model = fallback_imagen_model
-        self.secondary_model = os.getenv("MODEL_DESIGNER_SECONDARY", "gemini-2.5-flash-image")
+        self.secondary_model = os.getenv("MODEL_DESIGNER_SECONDARY", "gemini-3.1-flash-image")
         self.output_dir = output_dir
         self.skip_generation = skip_generation
         self.visual_style = style  # This is visual_style from config

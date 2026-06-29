@@ -65,7 +65,7 @@ Advanced text-to-speech integration with:
 
 ```bash
 # TTS Settings
-export MODEL_TTS=gemini-2.5-flash-tts         # Model (default: gemini-2.5-flash-tts)
+export MODEL_TTS=gemini-3.1-flash-tts-preview # Model (default: gemini-3.1-flash-tts-preview)
 export TTS_TIMEOUT_SECONDS=90                 # Timeout (default: 90s)
 export TTS_ENABLED=true                       # Enable/disable (default: true)
 export TTS_CACHE_ENABLED=true                 # Cache audio (default: true)

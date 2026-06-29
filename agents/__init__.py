@@ -1,5 +1,11 @@
 """Agents package initialization."""
 
+from dotenv import find_dotenv, load_dotenv
+
+_dotenv_path = find_dotenv(usecwd=True)
+if _dotenv_path:
+    load_dotenv(_dotenv_path)
+
 from .supervisor import supervisor_agent
 from .writer import writer_agent
 from .analyst import analyst_agent

@@ -214,7 +214,7 @@ class TestAgentConfig:
 
         assert agent is not None
         assert agent.name == "presentation-video-generator"
-        assert agent.model == "gemini-2.5-flash"
+        assert agent.model == "gemini-3.5-flash"
 
 
 # Integration tests (requires live Vertex AI access)

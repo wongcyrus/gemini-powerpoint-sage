@@ -56,7 +56,7 @@ The core LLM agent that performs intelligent prompt rewriting.
 - Concrete examples and checkpoints
 - Maintains original prompt structure
 
-**Model:** `gemini-2.5-flash` (configurable via `MODEL_PROMPT_REWRITER` env var)
+**Model:** `gemini-3.5-flash` (configurable via `MODEL_PROMPT_REWRITER` env var)
 
 ### 2. PromptRewriter Service (`services/prompt_rewriter.py`)
 
@@ -136,13 +136,13 @@ title_generator = agents["title_generator"]
 Set the model for prompt rewriting via environment variable:
 
 ```bash
-export MODEL_PROMPT_REWRITER="gemini-2.5-flash"
+export MODEL_PROMPT_REWRITER="gemini-3.5-flash"
 ```
 
 Or in your `.env` file:
 
 ```
-MODEL_PROMPT_REWRITER=gemini-2.5-flash
+MODEL_PROMPT_REWRITER=gemini-3.5-flash
 ```
 
 ## Prompt Rewriting Strategy

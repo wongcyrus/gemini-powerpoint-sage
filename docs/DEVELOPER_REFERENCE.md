@@ -250,17 +250,17 @@ QUICK_REFERENCE.md        # This file
 
 ### ModelConfig
 ```python
-SUPERVISOR = "gemini-2.5-flash"
-ANALYST = "gemini-3-pro-preview"
-WRITER = "gemini-2.5-flash"
-AUDITOR = "gemini-2.5-flash"
-OVERVIEWER = "gemini-3-pro-preview"
-DESIGNER = "gemini-3-pro-image-preview"
-TRANSLATOR = "gemini-2.5-flash"
-IMAGE_TRANSLATOR = "gemini-3-pro-image-preview"
-VIDEO_GENERATOR = "gemini-2.5-flash"
-REFINER = "gemini-2.5-flash"
-PROMPT_REWRITER = "gemini-2.5-flash"
+SUPERVISOR = "gemini-3.5-flash"
+ANALYST = "gemini-3.5-flash"
+WRITER = "gemini-3.5-flash"
+AUDITOR = "gemini-3.5-flash"
+OVERVIEWER = "gemini-3.5-flash"
+DESIGNER = "gemini-3.1-flash-image"
+TRANSLATOR = "gemini-3.5-flash"
+IMAGE_TRANSLATOR = "gemini-3.1-flash-image"
+VIDEO_GENERATOR = "gemini-3.5-flash"
+REFINER = "gemini-3.5-flash"
+PROMPT_REWRITER = "gemini-3.5-flash"
 FALLBACK_IMAGEN = "imagen-4.0-generate-001"
 ```
 

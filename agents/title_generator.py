@@ -6,7 +6,7 @@ from . import prompt
 
 title_generator_agent = LlmAgent(
     name="title_generator",
-    model=os.getenv("MODEL_TITLE_GENERATOR", "gemini-2.5-flash"),
+    model=os.getenv("MODEL_TITLE_GENERATOR", "gemini-3.5-flash"),
     description="Generates short, catchy titles for presentation slides based on content and speaker style.",
     instruction=prompt.TITLE_GENERATOR_PROMPT,
 )

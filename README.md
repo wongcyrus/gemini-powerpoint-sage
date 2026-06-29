@@ -42,16 +42,16 @@ For the full trace, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ### 🤖 The Agent Ecosystem
 
-1. **Overviewer Agent** (`gemini-3-pro-preview`): Analyzes entire presentation for global context and narrative consistency
-2. **Supervisor Agent** (`gemini-2.5-flash`): Orchestrates 5-step workflow for each slide, coordinating other agents
-3. **Auditor Agent** (`gemini-2.5-flash`): Quality control - evaluates existing content and determines if regeneration is needed
-4. **Analyst Agent** (`gemini-3-pro-preview`): Visual content analysis - extracts insights from slide images
-5. **Writer Agent** (`gemini-2.5-flash`): Generates natural, engaging speaker scripts with style integration
-6. **Designer Agent** (`gemini-3-pro-image-preview`): Creates enhanced slide visuals with consistent styling
-7. **Translator Agent** (`gemini-2.5-flash`): Style-aware translation maintaining persona and technical accuracy
-8. **Image Translator Agent** (`gemini-3-pro-image-preview`): Analyzes and translates visual content for different languages
-9. **Video Planner Agent** (`gemini-2.5-flash`): Selects a few high-value moments for optional video treatment
-10. **Prompt Rewriter Agent** (`gemini-2.5-flash`): Meta-agent that integrates styles into other agents' prompts at creation time
+1. **Overviewer Agent** (`gemini-3.5-flash`): Analyzes entire presentation for global context and narrative consistency
+2. **Supervisor Agent** (`gemini-3.5-flash`): Orchestrates 5-step workflow for each slide, coordinating other agents
+3. **Auditor Agent** (`gemini-3.5-flash`): Quality control - evaluates existing content and determines if regeneration is needed
+4. **Analyst Agent** (`gemini-3.5-flash`): Visual content analysis - extracts insights from slide images
+5. **Writer Agent** (`gemini-3.5-flash`): Generates natural, engaging speaker scripts with style integration
+6. **Designer Agent** (`gemini-3.1-flash-image`): Creates enhanced slide visuals with consistent styling
+7. **Translator Agent** (`gemini-3.5-flash`): Style-aware translation maintaining persona and technical accuracy
+8. **Image Translator Agent** (`gemini-3.1-flash-image`): Analyzes and translates visual content for different languages
+9. **Video Planner Agent** (`gemini-3.5-flash`): Selects a few high-value moments for optional video treatment
+10. **Prompt Rewriter Agent** (`gemini-3.5-flash`): Meta-agent that integrates styles into other agents' prompts at creation time
 
 ### 📋 Three-Phase Processing
 
@@ -163,6 +163,8 @@ GOOGLE_CLOUD_PROJECT=your-project-id
 # Multiple projects for load balancing (recommended for large workloads)
 GOOGLE_CLOUD_PROJECTS=project-id-1,project-id-2,project-id-3
 ```
+
+`.env` values load before the app imports agents, so any `MODEL_*` or `GOOGLE_CLOUD_*` value there overrides the code defaults.
 
 The system automatically rotates through projects for each slide, visual, and TTS generation, distributing the load evenly. See [docs/PROJECT_ROTATION.md](docs/PROJECT_ROTATION.md) for details.
 
@@ -736,7 +738,7 @@ Output: Creates `_refined.json` suffix files (e.g., `progress_refined.json`)
 ### Advanced TTS Integration
 
 **Gemini TTS Engine**:
-- **Unified model configuration**: Single `MODEL_TTS` environment variable (default: `gemini-2.5-flash-tts`)
+- **Unified model configuration**: Single `MODEL_TTS` environment variable (default: `gemini-3.1-flash-tts-preview`)
 - **Intelligent timeout handling**: Configurable via `TTS_TIMEOUT_SECONDS` (default: 90s)
 - **Tone validation and mapping**: Ensures valid tone values for TTS synthesis
 - **Robust error handling**: Exponential backoff retry with fallback mechanisms
@@ -816,7 +818,7 @@ export PROMPT_CACHE_MAX_SIZE_MB=100           # Max cache size in MB (default: 1
 export PROMPT_CACHE_TTL_DAYS=30               # Cache TTL in days (default: 30)
 
 # TTS Configuration
-export MODEL_TTS=gemini-2.5-flash-tts         # TTS model (default: gemini-2.5-flash-tts)
+export MODEL_TTS=gemini-3.1-flash-tts-preview # TTS model (default: gemini-3.1-flash-tts-preview)
 export TTS_TIMEOUT_SECONDS=90                 # TTS timeout in seconds (default: 90)
 export TTS_ENABLED=true                       # Enable/disable TTS (default: true)
 export TTS_CACHE_ENABLED=true                 # Enable TTS caching (default: true)
@@ -826,7 +828,7 @@ export TTS_CACHE_ENABLED=true                 # Enable TTS caching (default: tru
 # Windows PowerShell - Performance Configuration
 $env:PROMPT_CACHE_ENABLED = 'true'
 $env:PROMPT_CACHE_MAX_SIZE_MB = '100'
-$env:MODEL_TTS = 'gemini-2.5-flash-tts'
+$env:MODEL_TTS = 'gemini-3.1-flash-tts-preview'
 $env:TTS_TIMEOUT_SECONDS = '90'
 ```
 

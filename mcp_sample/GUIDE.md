@@ -140,7 +140,7 @@ from mcp_tools_config import mcp_toolset
 from mcp_callbacks import before_tool_modifier, after_tool_modifier
 
 agent = Agent(
-    model="gemini-2.5-flash",
+    model="gemini-3.5-flash",
     name="my-agent",
     instruction="Your system prompt here...",
     tools=[mcp_toolset],

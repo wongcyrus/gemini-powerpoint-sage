@@ -43,7 +43,7 @@ async def create_designer_agent(visual_style: str = "Professional") -> LlmAgent:
     
     return LlmAgent(
         name="slide_designer",
-        model=os.getenv("MODEL_DESIGNER", "gemini-3-pro-image-preview"),
+        model=os.getenv("MODEL_DESIGNER", "gemini-3.1-flash-image"),
         description="Generates high-fidelity slide images with custom visual style.",
         instruction=instruction
     )
@@ -64,7 +64,7 @@ async def create_writer_agent(speaker_style: str = "Professional") -> LlmAgent:
     
     return LlmAgent(
         name="speech_writer",
-        model=os.getenv("MODEL_WRITER", "gemini-2.5-flash"),
+        model=os.getenv("MODEL_WRITER", "gemini-3.5-flash"),
         description="Generates presentation scripts with custom speaking style.",
         instruction=instruction,
         tools=[google_search]
@@ -86,7 +86,7 @@ async def create_title_generator_agent(speaker_style: str = "Professional") -> L
     
     return LlmAgent(
         name="title_generator",
-        model=os.getenv("MODEL_TITLE_GENERATOR", "gemini-2.5-flash"),
+        model=os.getenv("MODEL_TITLE_GENERATOR", "gemini-3.5-flash"),
         description="Generates short, catchy titles with custom speaking style.",
         instruction=instruction
     )
@@ -107,7 +107,7 @@ async def create_translator_agent(speaker_style: str = "Professional") -> LlmAge
     
     return LlmAgent(
         name="translator_styled",
-        model=os.getenv("MODEL_TRANSLATOR", "gemini-2.5-flash"),
+        model=os.getenv("MODEL_TRANSLATOR", "gemini-3.5-flash"),
         description="Translates speaker notes with custom speaker style application.",
         instruction=instruction
     )
@@ -150,7 +150,7 @@ async def create_all_agents(visual_style: str = "Professional", speaker_style: s
     # Create supervisor (tools will be configured dynamically by PresentationProcessor)
     supervisor = LlmAgent(
         name="supervisor",
-        model=os.getenv("MODEL_SUPERVISOR", "gemini-2.5-flash"),
+        model=os.getenv("MODEL_SUPERVISOR", "gemini-3.5-flash"),
         description="The orchestrator that manages the slide generation workflow.",
         instruction=SUPERVISOR_PROMPT,
         tools=[]  # Tools configured dynamically with language enforcement

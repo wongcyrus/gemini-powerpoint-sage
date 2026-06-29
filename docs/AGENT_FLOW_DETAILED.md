@@ -249,7 +249,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
 ## Agent Detailed Specifications
 
 ### 1. Overviewer Agent
-- **Model**: `gemini-3-pro-preview`
+- **Model**: `gemini-3.5-flash`
 - **Purpose**: Global presentation analysis
 - **Input**: All slide images at once
 - **Output**: Global context guide (narrative, themes, vocabulary, persona)
@@ -260,7 +260,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
   - Provides narrative arc context
 
 ### 2. Supervisor Agent  
-- **Model**: `gemini-2.5-flash`
+- **Model**: `gemini-3.5-flash`
 - **Purpose**: Workflow orchestration
 - **Input**: Slide context + existing notes
 - **Output**: Final speaker notes
@@ -272,7 +272,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
   - Handles fallback mechanisms
 
 ### 3. Analyst Agent
-- **Model**: `gemini-3-pro-preview` 
+- **Model**: `gemini-3.5-flash`
 - **Purpose**: Slide content analysis
 - **Input**: Single slide image
 - **Output**: Structured analysis (topic, details, visuals, intent)
@@ -283,7 +283,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
   - Intent recognition
 
 ### 4. Auditor Agent
-- **Model**: `gemini-2.5-flash`
+- **Model**: `gemini-3.5-flash`
 - **Purpose**: Quality control
 - **Input**: Existing speaker notes + slide position
 - **Output**: "USEFUL" or "USELESS" with reasoning
@@ -294,7 +294,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
   - Slide position appropriateness check
 
 ### 5. Writer Agent
-- **Model**: `gemini-2.5-flash`
+- **Model**: `gemini-3.5-flash`
 - **Purpose**: Speaker notes generation
 - **Input**: Analysis + context + theme + style
 - **Output**: Natural speaker script
@@ -306,7 +306,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
   - Prompt rewriter integration
 
 ### 6. Designer Agent
-- **Model**: `gemini-3-pro-image-preview`
+- **Model**: `gemini-3.1-flash-image`
 - **Purpose**: Visual slide generation
 - **Input**: Slide image + speaker notes + style
 - **Output**: Enhanced slide image (PNG)
@@ -317,7 +317,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
   - Consistent design application
 
 ### 7. Translator Agent
-- **Model**: `gemini-2.5-flash`
+- **Model**: `gemini-3.5-flash`
 - **Purpose**: Text translation with style preservation
 - **Input**: English text + target language + style
 - **Output**: Translated text with style applied
@@ -329,7 +329,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
   - Prompt rewriter integration
 
 ### 8. Image Translator Agent
-- **Model**: `gemini-3-pro-image-preview`
+- **Model**: `gemini-3.1-flash-image`
 - **Purpose**: Visual content translation
 - **Input**: English slide visual + context
 - **Output**: Translation specifications
@@ -340,7 +340,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
   - Layout preservation guidance
 
 ### 9. Video Planner Agent
-- **Model**: `gemini-2.5-flash`
+- **Model**: `gemini-3.5-flash`
 - **Purpose**: Selects a few high-value video moments
 - **Input**: Slide summaries + global context
 - **Output**: Sidecar plan JSON with selected moments
@@ -350,7 +350,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
   - Stable downstream slide output
 
 ### 10. Prompt Rewriter Agent
-- **Model**: `gemini-2.5-flash`
+- **Model**: `gemini-3.5-flash`
 - **Purpose**: Style integration into agent prompts
 - **Input**: Base prompt + style guidelines + style type
 - **Output**: Rewritten prompt with deeply integrated style
@@ -460,9 +460,9 @@ class RetryStrategy:
 ```python
 # config/constants.py
 class ModelConfig:
-    SUPERVISOR = "gemini-2.5-flash"
-    ANALYST = "gemini-3-pro-preview"
-    WRITER = "gemini-2.5-flash"
+    SUPERVISOR = "gemini-3.5-flash"
+    ANALYST = "gemini-3.5-flash"
+    WRITER = "gemini-3.5-flash"
     # ... etc
 ```
 

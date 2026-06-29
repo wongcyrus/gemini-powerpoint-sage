@@ -6,20 +6,20 @@ from typing import Final
 class ModelConfig:
     """AI model configuration."""
     
-    SUPERVISOR: Final[str] = "gemini-2.5-flash"
-    ANALYST: Final[str] = "gemini-3-pro-preview"
-    WRITER: Final[str] = "gemini-2.5-flash"
-    AUDITOR: Final[str] = "gemini-2.5-flash"
-    OVERVIEWER: Final[str] = "gemini-3-pro-preview"
-    DESIGNER: Final[str] = "gemini-3-pro-image-preview"
-    TRANSLATOR: Final[str] = "gemini-2.5-flash"
-    IMAGE_TRANSLATOR: Final[str] = "gemini-3-pro-image-preview"
-    VIDEO_GENERATOR: Final[str] = "gemini-2.5-flash"
+    SUPERVISOR: Final[str] = "gemini-3.5-flash"
+    ANALYST: Final[str] = "gemini-3.5-flash"
+    WRITER: Final[str] = "gemini-3.5-flash"
+    AUDITOR: Final[str] = "gemini-3.5-flash"
+    OVERVIEWER: Final[str] = "gemini-3.5-flash"
+    DESIGNER: Final[str] = "gemini-3.1-flash-image"
+    TRANSLATOR: Final[str] = "gemini-3.5-flash"
+    IMAGE_TRANSLATOR: Final[str] = "gemini-3.1-flash-image"
+    VIDEO_GENERATOR: Final[str] = "gemini-3.5-flash"
     VEO: Final[str] = "veo-3.1-generate-001"
-    REFINER: Final[str] = "gemini-2.5-flash"
-    PROMPT_REWRITER: Final[str] = "gemini-2.5-flash"
+    REFINER: Final[str] = "gemini-3.5-flash"
+    PROMPT_REWRITER: Final[str] = "gemini-3.5-flash"
     FALLBACK_IMAGEN: Final[str] = "imagen-4.0-generate-001"
-    TTS: Final[str] = "gemini-2.5-flash-tts"
+    TTS: Final[str] = "gemini-3.1-flash-tts-preview"
 
 
 class ProcessingConfig:

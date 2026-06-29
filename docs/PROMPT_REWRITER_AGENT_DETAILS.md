@@ -25,7 +25,7 @@ The **Prompt Rewriter Agent** is a unique meta-agent in the Gemini PowerPoint Sa
 # agents/prompt_rewriter.py
 prompt_rewriter_agent = LlmAgent(
     name="prompt_rewriter",
-    model="gemini-2.5-flash",  # Configurable via MODEL_PROMPT_REWRITER
+    model="gemini-3.5-flash",  # Configurable via MODEL_PROMPT_REWRITER
     description="Rewrites agent prompts to deeply integrate visual and speaker styles.",
     instruction=PROMPT_REWRITER_PROMPT,  # Sophisticated rewriting instructions
 )

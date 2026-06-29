@@ -13,7 +13,7 @@ from .translator import translator_agent
 
 supervisor_agent = LlmAgent(
     name="supervisor",
-    model=os.getenv("MODEL_SUPERVISOR", "gemini-2.5-flash"),
+    model=os.getenv("MODEL_SUPERVISOR", "gemini-3.5-flash"),
     description="The orchestrator that manages the slide generation workflow with multi-language support.",
     instruction=prompt.SUPERVISOR_PROMPT,
     tools=[
