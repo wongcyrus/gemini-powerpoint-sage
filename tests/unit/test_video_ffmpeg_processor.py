@@ -75,6 +75,26 @@ class TestFFmpegVideoProcessor:
         assert single == single_output
         assert multi == multi_output
 
+    def test_concatenate_video_files_orders_clips(self, tmp_path):
+        """Pre-rendered clip concatenation should preserve the provided order."""
+        processor = FFmpegVideoProcessor(temp_dir=tmp_path)
+        config = VideoConfig()
+        clip1 = tmp_path / "clip1.mp4"
+        clip2 = tmp_path / "clip2.mp4"
+        clip1.write_bytes(b"1")
+        clip2.write_bytes(b"2")
+        output = tmp_path / "combined.mp4"
+
+        def fake_run(cmd, capture_output, text, timeout=None, cwd=None):
+            Path(cmd[-1]).write_bytes(b"done")
+            return Mock(returncode=0, stdout="", stderr="")
+
+        with patch("subprocess.run", side_effect=fake_run):
+            result = processor.concatenate_video_files([clip1, clip2], config, output, tmp_path)
+
+        assert result == output
+        assert output.exists()
+
     def test_create_video_segment_uses_cache(self, tmp_path):
         """Cached segments should be returned without running ffmpeg."""
         processor = FFmpegVideoProcessor(temp_dir=tmp_path)

@@ -281,7 +281,7 @@ async def process_slide_visual(
         target_img_path = os.path.join(visuals_dir, f"slide_{slide_idx}_reimagined.png")
         en_img_path = os.path.join(english_visuals_dir, f"slide_{slide_idx}_reimagined.png")
 
-        if os.path.exists(target_img_path):
+        if os.path.exists(target_img_path) and not retry_errors:
             replace_visual(slide_visuals, target_img_path, speaker_notes)
             translated = True
         elif os.path.exists(en_img_path):

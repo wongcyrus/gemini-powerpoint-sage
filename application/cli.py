@@ -391,6 +391,7 @@ class CLI:
         from services.video_synthesis.progress_tracker import ProgressReporter
         from core.domain.video_synthesis import VideoSynthesisRequest
         from services.video_synthesis.video_config_manager import VideoConfigManager
+        from services.video_synthesis.integration_helpers import load_video_insertions_from_plan
         from utils.file_sorting import natural_sort_files, print_file_pairing_preview
 
         if not args.style_config:
@@ -563,12 +564,14 @@ class CLI:
             print_file_pairing_preview(slide_images, audio_files)
 
             # Build request and run
+            inserted_video_paths_before = load_video_insertions_from_plan(base_dir / f"{base}_{lang}_videos")
             request = VideoSynthesisRequest(
                 slide_images=slide_images,
                 audio_files=audio_files,
                 output_path=output_path,
                 config=video_config,
                 presentation_id=output_path.stem,
+                inserted_video_paths_before=inserted_video_paths_before,
             )
             reporter = ProgressReporter(show_detailed=True)
             result = video_service.synthesize_video(request, progress_callback=reporter.on_progress_update)

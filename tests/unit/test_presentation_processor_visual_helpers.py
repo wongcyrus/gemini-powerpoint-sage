@@ -57,6 +57,41 @@ class TestPresentationProcessorVisualHelpers:
         assert result == 0
         assert replace_calls == [(SimpleNamespace(), str(target_img), "notes")]
 
+    def test_process_slide_visual_reruns_existing_translated_visual_when_retrying(self, tmp_path):
+        visuals_dir = tmp_path / "visuals"
+        visuals_dir.mkdir()
+        target_img = visuals_dir / "slide_1_reimagined.png"
+        target_img.write_bytes(b"img")
+
+        replace_calls = []
+
+        vg = SimpleNamespace(generate_visual=AsyncMock(return_value=b"new-bytes"))
+
+        import asyncio
+
+        result = asyncio.run(
+            process_slide_visual(
+                slide_idx=1,
+                slide_visuals=SimpleNamespace(),
+                slide_image=SimpleNamespace(),
+                speaker_notes="notes",
+                status="success",
+                language="zh-CN",
+                visuals_dir=str(visuals_dir),
+                pptx_path=str(tmp_path / "demo.pptx"),
+                retry_errors=True,
+                image_translator_agent=object(),
+                visual_generator=vg,
+                replace_visual=lambda *args: replace_calls.append(args),
+                run_visual_agent=AsyncMock(),
+                get_language_name=lambda code: "Simplified Chinese (简体中文)",
+            )
+        )
+
+        assert result == 0
+        vg.generate_visual.assert_awaited_once()
+        assert replace_calls == [(SimpleNamespace(), str(target_img), "notes")]
+
     def test_process_slide_visual_translates_existing_english_visual(self, tmp_path):
         visuals_dir = tmp_path / "visuals"
         visuals_dir.mkdir()

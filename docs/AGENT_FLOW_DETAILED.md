@@ -17,7 +17,7 @@ The Gemini PowerPoint Sage system uses a sophisticated multi-agent architecture 
 │                              THREE PHASES                                   │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐ │
 │  │   PHASE 1:      │  │   PHASE 2:      │  │      PHASE 3:               │ │
-│  │ Generate Notes  │  │Generate Visuals │  │   Generate Videos           │ │
+│  │ Generate Notes  │  │Generate Visuals │  │ Plan + Generate Veo Clips   │ │
 │  │                 │  │                 │  │    (Optional)               │ │
 │  └─────────────────┘  └─────────────────┘  └─────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -50,8 +50,8 @@ The Gemini PowerPoint Sage system uses a sophisticated multi-agent architecture 
 │                         └─────────────────┘                               │
 │                                                                             │
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────────┐ │
-│  │    DESIGNER     │    │VIDEO GENERATOR  │    │    PROMPT REWRITER      │ │
-│  │ (Visual Gen.)   │    │ (Video Prompts) │    │  (Style Integration)    │ │
+│  │    DESIGNER     │    │VIDEO PLANNER    │    │    PROMPT REWRITER      │ │
+│  │ (Visual Gen.)   │    │ (Video Moments) │    │  (Style Integration)    │ │
 │  └─────────────────┘    └─────────────────┘    └─────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -197,19 +197,20 @@ for slide_info in slide_data:
    )
    ```
 
-### Phase 3: Video Generation (Optional)
+### Phase 3: Video Planning + Veo Generation (Optional)
 
 ```python
 # In PresentationProcessor._phase_generate_videos()
-if self.config.generate_videos and self.video_generator_agent:
+if self.config.generate_videos and self.video_service:
 ```
 
-**Video Processing Flow:**
+**Video Planning Flow:**
 
-1. **Extract Video Prompt**: Analyze speaker notes for key visual concepts
-2. **Video Agent Call**: Generate video using slide image + speaker notes
-3. **Artifact Handling**: Parse response for video artifact IDs
-4. **Save Prompts**: Store video prompts for reference
+1. **Planner Call**: Ask AI which moments deserve video treatment
+2. **Slot Selection**: Prefer intro, section transition, and conclusion moments
+3. **Artifact Handling**: Save a `video_plan.json` sidecar
+4. **Clip Generation**: Call Veo for each selected moment and save `*_veo.mp4`
+5. **No Slide Mutation**: The deck output remains unchanged
 
 ## Prompt Rewriter Agent - The Style Orchestrator
 
@@ -338,16 +339,15 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
   - Cultural visual adaptation
   - Layout preservation guidance
 
-### 9. Video Generator Agent
+### 9. Video Planner Agent
 - **Model**: `gemini-2.5-flash`
-- **Purpose**: Video prompt generation
-- **Input**: Slide image + speaker notes
-- **Output**: Video generation prompts/artifacts
-- **When Called**: Phase 3, if video generation enabled
+- **Purpose**: Selects a few high-value video moments
+- **Input**: Slide summaries + global context
+- **Output**: Sidecar plan JSON with selected moments
+- **When Called**: Phase 3, if video planning enabled
 - **Key Features**:
-  - MCP integration for Veo 3.1
-  - Professional video concepts
-  - Slide-appropriate timing
+  - Intro/section/conclusion selection
+  - Stable downstream slide output
 
 ### 10. Prompt Rewriter Agent
 - **Model**: `gemini-2.5-flash`

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Dict, List
 
 from config.config import Config
 from core.domain.presentation import Presentation
@@ -28,6 +29,7 @@ def build_video_synthesis_request(
     audio_files: Iterable[Path],
     output_path: Path,
     config: VideoConfig,
+    inserted_video_paths_before: Dict[int, List[Path]] | None = None,
 ) -> VideoSynthesisRequest:
     """Build a synthesis request from the resolved inputs."""
     return VideoSynthesisRequest(
@@ -36,6 +38,7 @@ def build_video_synthesis_request(
         output_path=output_path,
         config=config,
         presentation_id=presentation.pptx_path.stem,
+        inserted_video_paths_before=inserted_video_paths_before or {},
     )
 
 
@@ -48,3 +51,32 @@ def build_video_output_path(
     output_dir = Path(config.video_synthesis_dir)
     filename = custom_filename or f"{presentation.pptx_path.stem}_{presentation.language}_video.mp4"
     return output_dir / filename
+
+
+def load_video_insertions_from_plan(videos_dir: Path) -> Dict[int, List[Path]]:
+    """Load Veo clip insertions from a video_plan.json sidecar."""
+    plan_path = videos_dir / "video_plan.json"
+    if not plan_path.exists():
+        return {}
+
+    try:
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+    insertions: Dict[int, List[Path]] = {}
+    for moment in plan.get("moments", []):
+        if not isinstance(moment, dict):
+            continue
+        slide_idx = moment.get("slide_idx")
+        video_path = moment.get("video_path")
+        if not slide_idx or not video_path:
+            continue
+        path = Path(video_path)
+        if not path.is_absolute():
+            path = videos_dir / path
+        if not path.exists():
+            continue
+        insertions.setdefault(int(slide_idx), []).append(path)
+
+    return insertions

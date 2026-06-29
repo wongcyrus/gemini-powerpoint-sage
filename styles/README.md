@@ -64,7 +64,8 @@ speaker_style: |
 # Optional parameters
 language: "en"
 skip_visuals: false
-generate_videos: false
+# Plans a few high-value video moments, writes video_plan.json, and generates Veo clips
+generate_videos: true
 ```
 
 ### Output Directory Pattern

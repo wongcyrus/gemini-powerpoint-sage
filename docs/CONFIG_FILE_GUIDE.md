@@ -47,6 +47,12 @@ That includes:
 - `region`
 - `progress_file`
 
+`generate_videos` now means "plan a few optional video moments" and generate
+matching Veo clips for those moments. The run writes a sidecar `video_plan.json`,
+saves the clips in the `*_videos/` folder, and inserts each clip before the
+matching slide in the combined video. It still does not create a video for every
+slide.
+
 ## Supported config shapes
 
 Use **one** of these input styles.

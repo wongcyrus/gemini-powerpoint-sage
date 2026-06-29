@@ -108,7 +108,7 @@ class VideoSynthesisService:
             
             # Stage 4: Concatenate segments
             progress_tracker.update_stage(ProcessingStage.CONCATENATING, "Concatenating video segments")
-            temp_output = self._concatenate_segments(temp_segments, request.config, file_manager, progress_tracker)
+            temp_output = self._concatenate_segments(temp_segments, request, request.config, file_manager, progress_tracker)
             
             # Stage 5: Finalize output
             progress_tracker.update_stage(ProcessingStage.FINALIZING, "Finalizing output video")
@@ -495,6 +495,7 @@ class VideoSynthesisService:
     def _concatenate_segments(
         self,
         segments: list[SlideVideoSegment],
+        request: VideoSynthesisRequest,
         config: VideoConfig,
         file_manager: VideoFileManager,
         progress_tracker: VideoProgressTracker
@@ -534,8 +535,14 @@ class VideoSynthesisService:
             # Initialize FFmpeg processor
             ffmpeg_processor = FFmpegVideoProcessor(concat_dir)
             
+            ordered_paths = []
+            for segment in segments:
+                for inserted_path in request.inserted_video_paths_before.get(segment.slide_index, []):
+                    ordered_paths.append(inserted_path)
+                ordered_paths.append(segment.temp_video_path)
+
             # Concatenate segments
-            final_path = ffmpeg_processor.concatenate_segments(segments, config, temp_output_path, concat_dir)
+            final_path = ffmpeg_processor.concatenate_video_files(ordered_paths, config, temp_output_path, concat_dir)
             
             logger.info(f"Successfully concatenated video: {final_path}")
             return final_path

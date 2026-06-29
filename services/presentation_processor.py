@@ -26,6 +26,7 @@ from utils.progress_utils import (
 from utils.project_rotation import rotate_project, get_project_count
 from tools.agent_tools import AgentToolFactory
 from services.visual_generator import VisualGenerator
+from services.video_service import VideoService
 from services.tts.tts_orchestrator import TTSOrchestrator, create_tts_orchestrator
 from config.tts_config import get_tts_config
 from services.presentation_processor_helpers import (
@@ -108,6 +109,13 @@ class PresentationProcessor:
             fallback_imagen_model=fallback_model,
             style=config.visual_style,
         )
+
+        self.video_service = None
+        if config.generate_videos:
+            self.video_service = VideoService(
+                video_generator_agent=video_generator_agent,
+                videos_dir=config.videos_dir,
+            )
 
         # Initialize TTS orchestrator
         try:
@@ -1018,140 +1026,51 @@ class PresentationProcessor:
         _global_context: str,
     ) -> None:
         """
-        Generate videos for all slides using the video generator agent.
-        
-        Calls the MCP-backed video agent with slide images and speaker notes
-        to generate MP4 videos. Falls back to text prompts if agent unavailable.
-        
-        Args:
-            slide_data: List of slide data dictionaries with slide info
-            _presentation_theme: Theme/context for the presentation
-            _global_context: Global context about the presentation
+        Plan a small number of video moments, then generate Veo clips for them.
+
+        The slide deck output stays unchanged. The planner selects a few
+        high-value moments, such as an intro, a section change, or a closing
+        summary, writes them to `video_plan.json`, and saves each generated
+        clip in the `*_videos/` folder.
         """
-        # Ensure videos directory exists
-        videos_dir = self.config.videos_dir
-        os.makedirs(videos_dir, exist_ok=True)
-        logger.info("Videos directory: %s", videos_dir)
-        
-        # Load slide images from the PDF for video generation
-        pdf_doc = pymupdf.open(self.config.pdf_path)
-        
-        # Process each slide for video generation
-        for slide_info in slide_data:
-            slide_idx = slide_info["slide_idx"]
-            speaker_notes = slide_info["speaker_notes"]
-            status = slide_info["status"]
-            
-            if status != "success":
-                logger.warning(
-                    "Skipping video for Slide %d (status: %s)",
-                    slide_idx, status
-                )
-                continue
-            
-            try:
-                logger.info("Generating video for Slide %d", slide_idx)
-                
-                # Extract video prompt
-                video_prompt = self._extract_video_prompt(
-                    slide_idx, speaker_notes
-                )
-                
-                if not video_prompt or not video_prompt.strip():
-                    logger.warning(
-                        "Failed to generate video prompt for Slide %d",
-                        slide_idx
-                    )
-                    continue
-                
-                # Try to call MCP-backed video agent with slide image
-                video_data = None
-                try:
-                    # Load slide image from PDF
-                    if slide_idx - 1 < len(pdf_doc):
-                        pix = pdf_doc[slide_idx - 1].get_pixmap(dpi=75)
-                        slide_img = Image.frombytes(
-                            "RGB",
-                            [pix.width, pix.height],
-                            pix.samples
-                        )
-                        
-                        # Call video agent with image and prompt
-                        from utils.agent_utils import run_stateless_agent
-                        
-                        agent_prompt = (
-                            f"Generate a professional video for a presentation "
-                            f"slide based on this concept:\n\n{video_prompt}\n\n"
-                            f"Speaker Notes:\n{speaker_notes}\n\n"
-                            f"Use the slide image provided to guide the visual "
-                            f"style. Generate an 8-10 second video."
-                        )
-                        
-                        response = await run_stateless_agent(
-                            self.video_generator_agent,
-                            agent_prompt,
-                            images=[slide_img]
-                        )
-                        
-                        logger.info(
-                            "Video agent response for Slide %d: %s",
-                            slide_idx, response[:200]
-                        )
-                        
-                        # Parse response for artifact or video data
-                        # The MCP agent should return artifact_id if successful
-                        video_artifact_id = self._extract_artifact_id(response)
-                        
-                        if video_artifact_id:
-                            logger.info(
-                                "Generated video artifact for Slide %d: %s",
-                                slide_idx, video_artifact_id
-                            )
-                            video_data = video_artifact_id
-                        else:
-                            logger.warning(
-                                "No video artifact in response for Slide %d",
-                                slide_idx
-                            )
-                
-                except Exception as e:
-                    logger.warning(
-                        "MCP video generation failed for Slide %d: %s. "
-                        "Saving prompt only.",
-                        slide_idx, str(e)
-                    )
-                
-                # Save video prompt for reference
-                video_prompt_file = os.path.join(
-                    videos_dir,
-                    f"slide_{slide_idx}_video_prompt.txt"
-                )
-                with open(video_prompt_file, "w", encoding="utf-8") as f:
-                    f.write("Slide %d Video Prompt\n" % slide_idx)
-                    f.write("="*29 + "\n\n")
-                    f.write("Prompt:\n%s\n\n" % video_prompt)
-                    f.write("Speaker Notes:\n%s\n" % speaker_notes)
-                    if video_data:
-                        f.write(f"\nGenerated Video: {video_data}\n")
-                
-                logger.info("Saved video prompt to %s", video_prompt_file)
-                
-            except Exception:
-                logger.error(
-                    "Error generating video for Slide %d",
-                    slide_idx, exc_info=True
-                )
-                continue
-            finally:
-                pass
-        
-        # Close PDF document
+        if not self.video_service:
+            logger.info("Video generation skipped (video service disabled)")
+            return
+
+        logger.info("\n" + "="*60)
+        logger.info("PHASE 3: Planning and generating video clips")
+        logger.info("="*60)
+
         try:
-            pdf_doc.close()
-        except Exception:
-            pass
-        
-        logger.info("Video generation phase completed")
+            plan = await self.video_service.plan_video_moments(
+                slide_data=slide_data,
+                presentation_theme=_presentation_theme,
+                global_context=_global_context,
+                language=self.config.language,
+                max_clips=3,
+            )
+            plan_path = await self.video_service.save_video_plan(plan)
+            logger.info("Saved video plan to %s", plan_path)
+            logger.info("Selected %d video moment(s)", len(plan.get("moments", [])))
+
+            if plan.get("should_generate") and plan.get("moments"):
+                generated_plan = await self.video_service.generate_planned_videos(
+                    plan=plan,
+                    slide_data=slide_data,
+                    presentation_theme=_presentation_theme,
+                    global_context=_global_context,
+                    language=self.config.language,
+                    retry_errors=self.retry_errors,
+                )
+                plan_path = await self.video_service.save_video_plan(generated_plan)
+                logger.info("Updated video plan with generated clips at %s", plan_path)
+                logger.info(
+                    "Generated %d Veo clip(s); %d moment(s) failed",
+                    generated_plan.get("generated_count", 0),
+                    generated_plan.get("failed_count", 0),
+                )
+        except Exception as e:
+            logger.error("Video generation phase failed: %s", e, exc_info=True)
 
     def _extract_video_prompt(
         self, slide_idx: int, speaker_notes: str

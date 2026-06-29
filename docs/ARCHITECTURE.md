@@ -73,7 +73,7 @@ flowchart TD
     I --> J[Phase 1: generate speaker notes]
     J --> K[Phase 1.5: generate TTS audio]
     K --> L[Phase 2: generate or translate visuals]
-    L --> M[Phase 3: generate video prompts optional]
+    L --> M[Phase 3: plan video moments optional]
     M --> N[Save notes PPTM/PPTX]
     N --> O{all visuals generated?}
     O -->|yes| P[Save visuals PPTM/PPTX]
@@ -167,9 +167,17 @@ flowchart TD
 2. secondary Gemini image model
 3. direct Imagen generation
 
-### Phase 3: video prompts
+### Phase 3: video planning + Veo generation
 
-If `generate_videos` is enabled, `_phase_generate_videos()` invokes the video generator agent for each slide and stores slide-level video artifacts alongside other outputs.
+If `generate_videos` is enabled, `_phase_generate_videos()` asks the planner agent to pick a few high-value moments, saves a `video_plan.json` sidecar, and generates Veo clips for those moments into the `*_videos/` folder. Later synthesis inserts each clip before the matching slide segment in the final combined video. The slide deck itself is not modified.
+
+The planner prefers:
+
+1. an intro moment
+2. a section transition if the deck has one
+3. a conclusion moment
+
+It does not create a video for every slide.
 
 ## 5. Responsibility map
 
@@ -193,7 +201,7 @@ For each presentation/language pair, the processor may create:
 - `*_progress.json`
 - `*_visuals/` image directory
 - `*_speech/` audio directory
-- `*_videos/` video-prompt artifacts
+- `*_videos/` video plan sidecar artifacts and Veo clip files
 
 The exact output root depends on `Config._get_output_dir()`:
 

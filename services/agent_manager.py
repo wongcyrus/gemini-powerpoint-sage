@@ -117,7 +117,7 @@ class AgentManager:
         self._agents["video_generator"] = LlmAgent(
             name="video_generator",
             model=ModelConfig.VIDEO_GENERATOR,
-            description="Generates video prompts for slides.",
+            description="Plans which presentation moments deserve video treatment.",
             instruction=VIDEO_GENERATOR_PROMPT,
         )
         

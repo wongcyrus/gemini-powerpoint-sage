@@ -16,7 +16,7 @@ This document provides a comprehensive view of how the 10 agents in the Gemini P
 ### Content Generators
 - **Writer Agent**: Generates speaker notes (primary content)
 - **Designer Agent**: Generates visual content
-- **Video Generator Agent**: Generates video prompts/content
+- **Video Planner Agent**: Selects high-value moments for optional video treatment
 
 ### Quality Control
 - **Auditor Agent**: Validates existing content quality
@@ -40,7 +40,7 @@ This document provides a comprehensive view of how the 10 agents in the Gemini P
 | **Designer** | None | VisualGenerator | Slide + Notes + Style → Visual |
 | **Translator** | None | NotesGenerator | English notes → Translated notes |
 | **Image Translator** | None | PresentationProcessor | English visual → Translation specs |
-| **Video Generator** | None | PresentationProcessor | Notes + Image → Video prompts |
+| **Video Planner** | None | PresentationProcessor | Slide summaries + context → video plan sidecar |
 | **Prompt Rewriter** | None | Agent Factory | Base prompts + Style → Rewritten prompts |
 
 ## Data Flow Patterns

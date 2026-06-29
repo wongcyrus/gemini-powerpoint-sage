@@ -35,7 +35,7 @@ flowchart TD
     F --> G[Speaker notes]
     G --> H[TTS]
     H --> I[Visuals]
-    I --> J[Video prompts optional]
+    I --> J[Video plan sidecar optional]
 ```
 
 For the full trace, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -50,7 +50,7 @@ For the full trace, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 6. **Designer Agent** (`gemini-3-pro-image-preview`): Creates enhanced slide visuals with consistent styling
 7. **Translator Agent** (`gemini-2.5-flash`): Style-aware translation maintaining persona and technical accuracy
 8. **Image Translator Agent** (`gemini-3-pro-image-preview`): Analyzes and translates visual content for different languages
-9. **Video Generator Agent** (`gemini-2.5-flash`): Creates video prompts ready for Veo 3.1 integration
+9. **Video Planner Agent** (`gemini-2.5-flash`): Selects a few high-value moments for optional video treatment
 10. **Prompt Rewriter Agent** (`gemini-2.5-flash`): Meta-agent that integrates styles into other agents' prompts at creation time
 
 ### 📋 Three-Phase Processing
@@ -65,10 +65,12 @@ For the full trace, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - Visual translation for multilingual presentations
 - Layout optimization and professional styling
 
-**Phase 3: Video Content** (Optional)
-- Video prompt generation for promotional content
-- MCP integration with Veo 3.1
-- Slide-appropriate timing and concepts
+**Phase 3: Video Planning + Veo Generation** (Optional)
+- AI selects a few intro/section/conclusion moments
+- Writes a sidecar `video_plan.json`
+- Generates Veo clips into `*_videos/`
+- Inserts those clips before the matching slide in the combined video
+- Keeps the slide deck output unchanged
 
 
 
@@ -79,7 +81,7 @@ For the full trace, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - 🎨 **Custom Themed Styles** (Cyberpunk, Gundam, Star Wars, Professional, HK Comic) affecting both visuals and speaker persona
 - 📁 **Batch Processing** for entire presentation libraries with YAML-driven configuration
 - ⚡ **Translation Mode** 2-3x faster than full generation by translating from English baseline
-- 🎬 **Video Integration** ready for Veo 3.1 with professional video concepts
+- 🎬 **Video Planning + Veo Generation** with AI-selected high-value moments and clip output
 - 🎥 **Video Synthesis** with intelligent caching - combines slides + audio into presentation videos (2-5x faster reruns)
 - 📊 **Progress Tracking** with resume capability and error retry
 - 🛠️ **Production Ready** with robust error handling and fallback mechanisms

@@ -1,9 +1,14 @@
 """Tests for VideoService."""
 
+import json
 import pytest
 import os
 import tempfile
-from unittest.mock import Mock, patch
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock, patch
+
+from PIL import Image
 
 from services.video_service import VideoService
 from utils.error_handling import VideoGenerationError
@@ -113,8 +118,106 @@ class TestVideoService:
                 slide_idx=1,
                 speaker_notes="Test notes"
             )
-            
+
             assert result is None
+
+    @pytest.mark.asyncio
+    async def test_generate_veo_video_saves_mp4(self, tmp_path):
+        """Veo generation should save a real mp4 file to disk."""
+        service = VideoService(videos_dir=str(tmp_path))
+        slide_image = Image.new("RGB", (64, 64), color="white")
+
+        class _VideoRef:
+            video_bytes = b"video-bytes"
+
+            def save(self, path):
+                Path(path).write_bytes(self.video_bytes)
+
+        class _Client:
+            def __init__(self):
+                self.models = SimpleNamespace(generate_videos=self.generate_videos)
+                self.operations = SimpleNamespace(get=lambda operation: operation)
+                self.files = SimpleNamespace(download=lambda file: None)
+
+            def generate_videos(self, **kwargs):
+                return SimpleNamespace(
+                    done=True,
+                    response=SimpleNamespace(
+                        generated_videos=[SimpleNamespace(video=_VideoRef())]
+                    ),
+                )
+
+        with patch("services.video_service.genai.Client", return_value=_Client()):
+            output = await service.generate_veo_video(
+                slide_idx=1,
+                role="intro",
+                video_prompt="Opening hook",
+                speaker_notes="Welcome everyone.",
+                slide_image=slide_image,
+                output_path=str(tmp_path / "slide_1_intro_veo.mp4"),
+                presentation_theme="Theme",
+                global_context="Context",
+                language="en",
+            )
+
+        assert output == str(tmp_path / "slide_1_intro_veo.mp4")
+        assert Path(output).exists()
+        assert Path(output).read_bytes() == b"video-bytes"
+
+    @pytest.mark.asyncio
+    async def test_plan_video_moments_uses_ai_response(self, mock_agent):
+        """Planning should return normalized moments from the AI response."""
+        service = VideoService(video_generator_agent=mock_agent)
+        slide_data = [
+            {"slide_idx": 1, "speaker_notes": "Opening", "status": "success"},
+            {"slide_idx": 2, "speaker_notes": "Middle", "status": "success"},
+        ]
+
+        response = json.dumps(
+            {
+                "should_generate": True,
+                "moments": [
+                    {
+                        "slide_idx": 1,
+                        "role": "intro",
+                        "reason": "Opening hook",
+                        "prompt": "Use the opening slide as a hook",
+                    },
+                    {
+                        "slide_idx": 2,
+                        "role": "conclusion",
+                        "reason": "Closing recap",
+                        "prompt": "Use the closing slide",
+                    },
+                ],
+            }
+        )
+
+        with patch('services.video_service.run_stateless_agent', new=AsyncMock(return_value=response)):
+            plan = await service.plan_video_moments(
+                slide_data,
+                "Theme",
+                "Global context",
+                "en",
+            )
+
+        assert plan["should_generate"] is True
+        assert len(plan["moments"]) == 2
+        assert plan["moments"][0]["slide_idx"] == 1
+
+    @pytest.mark.asyncio
+    async def test_plan_video_moments_falls_back_without_agent(self):
+        """Planning should fall back when no agent is configured."""
+        service = VideoService(video_generator_agent=None)
+        slide_data = [
+            {"slide_idx": 1, "speaker_notes": "Opening", "status": "success"},
+            {"slide_idx": 5, "speaker_notes": "Conclusion", "status": "success"},
+        ]
+
+        plan = await service.plan_video_moments(slide_data, "Theme", "Global", "en")
+
+        assert plan["source"] == "fallback"
+        assert plan["moments"][0]["role"] == "intro"
 
     @pytest.mark.asyncio
     async def test_generate_video_handles_agent_failure(self, mock_agent):
@@ -180,6 +283,20 @@ class TestVideoService:
                 video_prompt="Test prompt",
                 speaker_notes="Test notes",
             )
+
+    @pytest.mark.asyncio
+    async def test_save_video_plan(self):
+        """Test saving the sidecar video plan."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            service = VideoService(videos_dir=tmpdir)
+            plan = {"should_generate": True, "moments": [{"slide_idx": 1, "role": "intro"}]}
+
+            filepath = await service.save_video_plan(plan)
+
+            assert os.path.exists(filepath)
+            with open(filepath, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+            assert saved["moments"][0]["slide_idx"] == 1
     
     def test_extract_artifact_id_explicit(self):
         """Test extracting explicit artifact_id."""

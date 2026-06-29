@@ -12,6 +12,7 @@ from services.video_synthesis.video_synthesis_service import VideoSynthesisServi
 from services.video_synthesis.integration_helpers import (
     build_video_output_path,
     build_video_synthesis_request,
+    load_video_insertions_from_plan,
     resolve_video_synthesis_inputs,
 )
 
@@ -86,6 +87,7 @@ class VideoSynthesisIntegration:
             
             # Generate output path
             output_path = build_video_output_path(self.config, presentation, output_filename)
+            inserted_video_paths_before = load_video_insertions_from_plan(Path(self.config.videos_dir))
             
             # Get video configuration
             video_config = self.config.get_video_synthesis_config()
@@ -100,6 +102,7 @@ class VideoSynthesisIntegration:
                 audio_files=audio_files,
                 output_path=output_path,
                 config=video_config,
+                inserted_video_paths_before=inserted_video_paths_before,
             )
             
             # Synthesize video

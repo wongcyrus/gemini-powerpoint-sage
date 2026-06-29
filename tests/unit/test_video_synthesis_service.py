@@ -85,11 +85,11 @@ class TestVideoSynthesisService:
 
         fake_processor = Mock()
         fake_processor.create_video_segment.return_value = tmp_path / "segments" / "segment_001.mp4"
-        fake_processor.concatenate_segments.return_value = tmp_path / "work" / "concatenated.mp4"
+        fake_processor.concatenate_video_files.return_value = tmp_path / "work" / "concatenated.mp4"
 
         with patch("services.video_synthesis.video_synthesis_service.FFmpegVideoProcessor", return_value=fake_processor):
             processed = service._create_video_segments(segments, request.config, fake_manager, tracker)
-            merged = service._concatenate_segments(processed, request.config, fake_manager, tracker)
+            merged = service._concatenate_segments(processed, request, request.config, fake_manager, tracker)
             final = service._finalize_output(merged, request.output_path, fake_manager, tracker)
 
         assert final == request.output_path
@@ -316,12 +316,13 @@ class TestVideoSynthesisService:
         image.write_bytes(b"img")
         audio.write_bytes(b"aud")
         segment = Mock(image_path=image, temp_video_path=segment_path)
+        request = _make_request(tmp_path)
 
         fake_ffmpeg = Mock()
-        fake_ffmpeg.concatenate_segments.return_value = tmp_path / "work" / "concatenated.mp4"
+        fake_ffmpeg.concatenate_video_files.return_value = tmp_path / "work" / "concatenated.mp4"
 
         with patch("services.video_synthesis.video_synthesis_service.FFmpegVideoProcessor", return_value=fake_ffmpeg):
-            temp_output = service._concatenate_segments([segment], VideoConfig(), file_manager, tracker)
+            temp_output = service._concatenate_segments([segment], request, VideoConfig(), file_manager, tracker)
             final_output = service._finalize_output(temp_output, tmp_path / "final.mp4", file_manager, tracker)
 
         assert temp_output.name == "concatenated.mp4"

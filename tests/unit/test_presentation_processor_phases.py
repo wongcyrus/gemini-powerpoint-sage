@@ -30,6 +30,7 @@ def _make_phase_processor():
     processor.visual_generator = Mock()
     processor.image_translator_agent = None
     processor.translator_agent = None
+    processor.video_service = None
     processor.supervisor_agent = SimpleNamespace(tools=[])
     processor.tool_factory = Mock()
     processor.tool_factory.create_analyst_tool.return_value = "analyst"
@@ -207,3 +208,54 @@ class TestPresentationProcessorPhases:
 
         assert missing == 1
         processor.visual_generator.generate_visual.assert_not_awaited()
+
+    def test_phase_generate_videos_generates_clips_and_updates_plan(self):
+        processor = _make_phase_processor()
+        processor.config.generate_videos = True
+        processor.video_service = Mock()
+        processor.video_service.plan_video_moments = AsyncMock(
+            return_value={
+                "should_generate": True,
+                "moments": [
+                    {
+                        "slide_idx": 1,
+                        "role": "intro",
+                        "reason": "Opening hook.",
+                        "prompt": "Opening concept",
+                    }
+                ],
+                "source": "ai",
+            }
+        )
+        processor.video_service.save_video_plan = AsyncMock(return_value="/tmp/out/video_plan.json")
+        processor.video_service.generate_planned_videos = AsyncMock(
+            return_value={
+                "should_generate": True,
+                "moments": [
+                    {
+                        "slide_idx": 1,
+                        "role": "intro",
+                        "reason": "Opening hook.",
+                        "prompt": "Opening concept",
+                        "status": "success",
+                        "video_path": "/tmp/out/slide_1_intro_veo.mp4",
+                    }
+                ],
+                "source": "ai",
+                "generated_count": 1,
+                "failed_count": 0,
+            }
+        )
+
+        slide_data = [
+            {"slide_idx": 1, "speaker_notes": "Intro", "status": "success"},
+            {"slide_idx": 2, "speaker_notes": "Body", "status": "success"},
+        ]
+
+        import asyncio
+
+        asyncio.run(processor._generate_videos_for_slides(slide_data, "Theme", "Global"))
+
+        processor.video_service.plan_video_moments.assert_awaited_once()
+        processor.video_service.generate_planned_videos.assert_awaited_once()
+        assert processor.video_service.save_video_plan.await_count == 2

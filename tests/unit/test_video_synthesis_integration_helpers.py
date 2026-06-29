@@ -1,5 +1,6 @@
 """Tests for video synthesis integration helpers."""
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -7,6 +8,7 @@ from core.domain.video_synthesis import VideoConfig
 from services.video_synthesis.integration_helpers import (
     build_video_output_path,
     build_video_synthesis_request,
+    load_video_insertions_from_plan,
     resolve_video_synthesis_inputs,
 )
 
@@ -52,3 +54,22 @@ class TestVideoSynthesisIntegrationHelpers:
         assert request.audio_files == [audio_file]
         assert request.output_path == output_path
         assert request.presentation_id == "demo"
+
+    def test_load_video_insertions_from_plan(self, tmp_path):
+        videos_dir = tmp_path / "deck_en_videos"
+        videos_dir.mkdir()
+        clip = videos_dir / "slide_1_intro_veo.mp4"
+        clip.write_bytes(b"clip")
+        plan = {
+            "moments": [
+                {
+                    "slide_idx": 1,
+                    "video_path": str(clip),
+                }
+            ]
+        }
+        (videos_dir / "video_plan.json").write_text(json.dumps(plan), encoding="utf-8")
+
+        insertions = load_video_insertions_from_plan(videos_dir)
+
+        assert insertions == {1: [clip]}

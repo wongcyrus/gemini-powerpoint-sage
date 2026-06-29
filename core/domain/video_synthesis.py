@@ -144,6 +144,7 @@ class VideoSynthesisRequest:
     output_path: Path         # Desired output video path
     config: VideoConfig       # Video generation configuration
     presentation_id: str      # Presentation identifier for tracking
+    inserted_video_paths_before: Dict[int, List[Path]] = field(default_factory=dict)
     
     def __post_init__(self):
         """Validate request after initialization."""
@@ -153,7 +154,13 @@ class VideoSynthesisRequest:
         # Convert string paths to Path objects
         self.slide_images = [Path(p) if not isinstance(p, Path) else p for p in self.slide_images]
         self.audio_files = [Path(p) if not isinstance(p, Path) else p for p in self.audio_files]
-        
+        normalized_inserts: Dict[int, List[Path]] = {}
+        for slide_idx, paths in self.inserted_video_paths_before.items():
+            normalized_inserts[int(slide_idx)] = [
+                Path(p) if not isinstance(p, Path) else p for p in paths
+            ]
+        self.inserted_video_paths_before = normalized_inserts
+
         self.validate()
     
     def validate(self) -> None:
@@ -178,7 +185,16 @@ class VideoSynthesisRequest:
         for i, audio_path in enumerate(self.audio_files):
             if not audio_path.exists():
                 raise ValueError(f"Audio file {i+1} not found: {audio_path}")
-        
+
+        for slide_idx, video_paths in self.inserted_video_paths_before.items():
+            if slide_idx <= 0:
+                raise ValueError("Inserted video slide indices must be positive")
+            for i, video_path in enumerate(video_paths):
+                if not video_path.exists():
+                    raise ValueError(
+                        f"Inserted video {i+1} for slide {slide_idx} not found: {video_path}"
+                    )
+
         # Validate configuration
         self.config.validate()
     
