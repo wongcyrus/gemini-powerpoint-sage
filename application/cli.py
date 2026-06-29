@@ -207,7 +207,7 @@ class CLI:
                 print(f"Using audio directory: {audio_dir}")
             
             # Find slide images and audio files with natural sorting
-            from utils.file_sorting import natural_sort_files, print_file_pairing_preview
+            from utils.file_sorting import natural_sort_files, print_file_pairing_preview, extract_slide_number
             
             slide_images = natural_sort_files(
                 list(slides_dir.glob("*.png")) + list(slides_dir.glob("*.jpg")) + list(slides_dir.glob("*.jpeg"))
@@ -390,7 +390,7 @@ class CLI:
         from core.domain.video_synthesis import VideoSynthesisRequest
         from services.video_synthesis.video_config_manager import VideoConfigManager
         from services.video_synthesis.integration_helpers import load_video_insertions_from_plan
-        from utils.file_sorting import natural_sort_files, print_file_pairing_preview
+        from utils.file_sorting import natural_sort_files, print_file_pairing_preview, extract_slide_number
 
         if not args.style_config:
             print("Error: --synthesize-style-videos requires --style-config <name|path>")
@@ -470,74 +470,61 @@ class CLI:
                 failures += 1
                 continue
 
-            if len(slide_images) != len(audio_files):
-                print(f"⚠️  Mismatch: {len(slide_images)} images vs {len(audio_files)} audio for {base} ({lang}).")
-                
-                if len(audio_files) > len(slide_images):
-                    # Too many audio files - use only the first N that match slide count
-                    print(f"ℹ️  Extra audio files found ({len(audio_files)} > {len(slide_images)})")
-                    print(f"   This is normal if some slides were regenerated with different content hashes")
-                    print(f"   Using first {len(slide_images)} audio files that match slide order")
-                    
-                    # Use only the first N audio files - the core pipeline should ensure 1:1:1 correspondence
-                    audio_files = audio_files[:len(slide_images)]
-                    print(f"✅ Using {len(audio_files)} audio files for {len(slide_images)} slides")
-                        
-                elif len(audio_files) < len(slide_images):
-                    # Too few audio files - regenerate missing ones
-                    print(f"🔄 Too few audio files ({len(audio_files)} < {len(slide_images)}). Regenerating missing files...")
-                    
-                    # Try to find the presentation JSON file to regenerate TTS
-                    json_files = list(base_dir.glob(f"{base}*.json"))
-                    print(f"🔍 Looking for JSON files with pattern: {base}*.json")
-                    print(f"🔍 Found JSON files: {[str(f) for f in json_files]}")
-                    
-                    if json_files:
-                        json_file = json_files[0]
-                        print(f"📄 Using presentation JSON: {json_file}")
-                        
-                        try:
-                            from utils.tts_cli_utils import TTSCLIUtility
-                            
-                            print(f"🎤 Starting TTS regeneration for {lang}...")
-                            tts_cli = TTSCLIUtility()
-                            
-                            print(f"🚀 Running TTS regeneration for {json_file} in {lang}...")
-                            tts_result = await tts_cli.generate_tts_for_presentation(
-                                str(json_file), lang, str(base_dir)
-                            )
-                            print(f"📊 TTS result: {tts_result}")
-                            
-                            if tts_result.get('successful', 0) > 0:
-                                print(f"✅ Regenerated {tts_result['successful']} audio files")
-                                
-                                # Re-scan audio files after regeneration
-                                audio_files = natural_sort_files(list(speech_dir.glob("*.mp3")))
-                                print(f"🔍 Re-scanned audio files: {len(audio_files)} found")
-                                
-                                if len(slide_images) == len(audio_files):
-                                    print(f"✅ Mismatch resolved: {len(slide_images)} images = {len(audio_files)} audio")
-                                else:
-                                    print(f"⚠️  Still mismatched after regeneration: {len(slide_images)} images vs {len(audio_files)} audio")
-                                    failures += 1
-                                    continue
-                            else:
-                                print(f"❌ TTS regeneration failed: {tts_result}")
-                                failures += 1
-                                continue
-                                
-                        except Exception as e:
-                            print(f"❌ Failed to regenerate TTS: {e}")
-                            import traceback
-                            traceback.print_exc()
-                            failures += 1
-                            continue
-                    else:
-                        print(f"❌ No presentation JSON file found for regeneration")
-                        print(f"🔍 Searched in: {base_dir}")
-                        print(f"🔍 Pattern: {base}*.json")
-                        failures += 1
+            slide_image_map = {}
+            for slide_image in slide_images:
+                try:
+                    slide_image_map[extract_slide_number(slide_image.name)] = slide_image
+                except ValueError:
+                    continue
+
+            audio_map = {}
+            for audio_file in audio_files:
+                try:
+                    audio_map[extract_slide_number(audio_file.name)] = audio_file
+                except ValueError:
+                    continue
+
+            fallback_visuals_dir = base_dir / f"{base}_en_visuals"
+            fallback_image_map = {}
+            if lang != "en" and fallback_visuals_dir.exists():
+                fallback_images = natural_sort_files(
+                    list(fallback_visuals_dir.glob("*.png"))
+                    + list(fallback_visuals_dir.glob("*.jpg"))
+                    + list(fallback_visuals_dir.glob("*.jpeg"))
+                )
+                for fallback_image in fallback_images:
+                    try:
+                        fallback_image_map[extract_slide_number(fallback_image.name)] = fallback_image
+                    except ValueError:
                         continue
+
+            matched_slide_numbers = sorted(set(slide_image_map) & set(audio_map))
+            missing_visual_slides = sorted(set(audio_map) - set(slide_image_map))
+            if missing_visual_slides and fallback_image_map:
+                for slide_num in missing_visual_slides:
+                    if slide_num in fallback_image_map:
+                        slide_image_map[slide_num] = fallback_image_map[slide_num]
+                matched_slide_numbers = sorted(set(slide_image_map) & set(audio_map))
+                print(f"ℹ️  Filled missing {lang} visuals from English baseline for slides: {missing_visual_slides}")
+
+            if not matched_slide_numbers:
+                print(f"⚠️  No matching slide numbers found for {base} ({lang}). Skipping.")
+                failures += 1
+                continue
+
+            slide_images = [slide_image_map[num] for num in matched_slide_numbers]
+            audio_files = [audio_map[num] for num in matched_slide_numbers]
+
+            if len(slide_images) != len(audio_files):
+                print(f"⚠️  Still mismatched after slide-number alignment for {base} ({lang}).")
+                failures += 1
+                continue
+
+            if len(matched_slide_numbers) < len(audio_map) or len(matched_slide_numbers) < len(slide_image_map):
+                print(
+                    f"ℹ️  Using {len(matched_slide_numbers)} aligned slide pair(s) "
+                    f"for {base} ({lang})"
+                )
 
             # Output name: cleaned base + lang (style already indicated by folder structure)
             clean_base = "".join(ch if ch.isalnum() or ch == " " else "" for ch in base).strip().replace(" ", "_")
@@ -644,9 +631,6 @@ class CLI:
         Returns:
             Exit code
         """
-        # Load environment variables
-        load_dotenv()
-
         # Parse arguments
         args = self.parser.parse_args(argv)
           

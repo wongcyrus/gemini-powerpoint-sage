@@ -742,7 +742,7 @@ Output: Creates `_refined.json` suffix files (e.g., `progress_refined.json`)
 - **Intelligent timeout handling**: Configurable via `TTS_TIMEOUT_SECONDS` (default: 90s)
 - **Tone validation and mapping**: Ensures valid tone values for TTS synthesis
 - **Robust error handling**: Exponential backoff retry with fallback mechanisms
-- **Multi-language support**: 25+ languages with voice mapping and cultural adaptation
+- **Multi-language support**: 25+ languages with voice mapping and cultural adaptation, including `yue-HK` via Gemini TTS
 
 ### Robust Error Handling
 
@@ -773,7 +773,7 @@ Output: Creates `_refined.json` suffix files (e.g., `progress_refined.json`)
 
 ## 🛠️ Technology Stack
 
-- **AI Models**: Google Gemini (2.5-flash, 3-pro-preview, 3-pro-image-preview)
+- **AI Models**: Google Gemini (3.5-flash, 3.1-flash-image, 3.1-flash-tts-preview)
 - **Language**: Python 3.10+
 - **Frameworks**: Google ADK (Agent Development Kit), FastMCP
 - **Document Processing**: python-pptx, PyMuPDF, Pillow

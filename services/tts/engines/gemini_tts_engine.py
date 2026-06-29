@@ -150,16 +150,19 @@ class GeminiTTSEngine:
         Returns:
             Configured synthesis request
         """
-        # Select appropriate voice for language and gender preference
-        available_voices = self.VOICE_MAPPING.get(language_code, self.VOICE_MAPPING.get("en-US", []))
+        # Map to the Gemini-supported language code before building the request.
+        api_language_code = self.config.get_api_language_code(language_code)
+
+        # Select appropriate voice for the Gemini language and gender preference
+        available_voices = self.VOICE_MAPPING.get(api_language_code, self.VOICE_MAPPING.get("en-US", []))
         selected_voice = self._select_voice(available_voices, voice_config.gender)
-        
-        logger.debug(f"Available voices for {language_code}: {available_voices}")
+
+        logger.debug(f"Available voices for {api_language_code}: {available_voices}")
         logger.debug(f"Selected voice: {selected_voice}, Gender preference: {voice_config.gender}")
-        
+
         # Build voice selection with model_name for Gemini TTS
         voice = texttospeech.VoiceSelectionParams(
-            language_code=language_code,
+            language_code=api_language_code,
             name=selected_voice or voice_config.voice_name,
             model_name=model  # Gemini TTS requires model_name in voice selection
         )

@@ -19,7 +19,8 @@ class GeminiTTSConfig:
         "de-DE", "es-ES", "it-IT", "pt-BR", "ru-RU",
         "hi-IN", "ar-EG", "nl-NL", "pl-PL", "ro-RO",
         "bn-BD", "id-ID", "mr-IN", "ta-IN", "te-IN", 
-        "th-TH", "tr-TR", "uk-UA", "vi-VN", "cmn-CN", "cmn-TW"
+        "th-TH", "tr-TR", "uk-UA", "vi-VN", "cmn-CN", "cmn-TW",
+        "yue-HK"
     })
     voice_mapping: Dict[str, List[str]] = field(default_factory=lambda: {
         "en-US": ["Aoede", "Callirrhoe", "Kore", "Zephyr"],
@@ -39,7 +40,8 @@ class GeminiTTSConfig:
         "ro-RO": ["Iapetus", "Orus"],
         # Chinese languages (Preview) - using same voices as English for now
         "cmn-CN": ["Aoede", "Callirrhoe", "Kore", "Zephyr"],
-        "cmn-TW": ["Aoede", "Callirrhoe", "Kore", "Zephyr"]
+        "cmn-TW": ["Aoede", "Callirrhoe", "Kore", "Zephyr"],
+        "yue-HK": ["Achernar", "Autonoe", "Aoede", "Callirrhoe"]
     })
     max_retries: int = 3
     timeout_seconds: int = 90  # Increased from 30 to handle complex prompts and network latency
@@ -48,9 +50,23 @@ class GeminiTTSConfig:
         """Check if language is supported by Gemini TTS."""
         return language_code in self.supported_languages
     
+    def get_api_language_code(self, language_code: str) -> str:
+        """Map a requested language to the Gemini API language code."""
+        language_mappings = {
+            "en": "en-US",
+            "zh": "cmn-CN",
+            "zh-CN": "cmn-CN",
+            "zh-TW": "cmn-TW",
+            "zh-HK": "cmn-CN",
+            "yue": "cmn-CN",
+            "yue-HK": "cmn-CN",
+        }
+        return language_mappings.get(language_code, language_code)
+    
     def get_voices_for_language(self, language_code: str) -> List[str]:
         """Get available voices for a language."""
-        return self.voice_mapping.get(language_code, self.voice_mapping.get("en-US", []))
+        api_language_code = self.get_api_language_code(language_code)
+        return self.voice_mapping.get(api_language_code, self.voice_mapping.get("en-US", []))
 
 
 @dataclass
@@ -231,6 +247,9 @@ class TTSConfig:
             "zh": "cmn-CN",  # Map Chinese to Mandarin for Gemini TTS
             "zh-CN": "cmn-CN",  # Map zh-CN to cmn-CN for Gemini TTS
             "zh-TW": "cmn-TW",  # Map zh-TW to cmn-TW for Gemini TTS
+            "zh-HK": "yue-HK",  # Map Hong Kong Chinese to Cantonese for Gemini TTS
+            "yue": "yue-HK",
+            "yue-HK": "yue-HK",
             "ja": "ja-JP",
             "ko": "ko-KR",
             "fr": "fr-FR",
@@ -322,15 +341,17 @@ class TTSConfig:
         
         # Get available voices based on engine type
         if engine_type == TTSEngineType.GEMINI:
-            available_voices = self.gemini.get_voices_for_language(normalized_code)
+            gemini_language_code = self.gemini.get_api_language_code(normalized_code)
+            available_voices = self.gemini.get_voices_for_language(gemini_language_code)
         else:
+            gemini_language_code = normalized_code
             available_voices = self.traditional.get_voices_for_language(normalized_code)
         
         # Select voice based on gender preference
         selected_voice = self._select_voice_by_gender(available_voices, gender)
         
         return VoiceConfig(
-            language_code=normalized_code,
+            language_code=gemini_language_code,
             gender=gender,
             voice_name=selected_voice
         )

@@ -23,9 +23,9 @@ output_dir: "sample_data/sample/generate"
 # Google Cloud settings
 region: "global"
 
-# Language - comma-separated for multiple languages
-# English is always processed first, then other languages use translation mode
-language: "en"
+# Language - comma-separated locales
+# English is processed first; other locales are translated from the English baseline
+language: "en,yue-HK,zh-CN"
 
 # Sample Style with separate visual and speaker styles
 style:

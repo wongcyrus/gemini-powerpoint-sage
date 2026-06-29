@@ -7,6 +7,15 @@ from core.domain.tts import PresentationType
 
 def build_base_tts_prompt(language_code: str) -> str:
     """Create the base prompt template for TTS rewriting."""
+    if language_code in {"yue-HK", "zh-HK", "yue"}:
+        return (
+            "You are a professional speaker delivering presentation content in Chinese, Mandarin (China).\n"
+            "Use Hong Kong Cantonese pronunciation and phrasing.\n"
+            "System prompt: 使用香港廣東話輸出\n"
+            "Your goal is to communicate clearly and effectively to your audience.\n"
+            "Speak the following content with appropriate tone and delivery."
+        )
+
     return (
         f"You are a professional speaker delivering presentation content in {language_code}. \n"
         "Your goal is to communicate clearly and effectively to your audience. \n"
@@ -192,9 +201,12 @@ def create_fallback_prompt(style_guidelines: str, language_code: str) -> str:
     elif tone == "formal":
         tone_instruction = "Use a professional, authoritative tone. "
 
+    language_label = "Chinese, Mandarin (China)" if language_code in {"yue-HK", "zh-HK", "yue"} else language_code
+    cantonese_instruction = "使用香港廣東話輸出. " if language_code in {"yue-HK", "zh-HK", "yue"} else ""
+
     return (
-        f"Speak in a {tone} manner appropriate for a presentation in {language_code}. \n"
-        f"        \n"
+        f"Speak in a {tone} manner appropriate for a presentation in {language_label}. \n"
+        f"{cantonese_instruction}"
         f"{tone_instruction}{pace_instruction}Deliver the content with appropriate emphasis and natural flow for your audience."
     )
 
@@ -231,6 +243,7 @@ def create_concise_prompt(style_guidelines: str, language_code: str) -> str:
     }
     base_tone = tone_map.get(tone, "clear and professional")
 
+    language_label = "Chinese, Mandarin (China)" if language_code in {"yue-HK", "zh-HK", "yue"} else language_code
     components = [f"Speak in a {base_tone} manner"]
 
     if pace == "slow":
@@ -244,8 +257,12 @@ def create_concise_prompt(style_guidelines: str, language_code: str) -> str:
     if emphasis_words:
         components.append(f"emphasizing {emphasis_words[0]}")
 
-    prompt = ". ".join(components) + "."
+    prompt = ". ".join(components) + f" for {language_label}."
+    if language_code in {"yue-HK", "zh-HK", "yue"}:
+        prompt += " 使用香港廣東話輸出."
     if len(prompt) > 200:
-        prompt = f"Speak in a {base_tone} manner."
+        prompt = f"Speak in a {base_tone} manner for {language_label}."
+        if language_code in {"yue-HK", "zh-HK", "yue"}:
+            prompt += " 使用香港廣東話輸出."
 
     return prompt

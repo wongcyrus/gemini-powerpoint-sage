@@ -25,8 +25,12 @@ class TestGeminiTTSConfig:
         config = GeminiTTSConfig()
 
         assert config.is_language_supported("en-US") is True
+        assert config.is_language_supported("yue-HK") is True
         assert config.is_language_supported("xx-YY") is False
+        assert config.get_api_language_code("yue-HK") == "cmn-CN"
+        assert config.get_api_language_code("zh-HK") == "cmn-CN"
         assert config.get_voices_for_language("xx-YY") == config.voice_mapping["en-US"]
+        assert config.get_voices_for_language("yue-HK") == config.voice_mapping["cmn-CN"]
 
 
 class TestTraditionalTTSConfig:
@@ -39,7 +43,9 @@ class TestTraditionalTTSConfig:
         assert config.is_language_supported("zh-CN") is True
         assert config.can_handle_language("en-US") is True
         assert config.map_language_code("zh-CN") == "cmn-CN"
+        assert config.map_language_code("zh-HK") == "yue-HK"
         assert config.get_voices_for_language("zh-CN")[0].startswith("cmn-CN")
+        assert config.get_voices_for_language("yue-HK")[0] == "yue-HK-Standard-A"
 
 
 class TestTTSConfig:
@@ -76,8 +82,10 @@ class TestTTSConfig:
 
         assert config.normalize_language_code("en") == "en-US"
         assert config.normalize_language_code("zh-CN") == "cmn-CN"
+        assert config.normalize_language_code("zh-HK") == "yue-HK"
         assert config.select_engine_for_language("en") == TTSEngineType.GEMINI
-        assert config.select_engine_for_language("yue-HK") == TTSEngineType.TRADITIONAL
+        assert config.select_engine_for_language("yue-HK") == TTSEngineType.GEMINI
+        assert config.select_engine_for_language("zh-HK") == TTSEngineType.GEMINI
         assert config.select_engine_for_language("unknown-lang") == TTSEngineType.TRADITIONAL
 
     def test_get_max_concurrent_for_engine_respects_parallel_toggle(self):
@@ -95,11 +103,16 @@ class TestTTSConfig:
 
         female = config.get_voice_config_for_language("en", TTSEngineType.GEMINI, gender="female")
         male = config.get_voice_config_for_language("zh-CN", TTSEngineType.TRADITIONAL, gender="male")
+        cantonese = config.get_voice_config_for_language("yue-HK", TTSEngineType.GEMINI, gender="female")
+        cantonese_hk = config.get_voice_config_for_language("zh-HK", TTSEngineType.GEMINI, gender="female")
 
         assert female.language_code == "en-US"
         assert female.voice_name is not None
         assert male.language_code == "cmn-CN"
         assert male.voice_name is not None
+        assert cantonese.language_code == "cmn-CN"
+        assert cantonese.voice_name in {"Aoede", "Callirrhoe", "Kore", "Zephyr"}
+        assert cantonese_hk.language_code == "cmn-CN"
 
     def test_validate_requires_bucket_and_positive_concurrency(self, tmp_path):
         """Validation should enforce storage bucket and positive concurrency limits."""

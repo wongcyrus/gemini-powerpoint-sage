@@ -1,0 +1,37 @@
+{
+  "should_generate": true,
+  "moments": [
+    {
+      "slide_idx": 1,
+      "role": "intro",
+      "reason": "Establish the presentation's professional tone and visually introduce the core concept of highly scalable cloud infrastructure in a dynamic, welcoming way.",
+      "prompt": "A professional and sleek motion graphics sequence showing abstract data nodes expanding and connecting globally, forming a stylized cloud network with the text '雲端科技：數碼運算新紀元' appearing elegantly.",
+      "status": "success",
+      "video_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_yue-HK_videos/slide_1_intro_veo.mp4"
+    },
+    {
+      "slide_idx": 6,
+      "role": "section",
+      "reason": "This marks a critical pivot from dry technical models (IaaS/PaaS/SaaS) to the real-world business impact and risk assessment of cloud adoption.",
+      "prompt": "A split-screen kinetic animation illustrating balance. On the left side, vibrant green symbols representing cost-efficiency and teamwork light up. On the right side, amber symbols depicting security locks and server uptime monitors pulse, emphasizing a balanced analysis of opportunities and risks.",
+      "status": "success",
+      "video_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_yue-HK_videos/slide_6_section_veo.mp4"
+    },
+    {
+      "slide_idx": 9,
+      "role": "conclusion",
+      "reason": "Concludes the presentation on an inspiring note, visualizing the future of hyper-connected, user-centric cloud ecosystems driven by AI and Edge computing.",
+      "prompt": "A futuristic, glowing digital landscape featuring a central translucent cloud illuminated by pulsating lines of light, connecting edge devices and abstract user profiles to symbolize an intelligent, interconnected future.",
+      "status": "success",
+      "video_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_yue-HK_videos/slide_9_conclusion_veo.mp4"
+    }
+  ],
+  "source": "ai",
+  "presentation_theme": "General Presentation",
+  "global_context": "大家好。今日想同大家分享一下呢個關於「雲端科技」簡報嘅全局導覽。\n\n首先，我哋嚟睇下成個內容嘅脈絡發展：\n\n簡報會先由「雲端科技」切入，將佢定位為「高擴展性數碼運算嘅創新解決方案」。跟住，我哋會明確定義乜嘢係「雲端運算」，剖析佢嘅關鍵特徵，同埋對 IT 基礎架構嘅影響。打好呢個基本功之後，我哋就會深入探討幾種主要嘅「雲端服務類型」，即係大家成日聽到嘅 IaaS、PaaS 同埋 SaaS。接住落嚟，我哋會用一個客觀同平衡嘅角度，去分析「雲端科技嘅利與弊」，除咗講成本效益同協作優勢之外，亦都會探討資訊安全同穩定性等潛在挑戰。最後，我哋會放眼未來，一齊睇下「雲端運算嘅未來趨勢」，包括邊緣運算、人工智能同埋多雲端策略等最新技術。\n\n跟住，我想歸納一下簡報嘅核心主題同關鍵詞：\n\n喺成個簡報入面，我哋會圍繞住幾個核心重點：\n第一，係「雲端科技與雲端運算」本身；\n第二，係「可擴展嘅數碼運算」；\n第三，係「資訊科技服務（IT服務）」同「IT基礎架構」；\n第四，係雲端嘅「關鍵特徵」，例如彈性擴展、按需存取，同埋按使用量收費嘅模式；\n第五，係三種雲端服務模式：IaaS、PaaS 同 SaaS；\n第六，係佢帶嚟嘅「優勢」，好似成本效益、高靈活性，同埋促進團隊協作；\n第七，當然唔少得「挑戰與風險」，好似資訊安全、合規性、網絡穩定性，同埋死機停網嘅風險；\n最後，就係「未來趨勢」，包括邊緣運算（Edge Computing）、人工智能（AI）、機器學習（Machine Learning）、多雲端（Multi-Cloud）、混合雲策略，同埋企業嘅數碼轉型。\n\n喺成個簡報入面，我會秉持住一個專業導師同客觀分析師嘅角色，用清晰、有系統嘅方式去同大家解構呢啲複雜嘅技術概念。我嘅口吻會維持客觀中立，為大家提供清晰嘅定義、分類，並全面分析利弊同未來展望，等大家可以對雲端運算有一個全面、客觀而又平衡嘅理解。\n\n成個簡報總共會有 9 張投影片。多謝大家。",
+  "language": "yue-HK",
+  "max_clips": 3,
+  "raw_response": "```json\n{\n  \"should_generate\": true,\n  \"moments\": [\n    {\n      \"slide_idx\": 1,\n      \"role\": \"intro\",\n      \"reason\": \"Establish the presentation's professional tone and visually introduce the core concept of highly scalable cloud infrastructure in a dynamic, welcoming way.\",\n      \"prompt\": \"A professional and sleek motion graphics sequence showing abstract data nodes expanding and connecting globally, forming a stylized cloud network with the text '雲端科技：數碼運算新紀元' appearing elegantly.\"\n    },\n    {\n      \"slide_idx\": 6,\n      \"role\": \"section\",\n      \"reason\": \"This marks a critical pivot from dry technical models (IaaS/PaaS/SaaS) to the real-world business impact and risk assessment of cloud adoption.\",\n      \"prompt\": \"A split-screen kinetic animation illustrating balance. On the left side, vibrant green symbols representing cost-efficiency and teamwork light up. On the right side, amber symbols depicting security locks and server uptime monitors pulse, emphasizing a balanced analysis of opportunities and risks.\"\n    },\n    {\n      \"slide_idx\": 9,\n      \"role\": \"conclusion\",\n      \"reason\": \"Concludes the presentation on an inspiring note, visualizing the future of hyper-connected, user-centric cloud ecosystems driven by AI and Edge computing.\",\n      \"prompt\": \"A futuristic, glowing digital landscape featuring a central translucent cloud illuminated by pulsating lines of light, connecting edge devices and abstract user profiles to symbolize an intelligent, interconnected future.\"\n    }\n  ]\n}\n```",
+  "generated_count": 3,
+  "failed_count": 0
+}

@@ -1,0 +1,131 @@
+{
+  "slides": {
+    "slide_1_522d3a09": {
+      "slide_index": 1,
+      "existing_notes_hash": "522d3a09",
+      "original_notes": "Let’s start learning Cloud Technologies",
+      "note": "大家早晨，大家好。今日真係非常高興可以喺度同大家見面，一齊開始探索雲端技術呢個充滿活力嘅領域。呢一節主要係想同大家一齊了解呢啲技術點樣為可擴展嘅數碼運算提供真正創新嘅解決方案，從而塑造 IT 基礎架構嘅未來。我哋今日嘅目標，係為接下來要探討嘅內容，建立一個清晰同全面嘅基礎。",
+      "status": "success",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_yue-HK_speech/slide_1_8b635986.mp3",
+      "tts_metadata": {
+        "engine_used": "gemini",
+        "duration_seconds": 16.37485714285714,
+        "cache_key": "8b6359860142fd758218aacf8108d5ac00afcc8a6a1701dcac3a128c37f24c76",
+        "style_prompt": "Speak in a professional and clear manner for Chinese, Mandarin (China). 使用香港廣東話輸出."
+      }
+    },
+    "slide_2_8cd2720f": {
+      "slide_index": 2,
+      "existing_notes_hash": "8cd2720f",
+      "original_notes": "Definition and Key Characteristics",
+      "note": "好喇，承接住我哋頭先對雲端技術同埋佢帶嚟嘅變革潛力嘅討論，依家我哋就嚟到今日最核心嘅主題：到底乜嘢先至係「雲端運算」（Cloud Computing）。呢張 slide 會帶大家深入剖析呢個最基本嘅概念——呢個詞彙喺現代 IT 架構入面，已經佔咗一個絕對核心嘅位置。我哋會一齊探討佢嘅核心特徵，同埋點解佢代表住一個咁巨大嘅轉變，徹底改變咗我哋點樣去處理可擴充嘅數碼運算（scalable digital computing）同埋 IT 服務。",
+      "status": "success",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_yue-HK_speech/slide_2_cfd6a67d.mp3",
+      "tts_metadata": {
+        "engine_used": "gemini",
+        "duration_seconds": 21.270857142857142,
+        "cache_key": "cfd6a67d882c50a7749c1bd326926075eb769277b7b57dc2b2fc7d08e42dfbce",
+        "style_prompt": "Speak in a professional and clear manner for Chinese, Mandarin (China). 使用香港廣東話輸出."
+      }
+    },
+    "slide_3_374f13f4": {
+      "slide_index": 3,
+      "existing_notes_hash": "374f13f4",
+      "original_notes": "Cloud computing refers to the delivery of computing services—including servers, storage, databases, networking, software, and analytics—over the internet, often referred to as 'the cloud.' This model allows businesses and individuals to access technology resources on-demand without owning or maintaining physical infrastructure. Key characteristics of cloud computing include scalability, which enables systems to handle varying workloads efficiently; on-demand access, allowing users to provision resources as needed; and pay-as-you-go pricing, which reduces upfront costs. Cloud computing has become integral to modern IT infrastructure because it offers flexibility, cost savings, and global accessibility. Organizations can deploy applications faster, scale operations seamlessly, and innovate without being constrained by hardware limitations. The concept emerged from the evolution of distributed computing and virtualization technologies, and today it underpins many digital services we rely on daily, from streaming platforms to enterprise software solutions.",
+      "note": "喺了解完雲端技術之後，等我哋嚟定義一下到底咩係「雲端運算」。\n\n簡單嚟講，好似大家喺左邊見到呢啲互相連結嘅雲端 icon 咁，雲端運算嘅核心，就是透過互聯網去提供 IT 服務——例如係伺服器、儲存空間、資料庫同埋網絡等等。咁樣做，基本上令我哋唔再需要親自擁有或者管理實體嘅基礎設施。\n\n呢種模式上嘅轉變帶來咗幾個關鍵特點：超強嘅擴展能力、即時按需獲取資源，同埋一個非常高效嘅「按使用量收費」模式——簡單啲講，即係用幾多、俾幾多。\n\n對於 IT 基礎建設嚟講，呢個轉變真正嘅意義，在於大大加快咗應用程式嘅部署速度、可以無縫擴展去應付隨時變動嘅需求，同埋等我哋可以突破以前傳統硬件嘅種種限制，去發揮無限嘅創新可能。",
+      "status": "success",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_yue-HK_speech/slide_3_9f4e7b6f.mp3",
+      "tts_metadata": {
+        "engine_used": "gemini",
+        "duration_seconds": 32.832,
+        "cache_key": "9f4e7b6fb522b86ac01519f82a651694635dd00eaa57ee7ac351f2b020e4302f",
+        "style_prompt": "Speak in a professional and clear manner for Chinese, Mandarin (China). 使用香港廣東話輸出."
+      }
+    },
+    "slide_4_0568ff95": {
+      "slide_index": 4,
+      "existing_notes_hash": "0568ff95",
+      "original_notes": "IaaS, PaaS, and SaaS Explained",
+      "note": "既然我哋已經對咩係雲端運算，同埋佢嘅核心特點有咗基本嘅認識，跟住落嚟，我哋就可以開始將呢啲服務唔同嘅提供方式進行分類。\n\n喺下一部分，我會同大家介紹幾種唔同類型嘅雲端服務，呢啲服務正正就係我哋喺雲端環境入面，去使用同管理 IT 資源嘅最基本模式。",
+      "status": "success",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_yue-HK_speech/slide_4_e9094909.mp3",
+      "tts_metadata": {
+        "engine_used": "gemini",
+        "duration_seconds": 14.317714285714287,
+        "cache_key": "e9094909f6dca5e9d85e16243cff04e23c95715faa30ae6cded7402aa52f37ac",
+        "style_prompt": "Speak in a professional and clear manner for Chinese, Mandarin (China). 使用香港廣東話輸出."
+      }
+    },
+    "slide_5_80316228": {
+      "slide_index": 5,
+      "existing_notes_hash": "80316228",
+      "original_notes": "Cloud services are broadly categorized into three main models: Infrastructure as a Service (IaaS), Platform as a Service (PaaS), and Software as a Service (SaaS). IaaS provides virtualized computing resources over the internet, such as virtual machines, storage, and networking. It is ideal for businesses that want flexibility in managing their infrastructure without investing in physical hardware. PaaS offers a platform for developers to build, test, and deploy applications without worrying about underlying infrastructure. It includes tools, frameworks, and runtime environments that streamline development processes. SaaS delivers fully functional software applications over the internet, accessible through web browsers, eliminating the need for installation or maintenance. Examples include email services, CRM systems, and collaboration tools. These service models cater to different needs: IaaS for infrastructure control, PaaS for development efficiency, and SaaS for end-user convenience. Together, they form the backbone of cloud computing ecosystems.",
+      "note": "好啦，既然我哋已經對雲端服務嘅交付方式有咗基本概念，跟住落嚟我哋就深入睇下三大主要類別。呢三個類別定義咗你擁有幾多嘅控制權、管理權同埋抽象化程度，佢哋分別係：基礎設施即服務（IaaS）、平台即服務（PaaS）同埋軟件即服務（SaaS）。呢啲模型對於理解 IT 資源喺雲端環境入面係點樣被使用同埋管理，係非常之關鍵嘅。\n\n首先，我哋有**基礎設施即服務**，即係 IaaS。大家可以將 IaaS 想像成係雲端 IT 嘅基本積木——例如虛擬伺服器、儲存空間同埋網絡功能，實際上就係透過網絡為你提供虛擬化嘅運算資源。呢個模型喺你管理 IT 資源時，提供咗最高嘅靈活性同控制權，感覺就好似管理自己本地部署嘅基礎設施咁，但係就唔需要投資實體硬件。\n\n再行上一層，我哋有**平台即服務**，即係 PaaS。正如左邊呢啲環環相扣嘅齒輪所顯示，PaaS 喺 IaaS 嘅基礎上，提供咗一個完整嘅平台，等你可以開發、運行同埋管理應用程式。喺 PaaS 之下，雲端供應商會幫你搞掂底層嘅基礎設施同埋作業系統，等開發人員可以專注喺寫 code 同部署應用程式，咁樣可以大大加快應用程式嘅開發進度。\n\n最後，喺最高嘅抽象化層面，我哋有**軟件即服務**，即係 SaaS。呢個應該係大家最熟悉嘅模型，功能完整嘅應用軟件直接透過互聯網提供畀你，通常用網頁瀏覽器就開得。用 SaaS 嘅話，你只需要好似消費服務咁直接用個軟件，完全唔使煩安裝、維護同埋基礎設施管理嘅嘢，因為呢啲都由供應商一手包辦，令到終端用戶嘅 IT 管理變得非常簡單。",
+      "status": "success",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_yue-HK_speech/slide_5_05aab4d0.mp3",
+      "tts_metadata": {
+        "engine_used": "gemini",
+        "duration_seconds": 69.35314285714286,
+        "cache_key": "05aab4d003851d91113f601da651205aee4a2d27d73c1270c9ede0134657a122",
+        "style_prompt": "Speak in a professional and clear manner for Chinese, Mandarin (China). 使用香港廣東話輸出."
+      }
+    },
+    "slide_6_81a86745": {
+      "slide_index": 6,
+      "existing_notes_hash": "81a86745",
+      "original_notes": "Advantages and Potential Risks",
+      "note": "既然我哋已經深入探討過唔同嘅雲端服務交付模式——即係 IaaS、PaaS 同埋 SaaS——依家係時候要將我哋嘅焦點轉移一下。有見及此，我哋跟住會深入分析一下採用呢啲技術喺實際應用上嘅影響，特別會去睇下企業會得到嘅顯著優勢，同埋要面對嘅重大挑戰。呢個部分嘅目的，係希望為大家提供一個全面、平衡嘅視角，為之後更深入去理解策略性雲端部署做好準備。",
+      "status": "success",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_yue-HK_speech/slide_6_fde5becb.mp3",
+      "tts_metadata": {
+        "engine_used": "gemini",
+        "duration_seconds": 19.776,
+        "cache_key": "fde5becbf47e90d0d0e93f718fd2f1294492efa80d3e4f48a697c9310c3bf8a7",
+        "style_prompt": "Speak in a professional and clear manner for Chinese, Mandarin (China). 使用香港廣東話輸出."
+      }
+    },
+    "slide_7_80023871": {
+      "slide_index": 7,
+      "existing_notes_hash": "80023871",
+      "original_notes": "Cloud technologies offer numerous benefits, including cost efficiency, scalability, and accessibility. Organizations can reduce capital expenditures by shifting to operational expenses, paying only for the resources they use. Scalability ensures that businesses can adjust resources dynamically to meet changing demands, which is particularly valuable for startups and enterprises experiencing rapid growth. Accessibility allows users to work from anywhere, fostering collaboration and remote work. However, these advantages come with challenges. Security concerns remain a top priority, as storing sensitive data on third-party servers introduces risks of breaches and unauthorized access. Compliance with regulations such as GDPR or HIPAA can be complex when data is distributed across multiple jurisdictions. Additionally, downtime risks due to service outages can disrupt operations, making reliability a critical factor when choosing a provider. Understanding these benefits and challenges helps organizations make informed decisions about adopting cloud solutions.",
+      "note": "講完各種模型之後，我哋而家將焦點轉到雲端技術嘅實際影響，特別係要權衡一下佢嘅種種優勢，同埋背後潛在嘅風險。\n\n喺好處方面，我哋睇到成本效益帶嚟嘅巨大價值，特別係佢點樣將資本性開支（CapEx）轉化為更易管理嘅營運開支（OpEx），令到財務調配更加靈活。另外，雲端技術亦提供咗無與倫比嘅彈性擴充能力（scalability），容許我哋根據實際需要，極之精準咁去增加或者減少資源；同時，佢亦大大提升咗存取便利性，等全球團隊可以無縫協作。\n\n不過，我哋亦都必須正視一啲關鍵嘅風險：資訊安全同合規性（compliance）依然係首要考慮，潛在嘅數據洩漏同複雜嘅監管環境，都需要我哋非常嚴謹咁去管理。仲有，如果我哋唔主動去處理好系統可靠性同埋停機（downtime）嘅問題，呢啲因素隨時會嚴重影響到業務嘅持續運作（business continuity）。",
+      "status": "success",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_yue-HK_speech/slide_7_1220314c.mp3",
+      "tts_metadata": {
+        "engine_used": "gemini",
+        "duration_seconds": 41.307428571428574,
+        "cache_key": "1220314cd04b3fab59614b72592f2c0934bf345fb4d830cc010a8e36e83dc8c9",
+        "style_prompt": "Speak in a professional and clear manner for Chinese, Mandarin (China). 使用香港廣東話輸出."
+      }
+    },
+    "slide_8_2518884c": {
+      "slide_index": 8,
+      "existing_notes_hash": "2518884c",
+      "original_notes": "Emerging Innovations and Directions",
+      "note": "既然我哋對目前嘅形勢——包括啱啱探討過嘅各種好處同埋關鍵挑戰——都已經有咗深入嘅理解，依家係時候要轉變下視角，望遠少少。雲端運算嘅模式一直喺度不斷演進，想做好策略規劃同推動創新，緊貼未來嘅發展走向係至關重要。所以喺呢一頁，我哋會開始深入探討雲端運算未來趨勢呢個既精彩又充滿活力嘅世界，一齊睇下有啲咩新興嘅創新技術，將會塑造我哋未來幾年嘅數碼基礎建設。",
+      "status": "success",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_yue-HK_speech/slide_8_0e8cc0da.mp3",
+      "tts_metadata": {
+        "engine_used": "gemini",
+        "duration_seconds": 23.684571428571427,
+        "cache_key": "0e8cc0da4dd163cee87e7988d608d984ed5e98b78906248eb3a1ab5c91194fab",
+        "style_prompt": "Speak in a professional and clear manner for Chinese, Mandarin (China). 使用香港廣東話輸出."
+      }
+    },
+    "slide_9_aea83681": {
+      "slide_index": 9,
+      "existing_notes_hash": "aea83681",
+      "original_notes": "The future of cloud computing is shaped by several emerging trends that promise to enhance its capabilities and address existing challenges. Edge computing is gaining traction as a complementary technology, enabling data processing closer to the source for faster response times and reduced latency. This is particularly important for IoT applications and real-time analytics. Artificial Intelligence (AI) and machine learning are increasingly integrated into cloud services, offering advanced tools for automation, predictive analytics, and intelligent resource management. Enhanced security measures, including zero-trust architectures and advanced encryption techniques, are being developed to mitigate risks and ensure compliance with evolving regulations. Additionally, multi-cloud and hybrid cloud strategies are becoming popular as organizations seek flexibility and resilience by leveraging multiple providers. These trends indicate that cloud computing will continue to evolve, driving innovation across industries and supporting the growing demand for digital transformation.",
+      "note": "好喇，等我哋將目光投向雲端運算呢個令人興奮嘅前沿領域，一齊探討吓一啲即將重塑我哋數碼版圖嘅新興創新技術。正如大家喺畫面見到，呢個發光嘅雲端由無數嘅節點同用戶檔案連接住，完美象徵咗呢啲先進雲端服務「互聯互通」同「以用戶為中心」嘅未來。我哋正迎嚟一個技術比以往任何時候都更加融合、反應更加迅速嘅未來。\n\n首先，我哋見到**邊緣運算**嘅顯著增長。呢個趨勢嘅核心，係將數據處理同儲存帶到更接近數據產生源頭嘅地方，從而大幅降低物聯網設備同即時數據分析等應用程式嘅延遲。呢種本地化嘅處理能力，對於即時決策以及高效處理喺網絡邊緣產生嘅海量數據，係至關重要嘅。\n\n緊接住，**人工智能同機器學習**正深刻噉提升緊雲端服務。呢啲技術對於提高自動化水平、提供先進嘅預測分析，以及優化雲端基礎架構入面嘅資源管理，都係不可或缺嘅。AI 模型愈嚟愈多噉被用嚟預測需求、自動分配資源，同埋加強即時監控，以便偵測異常狀況並優化整體效能。\n\n之後，我哋見到大家正全力推動**先進嘅安全措施**。採用以「永不信任，始終驗證」為原則嘅零信任架構，加上強大嘅加密協定，正成為確保雲端安全同符合監管要求嘅重中之重。呢個方法透過對存取資源嘅每個用戶、設備同應用程式進行持續驗證（無論佢哋身處邊度），嚟全面提升安全性。\n\n最後，**多雲同混合雲策略**嘅廣泛應用正繼續保持強勁嘅勢頭。呢啲方法結合咗公共雲同私有雲環境，為企業提供無與倫比嘅靈活性同韌性，呢點對於滿足企業多元化嘅需求同推動數碼轉型至關重要。呢啲策略有助於避免被單一供應商鎖定、優化成本，並確保更強嘅業務連續性。\n\n總括嚟講，呢啲趨勢描繪出一個未來：雲端運算唔單止係一種公用事業工具，而係一個充滿活力、智能且高度安全嘅生態系統，不斷推動持續嘅創新。非常感謝大家今朝嘅聆聽，我好期待一陣解答大家嘅問題。",
+      "status": "success",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_yue-HK_speech/slide_9_0c37f367.mp3",
+      "tts_metadata": {
+        "engine_used": "gemini",
+        "duration_seconds": 82.57371428571429,
+        "cache_key": "0c37f3671b130cc0a40ef0b70b2b50c4da3e23ee0a2cfcb4906f44455f4119c3",
+        "style_prompt": "Speak in a professional and clear manner for Chinese, Mandarin (China). 使用香港廣東話輸出."
+      }
+    }
+  },
+  "global_context": "大家好。今日想同大家分享一下呢個關於「雲端科技」簡報嘅全局導覽。\n\n首先，我哋嚟睇下成個內容嘅脈絡發展：\n\n簡報會先由「雲端科技」切入，將佢定位為「高擴展性數碼運算嘅創新解決方案」。跟住，我哋會明確定義乜嘢係「雲端運算」，剖析佢嘅關鍵特徵，同埋對 IT 基礎架構嘅影響。打好呢個基本功之後，我哋就會深入探討幾種主要嘅「雲端服務類型」，即係大家成日聽到嘅 IaaS、PaaS 同埋 SaaS。接住落嚟，我哋會用一個客觀同平衡嘅角度，去分析「雲端科技嘅利與弊」，除咗講成本效益同協作優勢之外，亦都會探討資訊安全同穩定性等潛在挑戰。最後，我哋會放眼未來，一齊睇下「雲端運算嘅未來趨勢」，包括邊緣運算、人工智能同埋多雲端策略等最新技術。\n\n跟住，我想歸納一下簡報嘅核心主題同關鍵詞：\n\n喺成個簡報入面，我哋會圍繞住幾個核心重點：\n第一，係「雲端科技與雲端運算」本身；\n第二，係「可擴展嘅數碼運算」；\n第三，係「資訊科技服務（IT服務）」同「IT基礎架構」；\n第四，係雲端嘅「關鍵特徵」，例如彈性擴展、按需存取，同埋按使用量收費嘅模式；\n第五，係三種雲端服務模式：IaaS、PaaS 同 SaaS；\n第六，係佢帶嚟嘅「優勢」，好似成本效益、高靈活性，同埋促進團隊協作；\n第七，當然唔少得「挑戰與風險」，好似資訊安全、合規性、網絡穩定性，同埋死機停網嘅風險；\n最後，就係「未來趨勢」，包括邊緣運算（Edge Computing）、人工智能（AI）、機器學習（Machine Learning）、多雲端（Multi-Cloud）、混合雲策略，同埋企業嘅數碼轉型。\n\n喺成個簡報入面，我會秉持住一個專業導師同客觀分析師嘅角色，用清晰、有系統嘅方式去同大家解構呢啲複雜嘅技術概念。我嘅口吻會維持客觀中立，為大家提供清晰嘅定義、分類，並全面分析利弊同未來展望，等大家可以對雲端運算有一個全面、客觀而又平衡嘅理解。\n\n成個簡報總共會有 9 張投影片。多謝大家。"
+}

@@ -1,0 +1,37 @@
+{
+  "should_generate": true,
+  "moments": [
+    {
+      "slide_idx": 1,
+      "role": "intro",
+      "reason": "作为演讲的开篇，视频能够通过动态的数字化视觉效果迅速吸引听众注意力，树立专业、系统化的学术与技术演讲基调。",
+      "prompt": "An elegant, cinematic abstract animation of glowing data streams and network nodes rising from a futuristic city grid and merging into a soft, glowing cloud. The atmosphere is intellectual, clean, and highly professional.",
+      "status": "success",
+      "video_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_videos/slide_1_intro_veo.mp4"
+    },
+    {
+      "slide_idx": 8,
+      "role": "section",
+      "reason": "这是从当前的“云服务现状与利弊分析”向“未来趋势”（如边缘计算、人工智能）过渡的关键转折点，视频能增强前瞻性和科技感。",
+      "prompt": "A dynamic concept video showing a central cloud matrix expanding outward to smaller glowing edge devices and neural network pathways, visualizing the transition from centralized cloud computing to edge computing and AI integration.",
+      "status": "success",
+      "video_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_videos/slide_8_section_veo.mp4"
+    },
+    {
+      "slide_idx": 9,
+      "role": "conclusion",
+      "reason": "作为全篇演讲的总结，视频通过对“互联互通、以用户为中心”的未来图景进行具象化呈现，能够为观众留下深刻而鼓舞人心的余韵。",
+      "prompt": "An inspiring, high-tech animation of a massive cloud silhouette formed by millions of interconnected nodes, glowing connections, and subtle digital human profiles, radiating a sense of global unity and accessible technology.",
+      "status": "success",
+      "video_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_videos/slide_9_conclusion_veo.mp4"
+    }
+  ],
+  "source": "ai",
+  "presentation_theme": "General Presentation",
+  "global_context": "### 全球背景指南\n\n1. **叙事主线：**\n   本场演讲首先从引入“云技术”开始，将其确立为“可扩展数字计算创新解决方案”的源泉。随后，演讲将深入定义“云计算”，概述其核心特征以及对IT基础设施带来的深远影响。在奠定这一概念基础之后，我们将详细剖析“云服务的不同类型”，具体涵盖IaaS（基础设施即服务）、PaaS（平台即服务）和SaaS（软件即服务）。接下来，叙事将转向客观理性的讨论，探讨“云技术的优势与挑战”，既分析成本效益和协同合作等显著优势，也坦诚面对安全风险和系统可靠性等潜在挑战。最后，演讲将前瞻未来，探索“云计算的未来发展趋势”，包括边缘计算、人工智能以及多云策略等前沿创新。\n\n2. **核心主题与专业词汇：**\n   * 云技术 / 云计算\n   * 可扩展数字计算\n   * IT服务、IT基础设施\n   * 核心特征（例如：弹性可扩展性、按需获取、按量付费）\n   * 云服务（IaaS、PaaS、SaaS）\n   * 优势（例如：成本效益、便捷访问、协同合作）\n   * 挑战与风险（例如：安全性、合规性、可靠性、停机时间）\n   * 未来趋势（例如：边缘计算、人工智能与机器学习、多云、混合云策略、数字化转型）\n\n3. **演讲者画像：**\n   演讲者定位为**知识型与教学型专家**，采用清晰、条理分明的方式来剖析复杂的工程技术概念。整体基调客观严谨，侧重于提供权威的定义、系统化的分类、客观的利弊分析以及前瞻性的未来展望。这种风格类似于**专家型教育者或资深行业分析师**，旨在帮助听众对云计算构建起全面、客观且均衡的系统性认知。\n\n4. **幻灯片总数：**\n   9张。",
+  "language": "zh-CN",
+  "max_clips": 3,
+  "raw_response": "```json\n{\n  \"should_generate\": true,\n  \"moments\": [\n    {\n      \"slide_idx\": 1,\n      \"role\": \"intro\",\n      \"reason\": \"作为演讲的开篇，视频能够通过动态的数字化视觉效果迅速吸引听众注意力，树立专业、系统化的学术与技术演讲基调。\",\n      \"prompt\": \"An elegant, cinematic abstract animation of glowing data streams and network nodes rising from a futuristic city grid and merging into a soft, glowing cloud. The atmosphere is intellectual, clean, and highly professional.\"\n    },\n    {\n      \"slide_idx\": 8,\n      \"role\": \"section\",\n      \"reason\": \"这是从当前的“云服务现状与利弊分析”向“未来趋势”（如边缘计算、人工智能）过渡的关键转折点，视频能增强前瞻性和科技感。\",\n      \"prompt\": \"A dynamic concept video showing a central cloud matrix expanding outward to smaller glowing edge devices and neural network pathways, visualizing the transition from centralized cloud computing to edge computing and AI integration.\"\n    },\n    {\n      \"slide_idx\": 9,\n      \"role\": \"conclusion\",\n      \"reason\": \"作为全篇演讲的总结，视频通过对“互联互通、以用户为中心”的未来图景进行具象化呈现，能够为观众留下深刻而鼓舞人心的余韵。\",\n      \"prompt\": \"An inspiring, high-tech animation of a massive cloud silhouette formed by millions of interconnected nodes, glowing connections, and subtle digital human profiles, radiating a sense of global unity and accessible technology.\"\n    }\n  ]\n}\n```",
+  "generated_count": 3,
+  "failed_count": 0
+}

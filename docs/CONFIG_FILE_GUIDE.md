@@ -86,7 +86,7 @@ python main.py --config configs/lecture.yaml
 ```yaml
 input_folder: "notes"
 output_dir: "notes/professional/generate"
-language: "en,yue-HK,zh-CN"
+language: "en,zh-CN,yue-HK"
 course_id: "course123"
 retry_errors: true
 skip_visuals: false

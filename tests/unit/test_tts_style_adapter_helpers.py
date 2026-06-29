@@ -18,6 +18,8 @@ class TestTTSStyleAdapterHelpers:
     def test_build_base_prompt_and_default_style(self):
         """Base and default prompts should include the expected scaffolding."""
         assert "en-US" in build_base_tts_prompt("en-US")
+        assert "Chinese, Mandarin (China)" in build_base_tts_prompt("yue-HK")
+        assert "使用香港廣東話輸出" in build_base_tts_prompt("yue-HK")
         assert "professional" in get_default_professional_style()
 
     def test_detect_presentation_type_and_extract_indicators(self):
@@ -39,7 +41,12 @@ class TestTTSStyleAdapterHelpers:
         guidelines = analyze_speaker_notes_to_style("formal and technical", "architecture")
         fallback = create_fallback_prompt(guidelines, "ja")
         concise = create_concise_prompt(guidelines, "ja")
+        cantonese_fallback = create_fallback_prompt(guidelines, "yue-HK")
+        cantonese_concise = create_concise_prompt(guidelines, "yue-HK")
 
         assert "SPEAKING STYLE ANALYSIS" in guidelines
         assert "presentation in ja" in fallback
         assert concise.startswith("Speak in a ")
+        assert "Chinese, Mandarin (China)" in cantonese_fallback
+        assert "使用香港廣東話輸出" in cantonese_fallback
+        assert "Chinese, Mandarin (China)" in cantonese_concise
