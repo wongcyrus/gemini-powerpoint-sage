@@ -16,8 +16,8 @@ class VideoConfig:
     fps: int = 30                               # Frames per second
     video_codec: str = "libx264"               # Video codec
     audio_codec: str = "aac"                   # Audio codec
-    video_bitrate: str = "2M"                  # Video bitrate
-    audio_bitrate: str = "128k"                # Audio bitrate
+    video_bitrate: str = "1M"                  # Video bitrate
+    audio_bitrate: str = "96k"                 # Audio bitrate
     output_format: str = "mp4"                 # Output format
     fade_duration: float = 0.5                 # Transition fade duration
     

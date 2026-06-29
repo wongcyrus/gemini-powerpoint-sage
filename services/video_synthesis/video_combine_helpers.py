@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 from typing import Iterable
+from core.domain.video_synthesis import VideoConfig
 
 from core.domain.video_synthesis import FileValidationError, VideoProcessingError
 
@@ -64,3 +65,64 @@ def build_concat_command(concat_file: Path, output_path: Path) -> list[str]:
         "copy",
         str(output_path),
     ]
+
+
+def build_normalized_concat_command(
+    video_paths: Iterable[Path],
+    output_path: Path,
+    config: VideoConfig,
+    audio_sample_rate: int = 48000,
+    audio_channels: int = 2,
+) -> list[str]:
+    """Build an FFmpeg concat command that normalizes inputs before combining."""
+    normalized_paths = [Path(path) for path in video_paths]
+    if not normalized_paths:
+        raise VideoProcessingError("No video files to concatenate")
+
+    command = ["ffmpeg", "-y"]
+    for video_path in normalized_paths:
+        command.extend(["-i", str(video_path)])
+
+    filter_parts: list[str] = []
+    concat_inputs: list[str] = []
+    width, height = config.resolution
+
+    for index in range(len(normalized_paths)):
+        filter_parts.append(
+            f"[{index}:v:0]setpts=PTS-STARTPTS,scale={width}:{height}:force_original_aspect_ratio=decrease,"
+            f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:black,fps={config.fps},format=yuv420p,setsar=1[v{index}]"
+        )
+        filter_parts.append(
+            f"[{index}:a:0]asetpts=PTS-STARTPTS,aformat=sample_rates={audio_sample_rate}:channel_layouts=stereo[a{index}]"
+        )
+        concat_inputs.append(f"[v{index}][a{index}]")
+
+    filter_complex = ";".join(filter_parts + [f"{''.join(concat_inputs)}concat=n={len(normalized_paths)}:v=1:a=1[v][a]"])
+    command.extend(
+        [
+            "-filter_complex",
+            filter_complex,
+            "-map",
+            "[v]",
+            "-map",
+            "[a]",
+            "-c:v",
+            config.video_codec,
+            "-c:a",
+            config.audio_codec,
+            "-b:v",
+            config.video_bitrate,
+            "-b:a",
+            config.audio_bitrate,
+            "-ar",
+            str(audio_sample_rate),
+            "-ac",
+            str(audio_channels),
+        ]
+    )
+
+    if output_path.suffix.lower() == ".mp4":
+        command.extend(["-movflags", "+faststart"])
+
+    command.append(str(output_path))
+    return command

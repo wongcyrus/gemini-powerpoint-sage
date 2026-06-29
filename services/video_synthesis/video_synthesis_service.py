@@ -19,7 +19,7 @@ from services.video_synthesis.video_config_manager import VideoConfigManager
 from services.video_synthesis.ffmpeg_processor import FFmpegVideoProcessor
 from services.video_synthesis.file_manager import VideoFileManager
 from services.video_synthesis.video_combine_helpers import (
-    build_concat_command,
+    build_normalized_concat_command,
     calculate_total_video_duration,
     validate_video_paths,
 )
@@ -708,45 +708,30 @@ class VideoSynthesisService:
             # Concatenate videos using FFmpeg
             logger.info(f"Concatenating {len(video_paths)} videos (total duration: {total_duration:.2f}s)")
             
-            # Create temporary concat file
-            import tempfile
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-                concat_file = Path(f.name)
-                for video_path in video_paths:
-                    f.write(f"file '{video_path.absolute()}'\n")
-            
-            try:
-                if callback:
-                    callback({
-                        'operation_id': operation_id,
-                        'stage': 'writing',
-                        'message': f'Writing combined video to {output_path.name}',
-                        'progress': 60
-                    })
-                
-                # Ensure output directory exists
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                
-                # Use FFmpeg concat demuxer (fastest method)
-                cmd = build_concat_command(concat_file, output_path)
-                
-                logger.info(f"Running FFmpeg: {' '.join(cmd[:6])}...")
-                
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=max(300, len(video_paths) * 10)  # 5 min minimum, 10s per video
-                )
-                
-                if result.returncode != 0:
-                    raise VideoProcessingError(f"FFmpeg concatenation failed: {result.stderr}")
-                
-                logger.info(f"FFmpeg concatenation completed successfully")
-                
-            finally:
-                # Clean up concat file
-                concat_file.unlink(missing_ok=True)
+            if callback:
+                callback({
+                    'operation_id': operation_id,
+                    'stage': 'writing',
+                    'message': f'Writing combined video to {output_path.name}',
+                    'progress': 60
+                })
+
+            # Normalize each clip before concatenation so mixed slide/Veo audio stays playable.
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            cmd = build_normalized_concat_command(video_paths, output_path, VideoConfig())
+            logger.info(f"Running FFmpeg: {' '.join(cmd[:8])}...")
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=max(900, len(video_paths) * 60)  # Allow re-encoding long decks safely
+            )
+
+            if result.returncode != 0:
+                raise VideoProcessingError(f"FFmpeg concatenation failed: {result.stderr}")
+
+            logger.info("FFmpeg concatenation completed successfully")
             
             # Calculate final statistics
             processing_time = time.time() - start_time

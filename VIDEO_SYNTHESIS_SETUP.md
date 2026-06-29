@@ -116,6 +116,8 @@ python main.py --synthesize-video \
   --video-output output/video.mp4
 ```
 
+Default encoding now uses `video_bitrate: "1M"` and `audio_bitrate: "96k"` to keep combined files smaller.
+
 **With custom configuration:**
 ```bash
 python main.py --synthesize-video \

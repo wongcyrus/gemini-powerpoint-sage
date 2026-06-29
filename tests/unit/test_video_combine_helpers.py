@@ -8,6 +8,7 @@ import pytest
 from core.domain.video_synthesis import FileValidationError, VideoProcessingError
 from services.video_synthesis.video_combine_helpers import (
     build_concat_command,
+    build_normalized_concat_command,
     calculate_total_video_duration,
     validate_video_paths,
 )
@@ -60,4 +61,20 @@ class TestVideoCombineHelpers:
         command = build_concat_command(concat_file, output)
 
         assert command[:5] == ["ffmpeg", "-y", "-f", "concat", "-safe"]
+        assert command[-1] == str(output)
+
+    def test_build_normalized_concat_command_adds_audio_and_video_filters(self, tmp_path):
+        """Normalized concat should re-encode to a shared format."""
+        clip1 = tmp_path / "a.mp4"
+        clip2 = tmp_path / "b.mp4"
+        output = tmp_path / "out.mp4"
+        config = Mock(resolution=(1920, 1080), fps=30, video_codec="libx264", audio_codec="aac", video_bitrate="2M", audio_bitrate="128k", output_format="mp4")
+
+        command = build_normalized_concat_command([clip1, clip2], output, config)
+
+        assert command[:3] == ["ffmpeg", "-y", "-i"]
+        assert str(clip1) in command and str(clip2) in command
+        assert "-filter_complex" in command
+        assert "aformat=sample_rates=48000:channel_layouts=stereo" in " ".join(command)
+        assert "-ac" in command and "2" in command
         assert command[-1] == str(output)

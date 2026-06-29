@@ -24,8 +24,8 @@ class VideoConfigManager:
             fps=30,
             video_codec="libx264",
             audio_codec="aac",
-            video_bitrate="2M",
-            audio_bitrate="128k",
+            video_bitrate="1M",
+            audio_bitrate="96k",
             output_format="mp4",
             fade_duration=0.5
         )

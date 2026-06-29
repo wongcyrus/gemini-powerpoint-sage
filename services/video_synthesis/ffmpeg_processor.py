@@ -13,6 +13,7 @@ from typing import List, Optional, Dict, Any, TYPE_CHECKING
 from core.domain.video_synthesis import (
     VideoConfig, SlideVideoSegment, VideoProcessingError
 )
+from services.video_synthesis.video_combine_helpers import build_normalized_concat_command
 
 if TYPE_CHECKING:
     from .file_manager import VideoFileManager
@@ -294,7 +295,6 @@ class FFmpegVideoProcessor:
         temp_dir: Path,
     ) -> Path:
         """Concatenate pre-rendered video files in order."""
-        concat_file_path = None
         try:
             if not video_paths:
                 raise VideoProcessingError("No video files to concatenate")
@@ -308,32 +308,9 @@ class FFmpegVideoProcessor:
                 shutil.copy2(video_paths[0], output_path)
                 return output_path
 
-            concat_file_path = temp_dir / "concat_list.txt"
-            with open(concat_file_path, "w", encoding="utf-8") as f:
-                for video_path in video_paths:
-                    f.write(f"file '{video_path.absolute()}'\n")
-
-            cmd = [
-                "ffmpeg",
-                "-y",
-                "-f",
-                "concat",
-                "-safe",
-                "0",
-                "-i",
-                str(concat_file_path),
-                "-c",
-                "copy",
-                str(output_path),
-            ]
-
-            format_options = self._get_format_specific_options(config)
-            if format_options and not config.output_format == "mp4":
-                for key, value in format_options.items():
-                    cmd.extend([f"-{key}", str(value)])
-
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            timeout_seconds = max(60, len(video_paths) * 5)
+            timeout_seconds = max(900, len(video_paths) * 60)
+            cmd = build_normalized_concat_command(video_paths, output_path, config)
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_seconds, cwd=temp_dir)
             if result.returncode != 0:
                 raise VideoProcessingError(f"FFmpeg concatenation failed: {result.stderr}")
@@ -346,12 +323,6 @@ class FFmpegVideoProcessor:
             error_msg = f"Failed to concatenate video files: {e}"
             logger.error(error_msg)
             raise VideoProcessingError(error_msg) from e
-        finally:
-            try:
-                if concat_file_path is not None:
-                    concat_file_path.unlink(missing_ok=True)
-            except Exception:
-                pass
     
     def _concatenate_simple(
         self,
