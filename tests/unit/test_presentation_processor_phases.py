@@ -209,6 +209,42 @@ class TestPresentationProcessorPhases:
         assert missing == 1
         processor.visual_generator.generate_visual.assert_not_awaited()
 
+    def test_process_aborts_when_visuals_fail(self, monkeypatch):
+        processor = _make_phase_processor()
+        processor.config.pdf_path = "/tmp/demo.pdf"
+        processor.config.pptx_path = "/tmp/demo.pptx"
+        processor.config.language = "yue-HK"
+        processor._phase_generate_notes = AsyncMock(return_value=[])
+        processor._phase_generate_tts = AsyncMock()
+        processor._phase_generate_visuals = AsyncMock(return_value=1)
+        processor._phase_generate_videos = AsyncMock()
+        processor._save_outputs = Mock()
+        processor._get_global_context = AsyncMock(return_value="context")
+        processor._configure_supervisor_tools = Mock()
+        processor._initialize_supervisor = AsyncMock(return_value=SimpleNamespace())
+        processor.config.get_presentation_theme = lambda: "Theme"
+        monkeypatch.setattr(
+            "services.presentation_processor.Presentation",
+            lambda *_args, **_kwargs: SimpleNamespace(slides=[Mock()])
+        )
+        monkeypatch.setattr(
+            "services.presentation_processor.pymupdf.open",
+            lambda *_args, **_kwargs: [Mock()]
+        )
+        monkeypatch.setattr(
+            "services.presentation_processor.load_progress",
+            lambda *_args, **_kwargs: {"slides": {}}
+        )
+
+        import asyncio
+        import pytest
+
+        with pytest.raises(RuntimeError, match="failed to generate"):
+            asyncio.run(processor.process())
+
+        processor._phase_generate_videos.assert_not_awaited()
+        processor._save_outputs.assert_not_called()
+
     def test_phase_generate_videos_generates_clips_and_updates_plan(self):
         processor = _make_phase_processor()
         processor.config.generate_videos = True

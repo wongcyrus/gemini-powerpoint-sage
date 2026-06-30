@@ -4,128 +4,128 @@
       "slide_index": 1,
       "existing_notes_hash": "522d3a09",
       "original_notes": "Let’s start learning Cloud Technologies",
-      "note": "大家早上好，下午好！今天非常高兴能和大家在这里相聚，共同开启对充满活力的云技术领域的探索之旅。今天这一节，我们将重点探讨这些技术如何为可扩展的数字化计算提供真正具有创新性的解决方案，并以此重塑 IT 基础设施的未来。我们的目标，是为大家接下来的学习奠定一个清晰、全面的坚实基础。",
+      "note": "大家早上好，下午好。今天非常荣幸能与大家相聚在一起，共同开启我们对充满活力的云技术领域的探索之旅。本次课程将重点探讨这些技术如何为可扩展的数字计算提供极具创新性的解决方案，并以此重塑 IT 基础设施的未来。我们的目标是为接下来的学习内容奠定一个清晰而全面的基础。",
       "status": "success",
-      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_1_6e5add4a.mp3",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_1_995a1798.mp3",
       "tts_metadata": {
         "engine_used": "gemini",
-        "duration_seconds": 0.0,
-        "cache_key": "6e5add4ad0635c2530f68f8dc837dfd07dfe92272a826feac008a2508bb75de1",
-        "style_prompt": ""
+        "duration_seconds": 15.181714285714285,
+        "cache_key": "995a179833f3bab857d6d78d70dd3f04b2218a516679b4578eab87dcf7815263",
+        "style_prompt": "Speak in a professional and clear manner for cmn-CN."
       }
     },
     "slide_2_8cd2720f": {
       "slide_index": 2,
       "existing_notes_hash": "8cd2720f",
       "original_notes": "Definition and Key Characteristics",
-      "note": "现在，结合我们前面关于云技术及其变革性潜力的探讨，我们切入了今天最核心的话题：也就是深入理解“云计算”到底包含什么。接下来，我们将重点剖析这一基本概念——这个如今在现代IT基础设施中处于绝对核心地位的术语。我们将共同探讨它的核心特征，以及为什么它在改变我们构建可扩展数字计算和IT服务的方式上，代表了如此重大的变革。",
+      "note": "现在，紧接着我们刚才对云技术及其变革潜力的探讨，我们来到了今天主题的最核心部分：去深入理解“云计算”到底包含哪些内容。这张幻灯片标志着我们正式开始定义这个最基本的概念——这个如今在现代 IT 基础设施中占据绝对核心地位的术语。接下来，我们将一起剖析它的核心特征，并探讨为什么它代表了我们在应对可扩展数字计算和 IT 服务时，所发生的如此重大的思维与技术变革。",
       "status": "success",
-      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_2_d5766d57.mp3",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_2_658c825d.mp3",
       "tts_metadata": {
         "engine_used": "gemini",
-        "duration_seconds": 0.0,
-        "cache_key": "d5766d5704b4fac6cf1af5109b907c9ae06c5c9f94236cba60f589e4c53c897f",
-        "style_prompt": ""
+        "duration_seconds": 19.488,
+        "cache_key": "658c825d27e890f1ead0277bd91b0ee11229a22832abdabecac9054d2d23ac9c",
+        "style_prompt": "Speak in a professional and clear manner for cmn-CN."
       }
     },
     "slide_3_374f13f4": {
       "slide_index": 3,
       "existing_notes_hash": "374f13f4",
       "original_notes": "Cloud computing refers to the delivery of computing services—including servers, storage, databases, networking, software, and analytics—over the internet, often referred to as 'the cloud.' This model allows businesses and individuals to access technology resources on-demand without owning or maintaining physical infrastructure. Key characteristics of cloud computing include scalability, which enables systems to handle varying workloads efficiently; on-demand access, allowing users to provision resources as needed; and pay-as-you-go pricing, which reduces upfront costs. Cloud computing has become integral to modern IT infrastructure because it offers flexibility, cost savings, and global accessibility. Organizations can deploy applications faster, scale operations seamlessly, and innovate without being constrained by hardware limitations. The concept emerged from the evolution of distributed computing and virtualization technologies, and today it underpins many digital services we rely on daily, from streaming platforms to enterprise software solutions.",
-      "note": "结合我们对云技术的理解，现在让我们来给“云计算”下一个明确的定义。从核心上来说，正如大家在左侧看到的这些互联的云图标所展示的，云计算本质上就是通过互联网来交付 IT 服务——比如服务器、存储、数据库和网络等——从而在根本上免去了我们对物理基础设施所有权的需求。这种范式的转变带来了几个关键特征：强大的可扩展性、即时的按需资源获取，以及非常高效的“按需付费”定价模式，也就是说，您只需为您实际使用的资源买单。这对于 IT 基础设施的真正意义在于，它能显著加速应用的部署，实现无缝扩展以应对起伏不定的需求，并让我们能够突破传统硬件的种种限制，进行更具颠覆性的创新。",
+      "note": "在对云技术有了初步了解之后，现在让我们来正式定义一下什么是“云计算”。\n\n从核心本质上来说——正如大家在左侧看到的这些互联的云图标所展示的——云计算就是通过互联网来交付 IT 服务，比如服务器、存储、数据库和网络。这样一来，企业就从根本上摆脱了对物理基础设施所有权的束缚。\n\n这种模式的转变带来了几个核心特征：强大的弹性扩展能力、即时按需获取资源，以及非常高效的“按量计费”定价模式，也就是说，您只需为实际使用的资源买单。\n\n而这对于 IT 基础设施而言，真正意味着：应用部署速度的显著提升、能够无缝扩展以应对业务需求的波动，以及彻底打破传统硬件的种种限制，释放出无限的创新可能。",
       "status": "success",
-      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_3_e99770ff.mp3",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_3_c49b28ff.mp3",
       "tts_metadata": {
         "engine_used": "gemini",
-        "duration_seconds": 0.0,
-        "cache_key": "e99770ffe2ae0de9ecbb22080b4ca7da58b27fb7ed8d4f54e9dba8e949bc5860",
-        "style_prompt": ""
+        "duration_seconds": 32.46171428571429,
+        "cache_key": "c49b28ff728067c3ab8d6d98d343b9f145da4576843cc7f6399270d5a844ae69",
+        "style_prompt": "Speak in a professional and clear manner for cmn-CN."
       }
     },
     "slide_4_0568ff95": {
       "slide_index": 4,
       "existing_notes_hash": "0568ff95",
       "original_notes": "IaaS, PaaS, and SaaS Explained",
-      "note": "既然我们已经对云计算的概念及其核心特征有了基本的了解，接下来，我们就可以开始探讨这些服务的具体交付方式并进行分类了。在接下来的这个部分中，我们将共同了解不同类型的云服务，它们是在云环境中消费和管理 IT 资源的基本模型。",
+      "note": "既然我们已经对什么是云计算及其核心特征有了基本的了解，接下来，我们就可以开始对这些服务的不同交付方式进行分类了。在接下来的这部分内容中，我们将一起了解不同类型的云服务，它们是我们在云环境中去使用和管理 IT 资源的基本模式。",
       "status": "success",
-      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_4_bf994b92.mp3",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_4_56552657.mp3",
       "tts_metadata": {
         "engine_used": "gemini",
-        "duration_seconds": 0.0,
-        "cache_key": "bf994b92fbeb5ef0022ffe5afb16e7f76e241334eb3fa7fc0a16130ef0ad208b",
-        "style_prompt": ""
+        "duration_seconds": 11.547428571428572,
+        "cache_key": "56552657c4a16e69fded4343aa7a750b0b082907f7b675dc0ebfd0814ee31d7e",
+        "style_prompt": "Speak in a professional and clear manner for cmn-CN."
       }
     },
     "slide_5_80316228": {
       "slide_index": 5,
       "existing_notes_hash": "80316228",
       "original_notes": "Cloud services are broadly categorized into three main models: Infrastructure as a Service (IaaS), Platform as a Service (PaaS), and Software as a Service (SaaS). IaaS provides virtualized computing resources over the internet, such as virtual machines, storage, and networking. It is ideal for businesses that want flexibility in managing their infrastructure without investing in physical hardware. PaaS offers a platform for developers to build, test, and deploy applications without worrying about underlying infrastructure. It includes tools, frameworks, and runtime environments that streamline development processes. SaaS delivers fully functional software applications over the internet, accessible through web browsers, eliminating the need for installation or maintenance. Examples include email services, CRM systems, and collaboration tools. These service models cater to different needs: IaaS for infrastructure control, PaaS for development efficiency, and SaaS for end-user convenience. Together, they form the backbone of cloud computing ecosystems.",
-      "note": "现在，在我们理解了云服务的交付方式之后，我们将深入探讨决定您所拥有的控制、管理和抽象水平的三大主要类别：基础设施即服务（IaaS）、平台即服务（PaaS）和软件即服务（SaaS）。这些模型是理解在云环境中如何消费和管理 IT 资源的基础。\n\n首先是**基础设施即服务**，简称 IaaS。您可以把 IaaS 想象成提供云 IT 的基础构建块——比如虚拟服务器、存储和网络功能，这实际上是通过互联网为您提供虚拟化的计算资源。这种模型对您的 IT 资源提供了最高水平的灵活性和控制力，类似于管理您自己的本地基础设施，但无需进行物理硬件投资。\n\n接下来，我们看到**平台即服务**，即 PaaS。正如左边互锁的齿轮所暗示的那样，PaaS 在 IaaS 的基础上，提供了一个用于开发、运行和管理应用程序的完整平台。在 PaaS 模式下，云服务商负责处理底层基础设施和操作系统，让开发人员可以专注于编写代码和部署应用程序，这大大加快了应用开发的过程。\n\n最后，在最高级别的抽象上，我们有**软件即服务**，即 SaaS。这可能是大家最熟悉的一种模型，它通过互联网交付功能完整的软件应用程序，通常可以通过网页浏览器直接访问。使用 SaaS，您只需将软件作为服务来使用，将所有的安装、维护和基础设施管理工作完全交由服务商处理，从而极大简化了终端用户的 IT 工作。",
+      "note": "现在，在对云服务交付方式有了基本了解之后，我们将深入探讨三个核心类别。它们定义了您所拥有的控制权、管理权限和抽象化程度，分别是：基础设施即服务、平台即服务和软件即服务。这些模型是理解如何在云环境中消费和管理 IT 资源的关键基石。\n\n首先是**基础设施即服务**，简称 IaaS。您可以把 IaaS 想象成提供云端 IT 的基本积木——比如虚拟服务器、存储和网络功能。本质上，它是通过互联网向您提供虚拟化的计算资源。这种模式为您提供了对 IT 资源最高水平的灵活性和控制力，非常类似于管理您自己的本地基础设施，但却省去了物理硬件的资金投入。\n\n接下来，我们往上走，看看**平台即服务**，也就是 PaaS。正如左侧那些相互关联的齿轮所暗示的，PaaS 在 IaaS 的基础上更进一步，提供了一个用于开发、运行和管理应用程序的完整平台。有了 PaaS，云服务商会帮您处理底层的硬件基础设施和操作系统，这让开发人员能够完全专注于编写代码和部署应用，从而大大加快了应用的开发进程。\n\n最后，在最高级别的抽象层次上，是**软件即服务**，也就是 SaaS。这可能是大家最熟悉的一种模式了。它通过互联网交付功能完整的软件应用，通常直接在网页浏览器中就能使用。在 SaaS 模式下，您只需像消费服务一样直接使用软件，把所有的安装、维护和底层管理任务完全外包给云服务商，这极大地简化了终端用户的 IT 体验。",
       "status": "success",
-      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_5_f0c8b488.mp3",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_5_7cd8166d.mp3",
       "tts_metadata": {
         "engine_used": "gemini",
-        "duration_seconds": 0.0,
-        "cache_key": "f0c8b4882e6b4995a6c52d820c74953af779f5a7a4cdef4a7d9dbc8c993545fe",
-        "style_prompt": ""
+        "duration_seconds": 60.64457142857143,
+        "cache_key": "7cd8166d0001d49168f6f839738295c5071ac8f06d0a3c393d7616ff4cfece33",
+        "style_prompt": "Speak in a professional and clear manner for cmn-CN."
       }
     },
     "slide_6_81a86745": {
       "slide_index": 6,
       "existing_notes_hash": "81a86745",
       "original_notes": "Advantages and Potential Risks",
-      "note": "既然我们已经全面探讨了云服务交付的不同模式——IaaS、PaaS 和 SaaS——接下来，我们需要把目光转向另一个关键领域。\n\n顺着这个思路，我们将深入分析采用这些技术在实际应用中所带来的深远影响，特别是重点剖析组织在这一过程中所获得的巨大收益以及面临的严峻挑战。这一部分旨在为大家提供一个客观、平衡的视角，为我们进一步深入理解企业云战略采用奠定基础。",
+      "note": "刚才，我们已经深入探讨了 IaaS、PaaS 和 SaaS 这几种不同的云服务交付模式。接下来，我们需要把关注的焦点做个调整。顺着这个思路，我们将深入分析引入这些技术在现实中带来的影响，特别是企业在实际应用中，具体会获得哪些巨大的红利，又会面临哪些严峻的挑战。这一部分旨在为大家提供一个客观、全面的视角，为我们后续进一步理解企业的“战略性上云”打下坚实的基础。",
       "status": "success",
-      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_6_20a17b27.mp3",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_6_65c74761.mp3",
       "tts_metadata": {
         "engine_used": "gemini",
-        "duration_seconds": 0.0,
-        "cache_key": "20a17b27612a28a2bddd19eb409151c0be81e7de52cd35f789fb9b5f3b6890eb",
-        "style_prompt": ""
+        "duration_seconds": 19.638857142857145,
+        "cache_key": "65c74761ab6d4903c80bb8be4242443eee864c7bbf45f862b4fcadf766b47a23",
+        "style_prompt": "Speak in a professional and clear manner for cmn-CN."
       }
     },
     "slide_7_80023871": {
       "slide_index": 7,
       "existing_notes_hash": "80023871",
       "original_notes": "Cloud technologies offer numerous benefits, including cost efficiency, scalability, and accessibility. Organizations can reduce capital expenditures by shifting to operational expenses, paying only for the resources they use. Scalability ensures that businesses can adjust resources dynamically to meet changing demands, which is particularly valuable for startups and enterprises experiencing rapid growth. Accessibility allows users to work from anywhere, fostering collaboration and remote work. However, these advantages come with challenges. Security concerns remain a top priority, as storing sensitive data on third-party servers introduces risks of breaches and unauthorized access. Compliance with regulations such as GDPR or HIPAA can be complex when data is distributed across multiple jurisdictions. Additionally, downtime risks due to service outages can disrupt operations, making reliability a critical factor when choosing a provider. Understanding these benefits and challenges helps organizations make informed decisions about adopting cloud solutions.",
-      "note": "在了解了这些模型之后，我们现在将注意力转向云计算技术带来的实际影响，特别是要具体权衡它所带来的众多优势与潜在的固有风险。\n\n从优势方面来看，云技术在成本效益上展现出了巨大的价值，特别是它能够将高昂的资本支出转化为更易于管理的运营支出，从而为企业提供极大的财务灵活性。此外，云端还提供了无与伦比的弹性扩展能力，允许资源根据实际需求精准地进行扩容或缩容，同时还为全球化团队带来了大幅提升的访问便利性与无缝协作能力。\n\n然而，我们也必须正视那些关键的风险：安全与合规仍然是首要关注的问题，潜在的数据泄露和复杂的监管环境都需要我们进行严密精细的管理。此外，如果不能提前进行主动规划和应对，系统的可靠性问题以及潜在的停机中断，都可能会对业务连续性造成严重干扰。",
+      "note": "在了解了这些模型之后，现在让我们把目光投向云技术所带来的切实影响，特别是来权衡一下它的诸多优势以及随之而来的潜在风险。\n\n在优势方面，我们能看到成本效益带来的巨大价值，尤其是它如何将资本支出转变为更易于管理的运营支出，从而为企业提供显著的财务灵活性。此外，云技术还提供了无与伦比的可扩展性，允许资源根据实际需求精准地进行扩容或缩容，同时还为全球团队带来了大幅提升的访问便利性和无缝协作能力。\n\n然而，我们也必须正视那些关键的风险：安全与合规依然是首要关注的问题，潜在的安全漏洞和复杂的监管环境都需要我们进行严密、谨慎的管理。此外，如果不能积极主动地加以应对，系统可靠性问题和潜在的停机风险也可能会严重干扰业务的连续性。",
       "status": "success",
-      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_7_b43a2014.mp3",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_7_d09db984.mp3",
       "tts_metadata": {
         "engine_used": "gemini",
-        "duration_seconds": 0.0,
-        "cache_key": "b43a2014a696e45a1d0e5cda77941da465601fff5a03606c62b65a79c737f5ed",
-        "style_prompt": ""
+        "duration_seconds": 34.38171428571429,
+        "cache_key": "d09db9848fb866434973f9ba795795900a3594ba8782fa3004a44b98d7171ce0",
+        "style_prompt": "Speak in a professional and clear manner for cmn-CN."
       }
     },
     "slide_8_2518884c": {
       "slide_index": 8,
       "existing_notes_hash": "2518884c",
       "original_notes": "Emerging Innovations and Directions",
-      "note": "在对当前的行业格局——包括我们刚刚探讨的诸多优势和关键挑战——有了深入的理解之后，现在是时候转变我们的视线，展望未来了。云计算的技术范式在不断演进，而紧跟未来的发展趋势，对于我们的战略规划和技术创新来说至关重要。因此，在这张幻灯片中，我们将开始深入探讨充满机遇与活力的云计算未来趋势，共同探究那些将在未来几年重塑我们数字基础设施的新兴技术创新。",
+      "note": "在对当前的现状——包括我们刚刚共同探讨的诸多优势和关键挑战——有了清晰、全面的认识之后，现在，我们需要转换视角，将目光投向未来。云计算模式正在不断演进，紧跟未来的发展趋势对于我们的战略规划和持续创新至关重要。因此，在这张幻灯片中，我们将开始深入探讨云计算未来趋势中那些令人振奋且充满活力的领域，共同审视那些将在未来几年重塑我们数字基础设施的新兴创新技术。",
       "status": "success",
-      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_8_b4449a2c.mp3",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_8_6cf2cc57.mp3",
       "tts_metadata": {
         "engine_used": "gemini",
-        "duration_seconds": 0.0,
-        "cache_key": "b4449a2ce7619f988572dfa1feeb1a3c80031cbab32e96931c937b753d7b0055",
-        "style_prompt": ""
+        "duration_seconds": 21.682285714285715,
+        "cache_key": "6cf2cc57de58cb126927922aa20da307f951e6f1a0b0b724a76b82a29f3e6717",
+        "style_prompt": "Speak in a professional and clear manner for cmn-CN."
       }
     },
     "slide_9_aea83681": {
       "slide_index": 9,
       "existing_notes_hash": "aea83681",
       "original_notes": "The future of cloud computing is shaped by several emerging trends that promise to enhance its capabilities and address existing challenges. Edge computing is gaining traction as a complementary technology, enabling data processing closer to the source for faster response times and reduced latency. This is particularly important for IoT applications and real-time analytics. Artificial Intelligence (AI) and machine learning are increasingly integrated into cloud services, offering advanced tools for automation, predictive analytics, and intelligent resource management. Enhanced security measures, including zero-trust architectures and advanced encryption techniques, are being developed to mitigate risks and ensure compliance with evolving regulations. Additionally, multi-cloud and hybrid cloud strategies are becoming popular as organizations seek flexibility and resilience by leveraging multiple providers. These trends indicate that cloud computing will continue to evolve, driving innovation across industries and supporting the growing demand for digital transformation.",
-      "note": "好的，让我们把目光投向云计算这一令人兴奋的前沿领域，共同探讨那些即将重新定义我们数字化格局的新兴创新。正如大家在画面上所看到的，这朵由无数节点和用户画像连接而成的闪耀云朵，完美地象征了这些先进云服务互联互通、以用户为中心的未来。我们正在迎来一个技术比以往任何时候都更加集成、响应更加迅速的未来。\n\n首先，是**边缘计算**的显著增长。这一趋势的核心在于将数据处理和存储带到更接近数据产生源头的地方，从而大幅降低物联网设备和实时分析等应用的延迟。这种本地化的处理能力对于即时决策以及高效处理网络边缘产生的海量数据至关重要。\n\n其次，**人工智能与机器学习**正在深刻地提升云服务。这些技术在提高自动化水平、提供先进的预测分析以及优化云基础设施内的资源管理方面不可或缺。AI模型正越来越多地被用于预测需求、自动分配资源，并加强实时监控以检测异常和优化性能。\n\n接下来，我们看到业界正在积极推动**先进的安全措施**。采用基于“从不信任，始终验证”原则的零信任架构以及强大的加密协议，正成为确保云安全和合规性的重中之重。这种方法通过要求对访问资源的每个用户、设备和应用程序进行持续验证（无论其身处何地）来提升安全性。\n\n最后，**多云与混合云策略**的广泛应用依然势头强劲。通过结合公有云和私有云环境，这些方法为企业提供了无与伦比的灵活性和韧性，这对于满足多样化的组织需求和推动数字化转型至关重要。此类策略有助于避免供应商锁定、优化成本，并确保更强的业务连续性。\n\n这些趋势共同描绘了一个未来：云计算不再仅仅是一项公共服务，而是一个充满活力、智能且高度安全的生态系统，能够赋能持续的创新。非常感谢大家今天上午的聆听，接下来我很乐意解答大家的问题。",
+      "note": "好的，现在让我们把目光投向云计算这一令人兴奋的前沿领域，共同探讨那些即将重塑我们数字化格局的新兴创新。正如大家在画面上所看到的，这朵由无数节点和用户画像连接而成的闪耀云朵，完美地象征着这些先进云服务互联互通、以用户为中心的未来。我们正在迈向一个技术比以往任何时候都更加集成、响应更加迅速的未来。\n\n首先，是**边缘计算**的强劲增长。这一趋势的核心在于将数据处理和存储带到更靠近数据产生源头的地方，从而大幅降低物联网设备和实时分析等应用的延迟。这种本地化的处理能力，对于实现即时决策以及高效处理网络边缘产生的大量数据至关重要。\n\n接下来，**人工智能和机器学习**正在深刻地提升云服务。这些技术对于提高自动化水平、提供先进的预测性分析以及优化云基础设施中的资源管理不可或缺。人工智能模型正越来越多地被用于预测需求、自动分配资源，并加强实时监控以检测异常并优化性能。\n\n随后，我们正看到行业向**高级安全措施**迈进。采用基于“永不信任，始终验证”原则的零信任架构以及强大的加密协议，正成为确保云安全和监管合规的重中之重。这种方法通过要求对访问资源的每个用户、设备和应用程序进行持续验证（无论其身处何地）来增强安全性。\n\n最后，**多云和混合策略**的广泛应用正继续保持强劲势头。通过结合使用公共云和私有云环境，这些方法为企业提供了无与伦比的灵活性和弹性，这对于满足多样化的组织需求并推动数字化转型至关重要。这些策略还有助于避免供应商锁定、优化成本，并确保更强的业务连续性。\n\n这些趋势共同描绘了一个未来：云计算不再仅仅是一项公用事业，而是一个充满活力、智能且高度安全的生态系统，赋能持续不断的创新。非常感谢大家今天早上的聆听，我非常期待解答大家的问题。",
       "status": "success",
-      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_9_2d09f807.mp3",
+      "audio_file_path": "/home/developer/Documents/data-disk/gemini-powerpoint-sage/sample_data/sample/generate/cloudtech_zh-CN_speech/slide_9_c85542ce.mp3",
       "tts_metadata": {
         "engine_used": "gemini",
-        "duration_seconds": 0.0,
-        "cache_key": "2d09f807ea2741f86421f9192740bd14922290b0e05f586a1c2f5fb5b44fc49c",
-        "style_prompt": ""
+        "duration_seconds": 73.536,
+        "cache_key": "c85542cee62870337746703b1e684937fd35c39b32c239c7b40ec72e1968fd1c",
+        "style_prompt": "Speak in a professional and clear manner for cmn-CN."
       }
     }
   },
-  "global_context": "### 全球背景指南\n\n1. **叙事主线：**\n   本场演讲首先从引入“云技术”开始，将其确立为“可扩展数字计算创新解决方案”的源泉。随后，演讲将深入定义“云计算”，概述其核心特征以及对IT基础设施带来的深远影响。在奠定这一概念基础之后，我们将详细剖析“云服务的不同类型”，具体涵盖IaaS（基础设施即服务）、PaaS（平台即服务）和SaaS（软件即服务）。接下来，叙事将转向客观理性的讨论，探讨“云技术的优势与挑战”，既分析成本效益和协同合作等显著优势，也坦诚面对安全风险和系统可靠性等潜在挑战。最后，演讲将前瞻未来，探索“云计算的未来发展趋势”，包括边缘计算、人工智能以及多云策略等前沿创新。\n\n2. **核心主题与专业词汇：**\n   * 云技术 / 云计算\n   * 可扩展数字计算\n   * IT服务、IT基础设施\n   * 核心特征（例如：弹性可扩展性、按需获取、按量付费）\n   * 云服务（IaaS、PaaS、SaaS）\n   * 优势（例如：成本效益、便捷访问、协同合作）\n   * 挑战与风险（例如：安全性、合规性、可靠性、停机时间）\n   * 未来趋势（例如：边缘计算、人工智能与机器学习、多云、混合云策略、数字化转型）\n\n3. **演讲者画像：**\n   演讲者定位为**知识型与教学型专家**，采用清晰、条理分明的方式来剖析复杂的工程技术概念。整体基调客观严谨，侧重于提供权威的定义、系统化的分类、客观的利弊分析以及前瞻性的未来展望。这种风格类似于**专家型教育者或资深行业分析师**，旨在帮助听众对云计算构建起全面、客观且均衡的系统性认知。\n\n4. **幻灯片总数：**\n   9张。"
+  "global_context": "### 全局背景指南\n\n1. **演讲脉络：**\n   本次演讲首先将介绍“云技术”，将其确立为“可扩展数字计算创新解决方案”的来源。随后，我们将深入定义“云计算”，概述其核心特征以及对IT基础设施的影响。在奠定这些基础知识之后，演讲将详细解析各种“云服务类型”，特别是IaaS（基础设施即服务）、PaaS（平台即服务）和SaaS（软件即服务）。紧接着，我们将客观地探讨“云技术的优势与挑战”，既涵盖成本效益和协同合作等优势，也涵盖安全性和可靠性等潜在风险。演讲的最后将展望未来，探索“云计算的未来趋势”以及边缘计算、人工智能和多云策略等新兴创新技术。\n\n2. **核心主题与词汇：**\n   * 云技术/云计算\n   * 可扩展数字计算\n   * IT服务、IT基础设施\n   * 核心特征（例如：可扩展性、按需获取、按需付费）\n   * 云服务（IaaS、PaaS、SaaS）\n   * 优势（例如：成本效益、易用性、协同合作）\n   * 挑战/风险（例如：安全性、合规性、可靠性、停机时间）\n   * 未来趋势（例如：边缘计算、人工智能、机器学习、多云、混合策略、数字化转型）\n\n3. **演讲者角色定位：**\n   演讲者定位为**知识型与教育型**，采用清晰、有条理的方法来解释复杂的业务与技术概念。整体基调客观中立，提供明确的定义、分类、优缺点分析以及未来展望。风格类似于**专家型教育者或资深行业分析师**，旨在为听众提供对云计算全面且客观的理解。\n\n4. **幻灯片总数：**\n   共 9 张幻灯片。"
 }

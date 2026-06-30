@@ -101,12 +101,10 @@ class PresentationProcessor:
         )
 
         # Initialize visual generator
-        fallback_model = os.getenv("FALLBACK_IMAGEN_MODEL", "imagen-4.0-generate-001")
         self.visual_generator = VisualGenerator(
             designer_agent=designer_agent,
             output_dir=config.visuals_dir,
             skip_generation=config.skip_visuals,
-            fallback_imagen_model=fallback_model,
             style=config.visual_style,
         )
 
@@ -241,6 +239,12 @@ class PresentationProcessor:
         missing_visuals_count = await self._phase_generate_visuals(
             prs_visuals, slide_data
         )
+
+        if missing_visuals_count > 0:
+            raise RuntimeError(
+                f"{missing_visuals_count} slide visual(s) failed to generate. "
+                "Stopping so the run can be retried later without mixed outputs."
+            )
 
         # PHASE 3: Generate videos (if enabled)
         await self._phase_generate_videos(
@@ -498,7 +502,7 @@ class PresentationProcessor:
                 speaker_notes=speaker_notes,
                 status=status,
                 language=self.config.language,
-                visuals_dir=os.path.dirname(self.config.visuals_dir),
+                visuals_dir=self.config.visuals_dir,
                 pptx_path=self.config.pptx_path,
                 retry_errors=self.retry_errors,
                 image_translator_agent=self.image_translator_agent,

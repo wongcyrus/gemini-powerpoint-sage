@@ -8,7 +8,6 @@ from services.visual_generator_helpers import (
     cleanup_reduced_image_file,
     apply_slide_notes,
     build_designer_prompt,
-    build_fallback_prompt,
     compute_image_placement_inches,
     get_logo_instruction,
     optimize_image_file,
@@ -35,13 +34,6 @@ class TestVisualGeneratorHelpers:
         assert "Style Reference (Previous Slide) provided." in prompt
         assert "Simplified Chinese" in prompt
         assert "Speaker notes" in prompt
-
-    def test_build_fallback_prompt_includes_language_constraints(self):
-        """Fallback prompts should enforce the target language when needed."""
-        prompt = build_fallback_prompt("Notes", language="ja")
-
-        assert "Japanese" in prompt
-        assert "NO English text allowed" in prompt
 
     def test_compute_image_placement_inches_cover_and_contain(self):
         """Placement math should return sane coordinates for both modes."""

@@ -120,6 +120,7 @@ async def run_visual_agent(
     agent: LlmAgent,
     prompt: str,
     images: Optional[List[Image.Image]] = None,
+    raise_on_error: bool = False,
 ) -> Optional[bytes]:
     """
     Run a stateless agent and capture generated image output.
@@ -198,6 +199,8 @@ async def run_visual_agent(
                         
     except Exception as e:
         logger.error(f"Error running visual agent {agent.name}: {e}", exc_info=True)
+        if raise_on_error:
+            raise
         return None
 
     # Log result

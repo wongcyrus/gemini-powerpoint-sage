@@ -44,24 +44,6 @@ def build_designer_prompt(
     )
 
 
-def build_fallback_prompt(speaker_notes: str, language: str = "en") -> str:
-    """Build the fallback prompt for direct image generation."""
-    lang_name = LanguageConfig.get_language_name(language)
-    lang_instruction = ""
-    if language != "en":
-        lang_instruction = f" ALL text MUST be in {lang_name}. NO English text allowed."
-
-    return (
-        "Create a professional 16:9 presentation slide. "
-        + "Speaker Notes: " + speaker_notes.strip() + "\n"
-        + "Instructions: Derive a clear title and bullet points. "
-        + "Render a clean slide with whitespace, legible "
-        + "typography, subtle modern background, high contrast "
-        + "text." + lang_instruction
-        + " NO logos, NO invented imagery."
-    )
-
-
 def compute_image_placement_inches(
     img_width_px: int,
     img_height_px: int,

@@ -30,11 +30,9 @@ class TestVisualGeneratorWrappers:
         generator.previous_image = object()
 
         designer = generator._build_designer_prompt("notes", "logo", "zh-CN")
-        fallback = generator._build_fallback_prompt("notes", "ja")
 
         assert "Simplified Chinese" in designer
         assert "Style Reference" in designer
-        assert "Japanese" in fallback
 
     def test_compute_image_placement_wrapper_returns_length_like_values(self):
         """Placement wrapper should still return PowerPoint length objects."""
@@ -71,86 +69,80 @@ class TestVisualGeneratorWrappers:
         assert generator.previous_image is not None
 
     @pytest.mark.asyncio
-    async def test_generate_visual_primary_and_fallback_paths(self, tmp_path):
-        """Primary generation should save output and fallback should still work."""
+    async def test_generate_visual_primary_path(self, tmp_path):
+        """Primary generation should save output and return bytes."""
         generator = VisualGenerator(Mock(instruction="prompt"), str(tmp_path))
         image = Image.new("RGB", (100, 100), color="white")
 
         with patch("services.visual_generator.rotate_project", return_value="proj"), patch(
             "services.visual_generator.run_visual_agent", return_value=b"image-bytes"
-        ), patch("services.visual_generator.os.getenv", return_value=None):
+        ):
             result = await generator.generate_visual(3, image, "notes")
 
         saved = tmp_path / "slide_3_reimagined.png"
         assert result == b"image-bytes"
         assert saved.exists()
 
-        generator = VisualGenerator(Mock(instruction="prompt"), str(tmp_path))
-        with patch("services.visual_generator.rotate_project", return_value="proj"), patch(
-            "services.visual_generator.os.getenv", return_value="1"
-        ), patch.object(generator, "_generate_imagen_directly", return_value=b"fallback-bytes"):
-            result = await generator.generate_visual(4, image, "notes")
+    @pytest.mark.asyncio
+    async def test_generate_visual_tries_31_then_3_then_25_on_429(self, tmp_path):
+        """429 should advance through the configured image model order."""
+        generator = self._make_generator()
+        generator.designer_agent = Mock(instruction="prompt")
+        image = Image.new("RGB", (100, 100), color="white")
+        calls = []
 
-        assert result == b"fallback-bytes"
+        async def fake_run(agent, prompt, images=None, raise_on_error=False):
+            calls.append(agent.model)
+            if len(calls) < 3:
+                raise Exception("429 RESOURCE_EXHAUSTED")
+            return b"image-bytes"
+
+        with patch("services.visual_generator.run_visual_agent", side_effect=fake_run):
+            result = await generator._generate_with_fallback_models(
+                slide_idx=1,
+                prompt="prompt",
+                images=[image],
+            )
+
+        assert result == b"image-bytes"
+        assert calls == [
+            "gemini-3.1-flash-image",
+            "gemini-3-pro-image",
+            "gemini-2.5-flash-image",
+        ]
 
     @pytest.mark.asyncio
-    async def test_generate_visual_candidate_uses_secondary_model(self, tmp_path):
-        """The helper should fall through to the secondary model when primary fails."""
-        generator = VisualGenerator(Mock(instruction="prompt"), str(tmp_path))
+    async def test_generate_visual_does_not_fallback_on_non_429(self, tmp_path):
+        """Non-429 errors should stop immediately."""
+        generator = self._make_generator()
+        generator.designer_agent = Mock(instruction="prompt")
         image = Image.new("RGB", (100, 100), color="white")
+        calls = []
 
-        with patch("services.visual_generator.rotate_project", return_value="proj"), patch(
-            "services.visual_generator.os.getenv", return_value=None
-        ), patch("services.visual_generator.run_visual_agent", side_effect=[None, b"secondary-bytes"]) as run_agent, patch(
-            "google.adk.agents.LlmAgent"
-        ) as secondary_cls:
-            result = await generator._generate_visual_candidate(5, image, "notes", "en")
+        async def fake_run(agent, prompt, images=None, raise_on_error=False):
+            calls.append(agent.model)
+            raise Exception("boom")
 
-        assert result == b"secondary-bytes"
-        assert run_agent.call_count == 2
-        secondary_cls.assert_called_once()
+        with patch("services.visual_generator.run_visual_agent", side_effect=fake_run):
+            result = await generator._generate_with_fallback_models(
+                slide_idx=1,
+                prompt="prompt",
+                images=[image],
+            )
 
-    @pytest.mark.asyncio
-    async def test_generate_visual_force_fallback_skips_primary(self, tmp_path):
-        """Force fallback should bypass the primary and secondary model tiers."""
-        generator = VisualGenerator(Mock(instruction="prompt"), str(tmp_path))
-        image = Image.new("RGB", (100, 100), color="white")
-
-        with patch("services.visual_generator.rotate_project", return_value="proj"), patch(
-            "services.visual_generator.os.getenv", return_value="1"
-        ), patch("services.visual_generator.run_visual_agent") as run_agent, patch.object(
-            generator, "_generate_imagen_directly", return_value=b"imagen-bytes"
-        ):
-            result = await generator.generate_visual(6, image, "notes")
-
-        assert result == b"imagen-bytes"
-        run_agent.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_generate_visual_candidate_falls_back_after_secondary_exception(self, tmp_path):
-        """Secondary model exceptions should still fall through to Imagen."""
-        generator = VisualGenerator(Mock(instruction="prompt"), str(tmp_path))
-        image = Image.new("RGB", (100, 100), color="white")
-
-        with patch("services.visual_generator.rotate_project", return_value="proj"), patch(
-            "services.visual_generator.os.getenv", return_value=None
-        ), patch("services.visual_generator.run_visual_agent", side_effect=[None, Exception("secondary failed")]), patch.object(
-            generator, "_generate_imagen_directly", return_value=b"imagen-bytes"
-        ):
-            result = await generator._generate_visual_candidate(7, image, "notes", "en")
-
-        assert result == b"imagen-bytes"
+        assert result is None
+        assert calls == ["gemini-3.1-flash-image"]
 
     @pytest.mark.asyncio
     async def test_generate_visual_no_image_resets_style_context(self, tmp_path):
-        """If every tier fails, the generator should clear the cached style context."""
+        """If primary generation fails, the generator should clear the cached style context."""
         generator = VisualGenerator(Mock(instruction="prompt"), str(tmp_path))
         image = Image.new("RGB", (100, 100), color="white")
         generator.previous_image = Image.new("RGB", (32, 32), color="black")
 
         with patch("services.visual_generator.rotate_project", return_value="proj"), patch(
-            "services.visual_generator.os.getenv", return_value="1"
-        ), patch.object(generator, "_generate_imagen_directly", return_value=None):
+            "services.visual_generator.run_visual_agent", return_value=None
+        ):
             result = await generator.generate_visual(8, image, "notes")
 
         assert result is None
@@ -191,53 +183,6 @@ class TestVisualGeneratorWrappers:
             generator._update_previous_image(b"bad")
 
         assert generator.previous_image is None
-
-    @pytest.mark.asyncio
-    async def test_generate_imagen_directly_returns_bytes(self, monkeypatch):
-        """Imagen fallback should surface returned image bytes."""
-        generator = self._make_generator()
-        generator.fallback_imagen_model = "imagen-test"
-
-        class _Image:
-            image_bytes = b"imagen"
-
-        class _Response:
-            generated_images = [SimpleNamespace(image=_Image())]
-
-        class _Client:
-            class models:
-                @staticmethod
-                def generate_images(model, prompt, config):
-                    return _Response()
-
-        monkeypatch.setattr("services.visual_generator.rotate_project", lambda: "proj")
-        monkeypatch.setattr("services.visual_generator.genai.Client", lambda: _Client())
-
-        result = await generator._generate_imagen_directly("prompt")
-
-        assert result == b"imagen"
-
-    @pytest.mark.asyncio
-    async def test_generate_imagen_directly_handles_empty_response(self, monkeypatch):
-        """Imagen fallback should return None when no images are produced."""
-        generator = self._make_generator()
-        generator.fallback_imagen_model = "imagen-test"
-
-        class _Response:
-            generated_images = []
-
-        class _Client:
-            class models:
-                @staticmethod
-                def generate_images(model, prompt, config):
-                    return _Response()
-
-        monkeypatch.setattr("services.visual_generator.rotate_project", lambda: "proj")
-        monkeypatch.setattr("services.visual_generator.genai.Client", lambda: _Client())
-
-        result = await generator._generate_imagen_directly("prompt")
-
-        assert result is None
 
     def test_replace_slide_with_visual_success(self, tmp_path):
         """Replacing a slide should remove shapes, add the image, and attach notes."""

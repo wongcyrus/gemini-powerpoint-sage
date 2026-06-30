@@ -484,31 +484,20 @@ class CLI:
                 except ValueError:
                     continue
 
-            fallback_visuals_dir = base_dir / f"{base}_en_visuals"
-            fallback_image_map = {}
-            if lang != "en" and fallback_visuals_dir.exists():
-                fallback_images = natural_sort_files(
-                    list(fallback_visuals_dir.glob("*.png"))
-                    + list(fallback_visuals_dir.glob("*.jpg"))
-                    + list(fallback_visuals_dir.glob("*.jpeg"))
-                )
-                for fallback_image in fallback_images:
-                    try:
-                        fallback_image_map[extract_slide_number(fallback_image.name)] = fallback_image
-                    except ValueError:
-                        continue
-
             matched_slide_numbers = sorted(set(slide_image_map) & set(audio_map))
-            missing_visual_slides = sorted(set(audio_map) - set(slide_image_map))
-            if missing_visual_slides and fallback_image_map:
-                for slide_num in missing_visual_slides:
-                    if slide_num in fallback_image_map:
-                        slide_image_map[slide_num] = fallback_image_map[slide_num]
-                matched_slide_numbers = sorted(set(slide_image_map) & set(audio_map))
-                print(f"ℹ️  Filled missing {lang} visuals from English baseline for slides: {missing_visual_slides}")
-
-            if not matched_slide_numbers:
-                print(f"⚠️  No matching slide numbers found for {base} ({lang}). Skipping.")
+            if len(matched_slide_numbers) != len(slide_image_map) or len(matched_slide_numbers) != len(audio_map):
+                missing_visual_slides = sorted(set(audio_map) - set(slide_image_map))
+                missing_audio_slides = sorted(set(slide_image_map) - set(audio_map))
+                print(
+                    f"⚠️  Locale {lang} is incomplete for {base}: "
+                    f"{len(slide_image_map)} visuals, {len(audio_map)} audio, "
+                    f"{len(matched_slide_numbers)} matched."
+                )
+                if missing_visual_slides:
+                    print(f"   Missing localized visuals for slides: {missing_visual_slides}")
+                if missing_audio_slides:
+                    print(f"   Missing localized audio for slides: {missing_audio_slides}")
+                print("   Regenerate the locale before combining to avoid mixed-language output.")
                 failures += 1
                 continue
 

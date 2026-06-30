@@ -1,13 +1,9 @@
-"""Visual generation service for Gemini Powerpoint Sage.
-
-Primary attempt: Gemini model (designer_agent).
-Fallback (if no image bytes OR forced): Imagen API via genai.Client for direct image generation.
-Set env var FORCE_FALLBACK_IMAGE_GEN=1 to bypass primary and test fallback directly.
-"""
+"""Visual generation service for Gemini Powerpoint Sage."""
 
 import io
 import logging
 import os
+import re
 from typing import Optional
 
 from PIL import Image
@@ -15,23 +11,26 @@ from pptx import Presentation
 from pptx.util import Inches
 
 from google.adk.agents import LlmAgent
-from google import genai
-from google.genai import types
 from utils.project_rotation import rotate_project
 
-from config.constants import EnvironmentVars, FilePatterns
+from config.constants import FilePatterns
 from utils.agent_utils import run_visual_agent
 from services.visual_generator_helpers import (
     cleanup_reduced_image_file,
     apply_slide_notes,
     build_designer_prompt,
-    build_fallback_prompt,
     compute_image_placement_inches,
     get_logo_instruction,
     optimize_image_file,
 )
 
 logger = logging.getLogger(__name__)
+
+IMAGE_MODEL_FALLBACKS = (
+    "gemini-3.1-flash-image",
+    "gemini-3-pro-image",
+    "gemini-2.5-flash-image",
+)
 
 
 class VisualGenerator:
@@ -42,7 +41,6 @@ class VisualGenerator:
         designer_agent: LlmAgent,
         output_dir: str,
         skip_generation: bool = False,
-        fallback_imagen_model: str = "imagen-4.0-generate-001",
         style: str = "Professional",
     ):
         """
@@ -52,12 +50,9 @@ class VisualGenerator:
             designer_agent: Agent for generating slide designs
             output_dir: Directory to save generated visuals
             skip_generation: Whether to skip visual generation
-            fallback_imagen_model: Imagen model name for fallback generation
             style: Style/theme for visual generation
         """
         self.designer_agent = designer_agent
-        self.fallback_imagen_model = fallback_imagen_model
-        self.secondary_model = os.getenv("MODEL_DESIGNER_SECONDARY", "gemini-3.1-flash-image")
         self.output_dir = output_dir
         self.skip_generation = skip_generation
         self.visual_style = style  # This is visual_style from config
@@ -151,20 +146,13 @@ class VisualGenerator:
         speaker_notes: str,
         language: str,
     ) -> Optional[bytes]:
-        """Generate a new visual using the primary, secondary, and Imagen tiers."""
-        force_fallback = os.getenv(EnvironmentVars.FORCE_FALLBACK_IMAGE_GEN) == "1"
+        """Generate a new visual using the preferred image model order."""
 
         current_project = rotate_project()
         if current_project:
-            logger.info(
-                "--- Generating Visual for Slide %d (Project: %s, force_fallback=%s) ---"
-                % (slide_idx, current_project, force_fallback)
-            )
+            logger.info("--- Generating Visual for Slide %d (Project: %s) ---" % (slide_idx, current_project))
         else:
-            logger.info(
-                "--- Generating Visual for Slide %d (force_fallback=%s) ---"
-                % (slide_idx, force_fallback)
-            )
+            logger.info("--- Generating Visual for Slide %d ---" % slide_idx)
 
         logo_instruction = self._get_logo_instruction(slide_idx)
         designer_prompt = self._build_designer_prompt(
@@ -173,61 +161,18 @@ class VisualGenerator:
             language,
         )
         if designer_prompt is None:
-            logger.warning("_build_designer_prompt returned None; using minimal fallback prompt.")
-            designer_prompt = (
-                "Speaker Notes: " + speaker_notes[:400] + "\nTASK: Generate a high-fidelity slide image."
-            )
+            logger.error("_build_designer_prompt returned None; aborting visual generation.")
+            return None
 
         designer_images = [slide_image]
         if self.previous_image:
             designer_images.append(self.previous_image)
 
-        img_bytes = None
-        if not force_fallback:
-            img_bytes = await run_visual_agent(
-                self.designer_agent,
-                designer_prompt,
-                images=designer_images,
-            )
-        else:
-            logger.info("Force fallback enabled; skipping primary designer model.")
-
-        if not img_bytes and not force_fallback:
-            logger.info(
-                "FALLBACK TIER 2: Trying secondary model (%s) for Slide %d",
-                self.secondary_model,
-                slide_idx,
-            )
-            from google.adk.agents import LlmAgent
-
-            secondary_agent = LlmAgent(
-                name="slide_designer_secondary",
-                model=self.secondary_model,
-                description="Secondary slide designer",
-                instruction=self.designer_agent.instruction,
-            )
-            try:
-                img_bytes = await run_visual_agent(
-                    secondary_agent,
-                    designer_prompt,
-                    images=designer_images,
-                )
-            except Exception as e:
-                logger.error("Secondary model failed for Slide %d: %s" % (slide_idx, e))
-
-        if not img_bytes:
-            logger.info(
-                "FALLBACK TIER 3: Calling Imagen model for Slide %d", slide_idx
-            )
-            fallback_prompt = self._build_fallback_prompt(speaker_notes, language)
-            try:
-                img_bytes = await self._generate_imagen_directly(fallback_prompt)
-            except Exception as e:
-                logger.error(
-                    "Fallback Imagen generation failed for Slide %d: %s" % (slide_idx, e)
-                )
-
-        return img_bytes
+        return await self._generate_with_fallback_models(
+            slide_idx=slide_idx,
+            prompt=designer_prompt,
+            images=designer_images,
+        )
 
     def replace_slide_with_visual(
         self,
@@ -424,52 +369,81 @@ class VisualGenerator:
             previous_image_present=self.previous_image is not None,
         )
 
-    def _build_fallback_prompt(
-        self,
-        speaker_notes: str,
-        language: str = "en"
-    ) -> str:
-        """Prompt for Imagen fallback rendering."""
-        return build_fallback_prompt(speaker_notes, language)
+    def _build_model_agent(self, model_name: str) -> LlmAgent:
+        """Build a one-off visual agent for a specific image model."""
+        safe_suffix = re.sub(r"[^A-Za-z0-9_]", "_", model_name)
+        return LlmAgent(
+            name=f"slide_designer_{safe_suffix}",
+            model=model_name,
+            description="Slide designer",
+            instruction=self.designer_agent.instruction,
+        )
 
-    async def _generate_imagen_directly(self, prompt: str) -> Optional[bytes]:
-        """Generate image using Imagen API directly (not via ADK agent).
-        
-        Args:
-            prompt: Text prompt for image generation
-            
-        Returns:
-            Image bytes or None if generation failed
-        """
-        try:
-            # Rotate project before Imagen API call
-            current_project = rotate_project()
-            if current_project:
-                logger.debug(f"Using Imagen API with project: {current_project}")
-            
-            client = genai.Client()
-            response = client.models.generate_images(
-                model=self.fallback_imagen_model,
-                prompt=prompt,
-                config=types.GenerateImagesConfig(
-                    number_of_images=1,
-                    include_rai_reason=True,
-                    output_mime_type='image/png',
-                    aspect_ratio='16:9',  # Match PowerPoint slide dimensions
+    @staticmethod
+    def _is_429_error(exc: Exception) -> bool:
+        """Detect quota/rate-limit failures so we only fallback on 429."""
+        current: Exception | None = exc
+        while current is not None:
+            message = str(current)
+            if "429" in message or "RESOURCE_EXHAUSTED" in message or "resource exhausted" in message.lower():
+                return True
+            current = current.__cause__ if isinstance(current.__cause__, Exception) else None
+        return False
+
+    async def _generate_with_fallback_models(
+        self,
+        *,
+        slide_idx: int,
+        prompt: str,
+        images: list[Image.Image],
+    ) -> Optional[bytes]:
+        """Try the preferred image models in order, only falling back on 429."""
+        attempted_models = []
+
+        for model_name in IMAGE_MODEL_FALLBACKS:
+            attempted_models.append(model_name)
+            agent = self._build_model_agent(model_name)
+            try:
+                img_bytes = await run_visual_agent(
+                    agent,
+                    prompt,
+                    images=images,
+                    raise_on_error=True,
                 )
-            )
-            
-            if response.generated_images:
-                image_bytes = response.generated_images[0].image.image_bytes
-                logger.info("Imagen generated image: %d bytes" % len(image_bytes))
-                return image_bytes
-            else:
-                logger.warning("Imagen returned no images")
+            except Exception as exc:
+                if self._is_429_error(exc):
+                    logger.warning(
+                        "Image model %s hit 429 for Slide %d; trying next model.",
+                        model_name,
+                        slide_idx,
+                    )
+                    continue
+                logger.error(
+                    "Image generation failed for Slide %d on model %s: %s",
+                    slide_idx,
+                    model_name,
+                    exc,
+                )
                 return None
-                
-        except Exception as e:
-            logger.error("Imagen API call failed: %s" % e)
+
+            if img_bytes:
+                if model_name != IMAGE_MODEL_FALLBACKS[0]:
+                    logger.info("Slide %d generated with fallback image model %s", slide_idx, model_name)
+                return img_bytes
+
+            logger.error(
+                "Image model %s returned no bytes for Slide %d; not retrying unless the error is 429.",
+                model_name,
+                slide_idx,
+            )
             return None
+
+        logger.error(
+            "All image models exhausted for Slide %d after attempting: %s",
+            slide_idx,
+            ", ".join(attempted_models),
+        )
+        return None
 
     def _update_previous_image(self, img_bytes: bytes) -> None:
         """Update the previous image for style consistency."""
