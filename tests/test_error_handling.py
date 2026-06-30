@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test error handling and fallback mechanisms."""
+"""Test error handling and recovery mechanisms."""
 
 import json
 import os
@@ -95,22 +95,22 @@ def test_permission_errors():
             os.chmod(temp_dir, 0o755)
 
 
-def test_emergency_fallback():
-    """Test emergency fallback in prompt rewriter."""
-    print("Testing emergency fallback...")
+def test_prompt_rewriter_cache_path_exists():
+    """Test prompt rewriter cache support is wired up."""
+    print("Testing prompt rewriter cache support...")
     
     try:
         # This test would require mocking the Google SDK
-        # For now, just verify the fallback logic exists
+        # For now, just verify the cache-backed rewrite path exists
         from services.prompt_rewriter import PromptRewriter
         
-        # Check that the emergency fallback method exists
+        # Check that the cache-backed rewrite method exists
         assert hasattr(PromptRewriter, '_rewrite_with_cache'), "Cache method should exist"
         
-        print("✓ Emergency fallback logic is implemented")
+        print("✓ Prompt rewriter cache support is implemented")
     except ImportError:
         # Google SDK not available - that's expected in test environment
-        print("✓ Emergency fallback logic is implemented (Google SDK not available for full test)")
+        print("✓ Prompt rewriter cache support is implemented (Google SDK not available for full test)")
 
 
 if __name__ == "__main__":
@@ -118,7 +118,7 @@ if __name__ == "__main__":
         test_corrupted_cache_handling()
         test_cache_size_limits()
         test_permission_errors()
-        test_emergency_fallback()
+        test_prompt_rewriter_cache_path_exists()
         print("\n🎉 All error handling tests passed!")
     except Exception as e:
         print(f"\n❌ Error handling test failed: {e}")

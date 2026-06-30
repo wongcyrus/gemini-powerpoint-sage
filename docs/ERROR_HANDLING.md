@@ -122,9 +122,9 @@ audio/
 - Temporary service unavailability
 
 **Built-in Recovery:**
-- Automatic retry with exponential backoff (3 attempts)
-- Progress tracking allows resuming from last successful slide
-- Graceful degradation with fallback mechanisms
+- Automatic retry with exponential backoff (3 attempts) for transient API/network errors
+- Progress tracking allows resuming from the last successful slide
+- Unrecoverable corruption or missing assets stop the run so users can fix the source and rerun it later
 
 ## 🛠️ Improved Error Detection (v2.1+)
 
@@ -302,8 +302,8 @@ python main.py --style-config cyberpunk
 
 **Error:** "No image generated for Slide X"
 ```bash
-# Root cause: Speaker notes failed
-# Solution: Fix speaker notes first, then retry
+# Root cause: The image model failed or hit a non-retryable error
+# Solution: Inspect the error, fix the source problem, then rerun
 python main.py --style-config cyberpunk
 ```
 

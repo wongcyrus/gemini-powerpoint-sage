@@ -133,6 +133,24 @@ class TestVisualGeneratorWrappers:
         assert result is None
         assert calls == ["gemini-3.1-flash-image"]
 
+    def test_build_model_agent_sanitizes_model_name(self):
+        """Model-specific agents should use safe temporary names."""
+        generator = self._make_generator()
+        generator.designer_agent = Mock(instruction="prompt")
+
+        agent = generator._build_model_agent("gemini-3.1-flash-image")
+
+        assert agent.name == "slide_designer_gemini_3_1_flash_image"
+        assert agent.model == "gemini-3.1-flash-image"
+
+    def test_is_429_error_detects_wrapped_resource_exhausted(self):
+        """429 detection should walk exception chains."""
+        root = Exception("RESOURCE_EXHAUSTED")
+        wrapper = Exception("outer")
+        wrapper.__cause__ = root
+
+        assert VisualGenerator._is_429_error(wrapper) is True
+
     @pytest.mark.asyncio
     async def test_generate_visual_no_image_resets_style_context(self, tmp_path):
         """If primary generation fails, the generator should clear the cached style context."""

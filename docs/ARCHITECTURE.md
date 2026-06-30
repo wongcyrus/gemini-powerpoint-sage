@@ -156,16 +156,23 @@ flowchart TD
     C --> G[VisualGenerator.generate_visual]
     E --> H[image_translator_agent]
     F --> G
-    G --> I[Save slide_N_reimagined.png]
-    H --> I
-    I --> J[Replace slide contents in visuals deck]
+    G --> I{primary model succeeded?}
+    I -->|yes| J[Save slide_N_reimagined.png]
+    I -->|429 only| K[Retry gemini-3-pro-image]
+    K -->|429 only| L[Retry gemini-2.5-flash-image]
+    I -->|non-429| M[Fail fast and stop]
+    H --> J
+    J --> N[Replace slide contents in visuals deck]
 ```
 
-`VisualGenerator.generate_visual()` itself is a three-tier fallback chain:
+`VisualGenerator.generate_visual()` itself uses a controlled image-model order:
 
-1. primary designer agent
-2. secondary Gemini image model
-3. direct Imagen generation
+1. `gemini-3.1-flash-image`
+2. `gemini-3-pro-image`
+3. `gemini-2.5-flash-image`
+
+It only advances to the next model when the previous one fails with `429`
+or `RESOURCE_EXHAUSTED`; non-429 failures stop the run immediately.
 
 ### Phase 3: video planning + Veo generation
 

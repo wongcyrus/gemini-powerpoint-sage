@@ -13,8 +13,8 @@ gcloud auth application-default login
 
 | If you want to... | Run this |
 | --- | --- |
-| Process one YAML-configured batch | `python main.py --style-config professional` |
 | Process one custom YAML file directly | `python main.py --config /path/to/config.yaml` |
+| Process one built-in YAML template | `python main.py --style-config professional` |
 | Process every configured style | `python main.py --styles` |
 
 `python main.py` is the same as `python main.py --styles`.
@@ -90,8 +90,8 @@ language-specific `*_visuals/` folder.
 ## 6. Pick the simplest path
 
 1. Put processing inputs and options in YAML.
-2. Use `--style-config` when you want repeatable built-in team workflows.
-3. Use `--config` when you want a custom YAML outside `styles/`.
+2. Use `--config` when you want to run one explicit YAML file.
+3. Use `--style-config` only to choose one of the built-in template YAMLs.
 4. Use `--styles` only when you really want every configured style to run.
 
 ## 7. Next references

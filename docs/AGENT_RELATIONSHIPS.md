@@ -142,7 +142,7 @@ title_gen = create_title_generator_agent(speaker_style)
 # → rewriter.rewrite_title_generator_prompt(TITLE_GENERATOR_PROMPT)
 ```
 
-### Fallback Architecture
+### Prompt Rewriter Recovery Path
 ```
 LLM Rewriting (Primary)
     ↓ (if fails after 3 retries)
@@ -155,7 +155,7 @@ Styled Agent Created
 - **Separation of Concerns**: Style integration separate from content processing
 - **Consistency**: All agents get same style treatment
 - **Flexibility**: Can modify style integration without changing content agents
-- **Reliability**: Fallback ensures system always works
+- **Reliability**: Recovery path keeps prompt rewriting resilient
 - **Maintainability**: Style logic centralized in one place
 
 ## Agent Communication Mechanisms
@@ -253,15 +253,13 @@ Final Output
 3. Error state with retry option
 ```
 
-### Visual Generation Fallbacks
+### Visual Generation Recovery
 ```
 1. Translation Path (English visuals available)
     ↓ (if image translator fails)
 2. Direct Generation Path
     ↓ (if designer fails)
-3. Fallback to Imagen model
-    ↓ (if still fails)
-4. Skip visual for this slide
+3. Stop and surface the error
 ```
 
 ## Performance Optimization Relationships
@@ -301,7 +299,7 @@ Most agents are stateless and called independently:
 
 ### Stateful Components
 - **Supervisor**: Maintains conversation session
-- **Tool Factory**: Tracks last writer output for fallbacks
+- **Tool Factory**: Tracks last writer output for recovery
 - **Progress System**: Tracks completion state across all agents
 
 ## Concurrency and Parallelization

@@ -50,8 +50,8 @@ For developers and contributors:
 
 | Goal | Command |
 | --- | --- |
-| Process one YAML-configured workflow | `python main.py --style-config professional` |
 | Process one custom YAML file directly | `python main.py --config /path/to/config.yaml` |
+| Process one built-in YAML template | `python main.py --style-config professional` |
 | Run all configured styles | `python main.py --styles` |
 
 ### I want to...

@@ -101,7 +101,7 @@ tools = [
     self.tool_factory.create_analyst_tool(),      # Step 2
     self.tool_factory.create_writer_tool(...),    # Step 4  
     self.tool_factory.create_auditor_tool(...),   # Step 1
-    self.tool_factory.create_translator_tool(),   # Fallback
+    self.tool_factory.create_translator_tool(),   # Translation helper
 ]
 ```
 
@@ -189,7 +189,7 @@ for slide_info in slide_data:
    )
    ```
 
-3. **Generation Path** (English or fallback):
+3. **Generation Path** (English or recovery path):
    ```python
    # Designer Agent generates new visual
    img_bytes = await self.visual_generator.generate_visual(
@@ -233,7 +233,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
 2. **Contextual Placement**: Inserts style requirements where most relevant
 3. **Concrete Examples**: Provides specific implementation guidance
 4. **Language Enforcement**: Adds multilingual compliance rules
-5. **Fallback Mechanism**: Simple concatenation if LLM rewriting fails
+5. **Recovery Mechanism**: Simple concatenation if LLM rewriting fails
 
 **Style Types Handled:**
 - **Visual Style**: For Designer agent (colors, typography, layout)
@@ -242,7 +242,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
 **Key Features:**
 - **LLM-Powered**: Uses Gemini model for intelligent prompt rewriting
 - **Retry Logic**: 3 attempts with exponential backoff
-- **Fallback Safety**: Concatenation method if LLM fails
+- **Recovery Safety**: Concatenation method if LLM fails
 - **Language Priority**: Ensures target language overrides style examples
 - **Session Management**: Unique sessions to avoid conflicts
 
@@ -269,7 +269,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
   - Enforces strict 5-step workflow
   - Makes audit/generation decisions
   - Coordinates other agents
-  - Handles fallback mechanisms
+  - Handles controlled recovery paths for transient failures
 
 ### 3. Analyst Agent
 - **Model**: `gemini-3.5-flash`
@@ -360,7 +360,7 @@ translator_prompt = rewriter.rewrite_translator_prompt(TRANSLATOR_PROMPT)
   - Visual style weaving for Designer
   - Speaker style weaving for Writer/Translator
   - Language enforcement for multilingual consistency
-  - Fallback to concatenation if LLM fails
+  - Concatenation-based recovery if LLM fails
 
 ## Agent Relationships and Dependencies
 
@@ -411,9 +411,9 @@ instruction = rewriter.rewrite_designer_prompt(DESIGNER_PROMPT)
 - **Translator**: Speaker style for translations
 - **Title Generator**: Speaker style for titles
 
-## Error Handling and Fallbacks
+## Error Handling and Recovery
 
-### Supervisor Fallback Mechanism
+### Supervisor Recovery Path
 ```python
 # If supervisor returns empty response
 last_output = self.tool_factory.last_writer_output
@@ -432,9 +432,9 @@ class RetryStrategy:
 - Visual generation
 - Translation operations
 
-### Translation Fallbacks
+### Translation Recovery Paths
 1. **Translation Mode**: English notes → Styled translation
-2. **Fallback to Generation**: If translation fails → Full generation workflow
+2. **Recovery to Generation**: If translation fails → Full generation workflow
 3. **Language Enforcement**: Multiple validation layers for Chinese locales
 
 ## Performance Optimizations
@@ -487,4 +487,4 @@ class LanguageConfig:
     }
 ```
 
-This comprehensive agent flow ensures consistent, high-quality presentation enhancement across multiple languages and styles while maintaining flexibility and robustness through sophisticated error handling and fallback mechanisms.
+This comprehensive agent flow ensures consistent, high-quality presentation enhancement across multiple languages and styles while maintaining flexibility and robustness through controlled recovery paths and fail-fast error handling.
